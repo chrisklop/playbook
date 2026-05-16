@@ -7,6 +7,7 @@ import { checkPhaseTransitions } from './actions';
 import { tickPlatforms } from './platforms';
 import { tickCureEvents } from './cure';
 import { tickEventScheduler } from './events';
+import { ASSETS, UPGRADES, PROJECTS } from './catalog';
 
 const CURE_FROM_HEAT_PER_S = 0.0002;
 
@@ -49,6 +50,25 @@ function trackPeaks(state: GameState): void {
   }
 }
 
+// Once an asset/upgrade/project has been seen (visible or even just teased),
+// it stays seen — even if resources later drop below the threshold. Stickiness
+// prevents the "I saw it coming, then it vanished" UX wart.
+function tickReveals(state: GameState): void {
+  for (const a of ASSETS) {
+    if (a.visible(state)) state.flags[`reveal:${a.id}`] = true;
+    if (a.teased?.(state)) state.flags[`tease:${a.id}`] = true;
+  }
+  for (const u of UPGRADES) {
+    if (u.visible(state)) state.flags[`reveal:${u.id}`] = true;
+    if (u.teased?.(state)) state.flags[`tease:${u.id}`] = true;
+  }
+  for (const p of PROJECTS) {
+    if (state.completedProjects[p.id]) continue;
+    if (p.visible(state)) state.flags[`reveal:${p.id}`] = true;
+    if (p.teased?.(state)) state.flags[`tease:${p.id}`] = true;
+  }
+}
+
 export function tick(state: GameState, now: number): void {
   const dt = Math.max(0, (now - state.lastTick) / 1000);
   state.lastTick = now;
@@ -60,5 +80,6 @@ export function tick(state: GameState, now: number): void {
   tickEvents(state);
   tickEventScheduler(state);
   checkPhaseTransitions(state);
+  tickReveals(state);
   trackPeaks(state);
 }

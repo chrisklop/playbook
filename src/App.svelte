@@ -27,24 +27,38 @@
   }
 
   const rates = $derived(computeRates(game));
-  const visibleAssets = $derived(ASSETS.filter((a) => a.visible(game)));
+
+  // Stickiness: once revealed or teased, never hidden again — even if the
+  // player spends down past the threshold. Read sticky flags set by tick.
+  function isRevealed(id: string, predicate: (s: typeof game) => boolean): boolean {
+    return predicate(game) || !!game.flags[`reveal:${id}`];
+  }
+  function isTeased(id: string, predicate: ((s: typeof game) => boolean) | undefined): boolean {
+    if (!predicate) return !!game.flags[`tease:${id}`];
+    return predicate(game) || !!game.flags[`tease:${id}`];
+  }
+
+  const visibleAssets = $derived(ASSETS.filter((a) => isRevealed(a.id, a.visible)));
   const teasedAssets  = $derived(
-    ASSETS.filter((a) => !a.visible(game) && a.teased && a.teased(game)),
+    ASSETS.filter((a) => !isRevealed(a.id, a.visible) && isTeased(a.id, a.teased)),
   );
   const visibleProjects = $derived(
-    PROJECTS.filter((p) => p.visible(game) && !game.completedProjects[p.id]),
+    PROJECTS.filter((p) => isRevealed(p.id, p.visible) && !game.completedProjects[p.id]),
   );
   const teasedProjects = $derived(
     PROJECTS.filter(
-      (p) => !p.visible(game) && p.teased && p.teased(game) && !game.completedProjects[p.id],
+      (p) =>
+        !isRevealed(p.id, p.visible) &&
+        isTeased(p.id, p.teased) &&
+        !game.completedProjects[p.id],
     ),
   );
 
   const treesView = $derived(
     DEPICT_IDS.map((tree) => {
       const all = UPGRADES.filter((u) => u.tree === tree);
-      const visible = all.filter((u) => u.visible(game));
-      const teased  = all.filter((u) => !u.visible(game) && u.teased && u.teased(game));
+      const visible = all.filter((u) => isRevealed(u.id, u.visible));
+      const teased  = all.filter((u) => !isRevealed(u.id, u.visible) && isTeased(u.id, u.teased));
       const totalLevel = all.reduce((acc, u) => acc + (game.upgrades[u.id] ?? 0), 0);
       const totalMax = all.reduce((acc, u) => acc + u.maxLevel, 0);
       return { tree, all, visible, teased, totalLevel, totalMax };
