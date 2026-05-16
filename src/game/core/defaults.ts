@@ -12,7 +12,7 @@ function emptyResources(): Record<string, number> {
 
 function defaultCaps(): Record<string, number> {
   return {
-    attention: 50,
+    attention: 5000,
     engagement: 0,
     followers: 0,
     credibility: 0,
@@ -47,7 +47,7 @@ export function initialState(now: number = Date.now()): GameState {
   return {
     version: SAVE_VERSION,
     phase: 'grassroots',
-    resources: { ...emptyResources(), attention: 1 } as GameState['resources'],
+    resources: { ...emptyResources(), attention: 100 } as GameState['resources'],
     caps: defaultCaps() as GameState['caps'],
     assets: { sockPuppet: 1 },
     upgrades: {},

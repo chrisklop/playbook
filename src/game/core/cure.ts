@@ -50,7 +50,7 @@ export const CURE_EVENTS: CureEvent[] = [
   {
     id: 'investigative-piece',
     // Crossing meaningful engagement scale gets a long-form investigation.
-    trigger: (s) => !s.flags['cure:investigative-piece'] && s.resources.engagement >= 5000,
+    trigger: (s) => !s.flags['cure:investigative-piece'] && s.resources.engagement >= 500_000,
     cureJump: 0.05,
     headline: 'NYT/WaPo runs a 6,000-word investigation naming your operation.',
     precedent: 'NYT Magazine\'s 2018 "Russian Trolls Are Still Active" piece, ProPublica\'s ongoing IRA work, BuzzFeed\'s 2016 Macedonian Veles exposé. Long-form investigations land hard on operations they name.',

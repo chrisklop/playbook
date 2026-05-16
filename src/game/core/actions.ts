@@ -100,13 +100,13 @@ function unlockPlatforms(state: GameState, ids: readonly string[], names: readon
 
 export function checkPhaseTransitions(state: GameState): void {
   if (state.phase === 'grassroots') {
-    if (state.resources.attention >= 50_000 && state.flags['editorialCalendar']) {
+    if (state.resources.attention >= 5_000_000 && state.flags['editorialCalendar']) {
       state.phase = 'blog';
       unlockPlatforms(state, ['facebook'], ['Facebook']);
       pushLog(state, '── Phase: BLOG ── You spin up a fake news site. Real ad money starts trickling in.');
     }
   } else if (state.phase === 'blog') {
-    if (state.resources.engagement >= 50_000) {
+    if (state.resources.engagement >= 5_000_000) {
       state.phase = 'social';
       unlockPlatforms(state, ['tiktok', 'youtube'], ['TikTok', 'YouTube']);
       pushLog(state, '── Phase: SOCIAL ── The algorithm starts serving your content to people who never asked for it.');

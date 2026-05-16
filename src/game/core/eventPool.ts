@@ -108,7 +108,7 @@ export const EVENT_POOL: EventDef[] = [
   {
     id: 'tucker-style-segment',
     weight: 4,
-    conditions: (s) => s.resources.attention >= 500,
+    conditions: (s) => s.resources.attention >= 50_000,
     headline: 'A Tucker-style late-night segment cites your framing without naming you.',
     precedent: 'Tucker Carlson\'s 2017–2023 Fox primetime show repeatedly platformed online claims with "just asking questions" framing. ($787.5M Dominion settlement against Fox, 2023.)',
     duration: 90,
@@ -119,7 +119,7 @@ export const EVENT_POOL: EventDef[] = [
   {
     id: 'cease-and-desist',
     weight: 3,
-    conditions: (s) => s.resources.attention >= 800,
+    conditions: (s) => s.resources.attention >= 80_000,
     headline: 'A C&D letter from a law firm shows up. You back off the most cited post.',
     precedent: 'Defamation cease-and-desist letters as a routine pressure tactic. Big cases: Dominion v Fox, Smartmatic v Newsmax, Sandy Hook families v Jones.',
     duration: 75,
@@ -130,7 +130,7 @@ export const EVENT_POOL: EventDef[] = [
   {
     id: 'macedonian-mirror',
     weight: 5,
-    conditions: (s) => s.resources.attention >= 200,
+    conditions: (s) => s.resources.attention >= 20_000,
     headline: 'A Veles-style content farm mirrors your post on 40 fake outlets. CPMs go up.',
     precedent: 'Macedonian teenagers in Veles ran 100+ pro-Trump fake news sites for ad revenue. They tested both sides; pro-Trump fabrications drove 4–5× engagement. (BuzzFeed/Wired, 2016)',
     duration: 90,
@@ -152,7 +152,7 @@ export const EVENT_POOL: EventDef[] = [
   {
     id: 'russiagate-pundit',
     weight: 4,
-    conditions: (s) => s.resources.attention >= 1500,
+    conditions: (s) => s.resources.attention >= 150_000,
     headline: 'A blue-check pundit ties your post to a Russian-influence narrative without proof.',
     precedent: 'CJR\'s Jeff Gerth retrospective (2023) on Trump-Russia coverage — overcalls from prestige outlets through 2017–19, partially corrected in 2019 Mueller findings. Cross-spectrum disinfo failure.',
     duration: 75,
@@ -173,7 +173,7 @@ export const EVENT_POOL: EventDef[] = [
   {
     id: 'mainstream-iraq-coverage',
     weight: 3,
-    conditions: (s) => s.resources.attention >= 3000,
+    conditions: (s) => s.resources.attention >= 300_000,
     headline: '"Establishment outlet" amplifies a claim of yours uncritically. Then retracts. Slowly.',
     precedent: 'NYT 2004 "From the Editors" retraction acknowledged the paper amplified false Bush-admin WMD claims (Judith Miller-era reporting). Establishment overclaim is a real disinfo vector.',
     duration: 90,

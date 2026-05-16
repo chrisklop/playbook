@@ -116,7 +116,7 @@ describe('save round-trip', () => {
   it('migrate wipes when version mismatches', () => {
     const old = JSON.stringify({ version: 0, resources: { attention: 99999 } });
     const s = deserialize(old, T0);
-    expect(s.resources.attention).toBe(1);
+    expect(s.resources.attention).toBe(100);
   });
 });
 
