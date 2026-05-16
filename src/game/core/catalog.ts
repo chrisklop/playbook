@@ -21,6 +21,9 @@ export interface AssetDef {
   blurb: string;
   precedent?: string;
   visible: (s: GameState) => boolean;
+  // Show a ??? placeholder before it fully unlocks, for anticipation.
+  teased?: (s: GameState) => boolean;
+  teaseHint?: string;
 }
 
 export interface UpgradeDef {
@@ -36,6 +39,8 @@ export interface UpgradeDef {
   blurb: string;
   precedent?: string;
   visible: (s: GameState) => boolean;
+  teased?: (s: GameState) => boolean;
+  teaseHint?: string;
 }
 
 export interface ProjectDef {
@@ -47,6 +52,8 @@ export interface ProjectDef {
   precedent?: string;
   effect: (s: GameState) => void;
   visible: (s: GameState) => boolean;
+  teased?: (s: GameState) => boolean;
+  teaseHint?: string;
 }
 
 // Helper: sum levels across a single DEPICT tree.
@@ -94,6 +101,8 @@ export const ASSETS: AssetDef[] = [
     visible: (s) =>
       (s.assets.outlet ?? 0) >= 2 ||
       (s.assets.anonymousBlogger ?? 0) > 0,
+    teased: (s) => (s.assets.outlet ?? 0) >= 1,
+    teaseHint: 'Unlocks at 2 outlets.',
   },
   {
     id: 'outlet',
@@ -107,6 +116,8 @@ export const ASSETS: AssetDef[] = [
     blurb: 'A WordPress install with a serious-looking masthead. Adds attention storage.',
     precedent: 'Macedonian teenagers in Veles ran 100+ pro-Trump fake news sites for ad revenue. They tested both sides; pro-Trump fabrications drove 4–5× engagement. (BuzzFeed/Wired, 2016)',
     visible: (s) => s.resources.attention >= 15 || (s.assets.outlet ?? 0) > 0,
+    teased: (s) => s.resources.attention >= 8,
+    teaseHint: 'Unlocks at 15 attention.',
   },
 
   // ── Blog era ─────────────────────────────────────────────────────────
@@ -178,6 +189,8 @@ export const UPGRADES: UpgradeDef[] = [
     blurb: '"You won\'t believe what happened next." Compels the click before the brain registers.',
     precedent: 'Reuters Institute (2019) analysis: fake-news headlines were 5× more likely to use emotional or alarming language than verified news.',
     visible: (s) => s.resources.attention >= 200,
+    teased: (s) => s.resources.attention >= 100,
+    teaseHint: 'Unlocks at 200 attention.',
   },
   // POLARIZATION — ~6 min
   {
@@ -189,6 +202,8 @@ export const UPGRADES: UpgradeDef[] = [
     blurb: 'Split your audience into "us" and "them." Both halves come back angry.',
     precedent: 'IRA ran "Heart of Texas" (250K followers) AND "United Muslims of America" simultaneously, then organized rallies at the same Houston address, same day. (Senate Intel Vol. II, 2019)',
     visible: (s) => s.resources.attention >= 600,
+    teased: (s) => s.resources.attention >= 300,
+    teaseHint: 'Unlocks at 600 attention.',
   },
   // TROLLING — ~9 min
   {
@@ -200,6 +215,8 @@ export const UPGRADES: UpgradeDef[] = [
     blurb: 'Many channels, high volume, rapid, repetitive, no commitment to consistency.',
     precedent: 'RAND PE-198 (Paul & Matthews, 2016) documented the Russian propaganda model — distinguished by sheer volume; contradictions intentional.',
     visible: (s) => s.resources.attention >= 1800,
+    teased: (s) => s.resources.attention >= 1000,
+    teaseHint: 'Unlocks at 1.8K attention.',
   },
   // CONSPIRACY — ~12 min
   {
@@ -211,6 +228,8 @@ export const UPGRADES: UpgradeDef[] = [
     blurb: 'Numbered hints, "do your own research," gamified pattern-matching for the loyal.',
     precedent: 'QAnon adapted alternate-reality-game structure: cryptic "drops" interpreted by followers. Tied to Jan 6, multiple homicides. (CRS report 2021, Bellingcat)',
     visible: (s) => s.resources.attention >= 4500,
+    teased: (s) => s.resources.attention >= 2500,
+    teaseHint: 'Unlocks at 4.5K attention.',
   },
   // DISCREDITING — ~15 min
   {
@@ -222,6 +241,8 @@ export const UPGRADES: UpgradeDef[] = [
     blurb: '"What about [their thing]?" Deflects accountability by inventing an exchange rate.',
     precedent: 'Soviet active-measures doctrine, formalized in the 1960s. Adopted globally by post-Soviet info-ops. (Rid, "Active Measures," 2020)',
     visible: (s) => s.resources.attention >= 11_000,
+    teased: (s) => s.resources.attention >= 6000,
+    teaseHint: 'Unlocks at 11K attention.',
   },
   // IMPERSONATION — last in Grassroots, ~18 min
   {
@@ -233,6 +254,8 @@ export const UPGRADES: UpgradeDef[] = [
     blurb: 'Steal a face. Build a profile. Reuse across networks.',
     precedent: 'Russian Doppelganger operation cloned real Western outlets (Bild, Le Monde, Fox News) with near-identical URLs and stolen branding. (Meta threat report, 2022)',
     visible: (s) => s.resources.attention >= 28_000,
+    teased: (s) => s.resources.attention >= 15_000,
+    teaseHint: 'Unlocks at 28K attention.',
   },
 
   // ── Tier 2 ───────────────────────────────────────────────────────────
@@ -316,6 +339,8 @@ export const PROJECTS: ProjectDef[] = [
     blurb: 'A schedule. Daily posting. Stop winging it. Unlocks Engagement; outlets now compound (each adds 16% more storage than the last).',
     precedent: 'The Macedonian Veles operations ran on daily-post schedules generating $5K–$10K/month per operator in Facebook ad revenue. (BuzzFeed, 2016)',
     visible: (s) => s.resources.attention >= 600 && !s.completedProjects['editorial-calendar'],
+    teased: (s) => s.resources.attention >= 300 && !s.completedProjects['editorial-calendar'],
+    teaseHint: 'A paradigm project. Unlocks at 600 attention.',
     effect: (s) => {
       s.flags['editorialCalendar'] = true;
       s.caps.engagement = 50;

@@ -25,18 +25,27 @@
 
   const rates = $derived(computeRates(game));
   const visibleAssets = $derived(ASSETS.filter((a) => a.visible(game)));
+  const teasedAssets  = $derived(
+    ASSETS.filter((a) => !a.visible(game) && a.teased && a.teased(game)),
+  );
   const visibleProjects = $derived(
     PROJECTS.filter((p) => p.visible(game) && !game.completedProjects[p.id]),
+  );
+  const teasedProjects = $derived(
+    PROJECTS.filter(
+      (p) => !p.visible(game) && p.teased && p.teased(game) && !game.completedProjects[p.id],
+    ),
   );
 
   const treesView = $derived(
     DEPICT_IDS.map((tree) => {
       const all = UPGRADES.filter((u) => u.tree === tree);
       const visible = all.filter((u) => u.visible(game));
+      const teased  = all.filter((u) => !u.visible(game) && u.teased && u.teased(game));
       const totalLevel = all.reduce((acc, u) => acc + (game.upgrades[u.id] ?? 0), 0);
       const totalMax = all.reduce((acc, u) => acc + u.maxLevel, 0);
-      return { tree, all, visible, totalLevel, totalMax };
-    }).filter((t) => t.visible.length > 0 || t.totalLevel > 0),
+      return { tree, all, visible, teased, totalLevel, totalMax };
+    }).filter((t) => t.visible.length > 0 || t.teased.length > 0 || t.totalLevel > 0),
   );
 
   // ── Gradual reveal predicates ────────────────────────────────────────
@@ -53,7 +62,7 @@
   const showCureMeter   = $derived(game.cure >= 0.05);
   // Log is always present once the run has started (initial entry counts).
   const showLog         = $derived(game.log.length >= 1);
-  const showProjects    = $derived(visibleProjects.length > 0);
+  const showProjects    = $derived(visibleProjects.length > 0 || teasedProjects.length > 0);
   const showTrees       = $derived(treesView.length > 0);
   // Platform grid is a Blog-era surface. Until then the game is abstract:
   // sock puppets just produce attention — no platform diversification yet.
@@ -203,9 +212,21 @@
             <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
           </button>
         {/each}
+        {#each teasedAssets as a (a.id)}
+          <div class="card teased" title={a.teaseHint ?? ''}>
+            <div class="card-head">
+              <span class="name">???</span>
+              <span class="owned">locked</span>
+            </div>
+            <div class="blurb">{a.teaseHint ?? 'Something coming.'}</div>
+            <div class="card-foot">
+              <span class="cost num">{fmt(a.baseCost)} {a.costResource}</span>
+            </div>
+          </div>
+        {/each}
       </div>
 
-      {#if showProjects}
+      {#if showProjects || teasedProjects.length > 0}
         <h2>Projects</h2>
         <div class="cards">
           {#each visibleProjects as p (p.id)}
@@ -224,6 +245,19 @@
               </div>
               <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
             </button>
+          {/each}
+          {#each teasedProjects as p (p.id)}
+            {@const [res, amt] = Object.entries(p.cost)[0]}
+            <div class="card project teased" title={p.teaseHint ?? ''}>
+              <div class="card-head">
+                <span class="name">???</span>
+                <span class="owned">locked</span>
+              </div>
+              <div class="blurb">{p.teaseHint ?? 'A paradigm project coming.'}</div>
+              <div class="card-foot">
+                <span class="cost num">{fmt(amt as number)} {res}</span>
+              </div>
+            </div>
           {/each}
         </div>
       {/if}
@@ -307,6 +341,18 @@
                   </div>
                   <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
                 </button>
+              {/each}
+              {#each t.teased as u (u.id)}
+                <div class="node teased" title={u.teaseHint ?? ''}>
+                  <div class="node-head">
+                    <span class="node-name">???</span>
+                    <span class="node-lvl num">locked</span>
+                  </div>
+                  <div class="node-blurb">{u.teaseHint ?? 'A technique coming.'}</div>
+                  <div class="node-foot">
+                    <span class="node-cost num">{fmt(u.baseCost)} {u.costResource}</span>
+                  </div>
+                </div>
               {/each}
             </div>
           </div>
@@ -567,6 +613,23 @@
     transition: width 200ms;
   }
   .project { border-style: dashed; }
+
+  /* Teased placeholders — show ??? + cost + hint so the player has an
+     anticipation hook before the real card appears. */
+  .card.teased, .node.teased {
+    border-style: dashed;
+    background: transparent;
+    cursor: default;
+    opacity: 0.65;
+  }
+  .card.teased .name, .node.teased .node-name {
+    letter-spacing: 0.3em;
+    color: var(--muted);
+  }
+  .card.teased:hover, .node.teased:hover { border-color: var(--line); }
+  .card.teased .blurb, .node.teased .node-blurb {
+    font-style: italic;
+  }
 
   /* ── PLATFORM GRID ─────────────────────────────────────────────────── */
   .platform-grid {
