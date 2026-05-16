@@ -51,8 +51,8 @@
   // Cure is dormant until Blog era and below 5%. It's the long-game pressure
   // counter — when it crosses 80% in AI Saturation, the Mebro reveal triggers.
   const showCureMeter   = $derived(game.cure >= 0.05);
-  // Don't surface the log until enough has happened to feel like a feed.
-  const showLog         = $derived(game.log.length >= 4);
+  // Log is always present once the run has started (initial entry counts).
+  const showLog         = $derived(game.log.length >= 1);
   const showProjects    = $derived(visibleProjects.length > 0);
   const showTrees       = $derived(treesView.length > 0);
   // Platform grid is a Blog-era surface. Until then the game is abstract:
@@ -61,7 +61,7 @@
     PHASE_ORDER.indexOf(game.phase) >= PHASE_ORDER.indexOf('blog'),
   );
 
-  const isMinimal = $derived(!showTrees && !showProjects && !showPlatformGrid);
+  // (no "minimal mode" toggle — layout stays put; empty columns just collapse.)
 
   const buffActive = $derived(
     game.returnBuff !== null && game.returnBuff.until > Date.now(),
@@ -179,7 +179,7 @@
   {/if}
 
   <!-- MAIN GRID -->
-  <main class="grid" class:minimal={isMinimal}>
+  <main class="grid">
     <!-- LEFT: Assets + Projects -->
     <section class="col left">
       <h2>Assets</h2>
@@ -321,7 +321,7 @@
     <footer class="log">
       <h2>Log</h2>
       <div class="log-lines">
-        {#each game.log.slice(0, 6) as line, i (i)}
+        {#each game.log as line, i (i)}
           <div class="line">{line}</div>
         {/each}
       </div>
@@ -483,25 +483,28 @@
   }
 
   /* ── MAIN GRID ─────────────────────────────────────────────────────── */
+  /* Layout never shifts the assets column. Empty center/right columns
+     just collapse via :empty. Card position is stable from t=0. */
   .grid {
     display: grid;
-    grid-template-columns: 280px 1fr 360px;
+    grid-template-columns: minmax(280px, 360px) 1fr 360px;
     gap: 1rem;
     padding: 1rem;
     align-items: start;
+    align-content: start;
     min-height: 0;
-    transition: grid-template-columns 400ms ease;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
   }
-  /* Early game: center the lone Assets column. Each reveal expands the grid. */
-  .grid.minimal {
-    grid-template-columns: 1fr minmax(280px, 360px) 1fr;
-    align-content: center;
-    padding-top: 0;
-    padding-bottom: 8vh;
-  }
-  .grid.minimal .col.left { grid-column: 2; }
   .col { display: grid; gap: 0.8rem; align-content: start; }
   .col.center:empty, .col.right:empty { display: none; }
+  /* When only the left column has content, give the grid 1 column so the
+     card occupies the natural width — but the card itself doesn't move. */
+  .grid:has(.col.center:empty):has(.col.right:empty) {
+    grid-template-columns: minmax(280px, 360px);
+    justify-content: center;
+  }
   .col h2 {
     font-size: 0.65rem;
     text-transform: uppercase;
@@ -697,17 +700,20 @@
   }
 
   /* ── LOG ───────────────────────────────────────────────────────────── */
+  /* Log: fixed-height strip pinned to the bottom. Newest entry at top of
+     the strip, accented. Scroll for history. Never reflows other content. */
   .log {
     border-top: 1px solid var(--line);
     background: var(--paper-2);
-    padding: 0.7rem 1rem 1rem;
+    padding: 0.5rem 1rem 0.6rem;
+    height: 120px;
     display: grid;
-    gap: 0.3rem;
-    max-height: 18vh;
-    overflow: hidden;
+    grid-template-rows: auto 1fr;
+    gap: 0.25rem;
+    flex-shrink: 0;
   }
   .log h2 {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--muted);
@@ -715,17 +721,29 @@
     font-weight: 600;
   }
   .log-lines {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 0.15rem 1rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding-right: 0.5rem;
+  }
+  .log-lines::-webkit-scrollbar { width: 6px; }
+  .log-lines::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--ink) 15%, transparent);
+    border-radius: 3px;
   }
   .log-lines .line {
     font-size: 0.78rem;
     color: var(--muted);
     font-style: italic;
-    line-height: 1.45;
+    line-height: 1.4;
+    flex-shrink: 0;
   }
-  .log-lines .line:first-child { color: var(--ink); font-style: normal; }
+  .log-lines .line:first-child {
+    color: var(--ink);
+    font-style: normal;
+    font-weight: 500;
+  }
 
   /* ── RESPONSIVE COLLAPSE ───────────────────────────────────────────── */
   @media (max-width: 1100px) {
