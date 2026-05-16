@@ -18,16 +18,38 @@
   import { fmt, fmtRate, etaToCap } from './lib/format';
   import { FACTS } from './lib/facts';
   import { eventDefById } from './game/core/eventPool';
+  import {
+    loadLegacy, computePrestigeGain, legacyMultiplier, performPrestige,
+  } from './game/legacy';
   import { onMount } from 'svelte';
 
   type BulkMode = 1 | 10 | 100 | 'max';
   let bulkMode = $state<BulkMode>(1);
 
   function reset() {
-    if (confirm('Reset run? This wipes the save.')) {
+    if (confirm('Reset run? This wipes the save and ALL legacy points.')) {
       clearSave();
+      try { localStorage.removeItem('playbook:legacy:v1'); } catch {}
       location.reload();
     }
+  }
+
+  let legacy = $state(loadLegacy());
+  const prestigeGain = $derived(computePrestigeGain(game));
+  const currentLegacyMult = $derived(legacyMultiplier(legacy.points));
+
+  function prestige() {
+    const gain = computePrestigeGain(game);
+    if (gain <= 0) {
+      alert('No legacy points to gain yet. Push further first.');
+      return;
+    }
+    if (!confirm(
+      `Prestige now? You'll bank ${gain} legacy points (total: ${legacy.points + gain}).\n\n` +
+      `Run state wipes. Legacy points permanently buff all production (+4% each, cap +200%).`,
+    )) return;
+    performPrestige(game);
+    location.reload();
   }
 
   const rates = $derived(computeRates(game));
@@ -147,6 +169,24 @@
     return t[0].toUpperCase();
   }
 
+  function upgradeEffectText(u: { multiplier: Record<string, number> }, lvl: number): string {
+    const entries = Object.entries(u.multiplier);
+    return entries.map(([res, per]) => {
+      const perPct = (per * 100).toFixed(1);
+      if (lvl > 0) {
+        const totalPct = (per * lvl * 100).toFixed(1);
+        return `+${perPct}% ${res}/lvl (now +${totalPct}%)`;
+      }
+      return `+${perPct}% ${res}/lvl`;
+    }).join(' · ');
+  }
+
+  function assetEffectText(a: { produces: Record<string, number> }): string {
+    const entries = Object.entries(a.produces);
+    if (entries.length === 0) return '';
+    return entries.map(([res, rate]) => `+${rate} ${res}/s each`).join(' · ');
+  }
+
   // Bulk-buy plumbing.
   function assetBuyCount(id: string): number {
     const a = ASSETS.find((x) => x.id === id);
@@ -235,6 +275,11 @@
           {/each}
         </div>
       {/if}
+      {#if legacy.points > 0 || prestigeGain > 0}
+        <button class="ghost prestige" onclick={prestige} title="Reset run, bank legacy points">
+          ★ {legacy.points}{prestigeGain > 0 ? ` (+${prestigeGain})` : ''}
+        </button>
+      {/if}
       <button class="ghost" onclick={reset}>reset</button>
     </div>
   </header>
@@ -283,6 +328,7 @@
               <span class="owned">×{game.assets[a.id] ?? 0}</span>
             </div>
             <div class="blurb">{a.blurb}</div>
+            {#if assetEffectText(a)}<div class="effect">{assetEffectText(a)}</div>{/if}
             {#if a.precedent}<div class="precedent">{a.precedent}</div>{/if}
             <div class="card-foot">
               <span class="buy-n">+{n}</span>
@@ -454,6 +500,7 @@
                     <span class="node-lvl num">{lvl}/{u.maxLevel}</span>
                   </div>
                   <div class="node-blurb">{u.blurb}</div>
+                  <div class="effect">{upgradeEffectText(u, lvl)}</div>
                   <div class="node-foot">
                     {#if !maxed}<span class="buy-n">+{n}</span>{/if}
                     <span class="node-cost num">{maxed ? 'maxed' : `${fmt(cost)} ${u.costResource}`}</span>
@@ -626,6 +673,11 @@
     cursor: pointer;
   }
   .ghost:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); }
+  .ghost.prestige {
+    color: hsl(45 90% 45%);
+    border-color: hsl(45 90% 45%);
+    font-weight: 600;
+  }
 
   /* ── TICKER ────────────────────────────────────────────────────────── */
   .ticker {
@@ -788,6 +840,12 @@
     padding-left: 0.5rem;
     line-height: 1.35;
     opacity: 0.85;
+  }
+  .effect {
+    font-size: 0.72rem;
+    color: var(--ok);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
   }
   .afford-fill {
     position: absolute;

@@ -5,6 +5,7 @@ import type { GameState, ResourceId } from '../types';
 import { ASSETS, UPGRADES } from './catalog';
 import { RESOURCE_IDS } from '../types';
 import { totalAchievementBuffs } from './achievements';
+import { loadLegacy, legacyMultiplier } from '../legacy';
 
 export interface ProductionSnapshot {
   rates: Record<ResourceId, number>;       // net /sec
@@ -27,6 +28,9 @@ export function computeDepictMultipliers(state: GameState): Record<ResourceId, n
     }
   }
   // Project-flag bumps.
+  if (state.flags['firstViralMoment']) {
+    mult.attention *= 2;
+  }
   if (state.flags['cpcNetwork']) {
     mult.engagement *= 1.5;
   }
@@ -44,6 +48,15 @@ export function computeDepictMultipliers(state: GameState): Record<ResourceId, n
     mult[r as ResourceId] *= 1 + amt;
   }
 
+  // Legacy (prestige) multiplier — applies to all production.
+  const legacy = loadLegacy();
+  const legacyMult = legacyMultiplier(legacy.points);
+  if (legacyMult > 1) {
+    for (const r of RESOURCE_IDS) {
+      mult[r] *= legacyMult;
+    }
+  }
+
   return mult;
 }
 
@@ -53,18 +66,15 @@ export function computeCaps(state: GameState): Record<ResourceId, number> {
   const newsletters = state.assets.newsletter ?? 0;
 
   if (state.flags['editorialCalendar']) {
-    // Editorial Calendar PARADIGM: outlet cap flips from additive to geometric
-    // (each new outlet adds 16% more than the previous). Outpaces 1.10 cost
-    // growth permanently per PLAN.md Invariant 4.
-    caps.attention = 5000 + Math.floor(4000 * (Math.pow(1.16, outlets) - 1) / 0.16);
-    caps.engagement = 5000 + 6000 * newsletters;
+    // Editorial Calendar PARADIGM: outlet cap flips from additive to geometric.
+    caps.attention = 5000 + Math.floor(400 * (Math.pow(1.16, outlets) - 1) / 0.16);
+    caps.engagement = 5000 + 600 * newsletters;
     if (state.flags['cpcNetwork']) {
       caps.engagement = Math.floor(caps.engagement * 3);
     }
   } else {
-    // Pre-paradigm: 6000 cap/outlet. Cost growth 1.10 vs +6000 contribution
-    // holds up to ~30 outlets — Edcal threshold (60K att) is reachable inside that.
-    caps.attention = 5000 + 6000 * outlets;
+    // Pre-paradigm: 600 cap/outlet. 10× more outlets needed than v3 economy.
+    caps.attention = 5000 + 600 * outlets;
   }
   // Followers cap: bootstrapped on entering Social era + Audience Pods.
   const pods = state.assets.audiencePod ?? 0;
