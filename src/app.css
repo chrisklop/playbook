@@ -1,0 +1,39 @@
+:root {
+  --ink: hsl(220 18% 12%);
+  --paper: hsl(40 25% 97%);
+  --muted: hsl(220 10% 55%);
+  --accent: hsl(220 70% 45%);
+
+  color-scheme: light;
+  color: var(--ink);
+  background: var(--paper);
+
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-feature-settings: 'tnum' 1;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.num, .val, .cost, .rate {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: hsl(40 20% 92%);
+    --paper: hsl(220 18% 8%);
+    --muted: hsl(220 10% 60%);
+    color-scheme: dark;
+  }
+}
