@@ -16,6 +16,7 @@
     isPatronTeased, canActivatePatron,
   } from './game/core/patrons';
   import { computeRates } from './game/core/production';
+  import { postPlatform, postYield, chargeTimeSeconds } from './game/core/posting';
   import { affordableCount } from './game/core/math';
   import { DEPICT_IDS, PHASE_ORDER } from './game/types';
   import { PLATFORM_META } from './lib/platforms';
@@ -337,20 +338,8 @@
       {#if buffActive}
         <div class="buff" title="Return buff: come-back-soon bonus.">×{game.returnBuff!.mult} BUFF</div>
       {/if}
-      <button
-        class="post-btn"
-        class:cooling={postCooldown > 0}
-        onclick={postClick}
-        title="Manually push a piece of content. +2% attention cap. 3s cooldown."
-      >
-        {#if postCooldown > 0}
-          <span class="post-label">POST</span>
-          <span class="post-cd num">{(postCooldown / 1000).toFixed(1)}s</span>
-        {:else}
-          <span class="post-label">POST</span>
-          <span class="post-cd">+2% cap</span>
-        {/if}
-      </button>
+      <!-- per-platform POST buttons are on the platform cards now -->
+      {#if false}<span></span>{/if}
     </div>
     <div class="topbar-actions">
       {#if showBulkBuy && false /* moved to Assets section */}{/if}
@@ -618,13 +607,26 @@
                   <span class="meter-num num">{(p.heat * 100).toFixed(0)}%</span>
                 </div>
                 <div class="meter-row">
-                  <span class="meter-label">reach</span>
+                  <span class="meter-label">charge</span>
                   <div class="meter-bar">
-                    <div class="meter-fill reach" style="--fill: {Math.min(100, p.reach / 10)}%"></div>
+                    <div class="meter-fill charge" style="--fill: {p.chargeProgress * 100}%"></div>
                   </div>
-                  <span class="meter-num num">{fmt(p.reach)}</span>
+                  <span class="meter-num num">{p.chargeProgress >= 1 ? 'READY' : `${(p.chargeProgress * 100).toFixed(0)}%`}</span>
                 </div>
               </div>
+              <button
+                class="post-platform"
+                class:ready={p.chargeProgress >= 1}
+                disabled={p.chargeProgress < 1}
+                onclick={() => postPlatform(game, meta.id)}
+                title="Post on {meta.name}. Yield ~{fmt(postYield(game, meta.id))} attention, +1.5% heat."
+              >
+                {#if p.chargeProgress >= 1}
+                  POST · +{fmt(postYield(game, meta.id))} att
+                {:else}
+                  {(chargeTimeSeconds(game) * (1 - p.chargeProgress)).toFixed(1)}s
+                {/if}
+              </button>
             {:else}
               <div class="plt-locked-body">
                 <span class="locked-glyph">·</span>
@@ -1179,8 +1181,33 @@
     width: var(--fill, 0%);
     transition: width 200ms;
   }
-  .meter-fill.heat  { background: linear-gradient(90deg, var(--ok), var(--warn) 60%, var(--bad)); }
-  .meter-fill.reach { background: var(--tint, var(--accent)); }
+  .meter-fill.heat   { background: linear-gradient(90deg, var(--ok), var(--warn) 60%, var(--bad)); }
+  .meter-fill.reach  { background: var(--tint, var(--accent)); }
+  .meter-fill.charge { background: var(--accent); }
+
+  .post-platform {
+    appearance: none;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    border-radius: 4px;
+    cursor: not-allowed;
+    margin-top: 0.3rem;
+    transition: border-color 120ms, background 120ms, color 120ms;
+  }
+  .post-platform.ready {
+    border-color: var(--ok);
+    background: color-mix(in oklab, var(--ok) 18%, transparent);
+    color: var(--ok);
+    cursor: pointer;
+  }
+  .post-platform.ready:hover {
+    background: color-mix(in oklab, var(--ok) 30%, transparent);
+  }
   .plt-locked-body {
     display: grid;
     place-items: center;

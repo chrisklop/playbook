@@ -29,6 +29,7 @@ function defaultPlatform(unlocked = false): PlatformState {
     heat: 0,
     presence: 0,
     reach: 0,
+    chargeProgress: 0,
   };
 }
 

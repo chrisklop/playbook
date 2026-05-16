@@ -75,6 +75,7 @@ export interface PlatformState {
   heat: number;
   presence: number;
   reach: number;
+  chargeProgress: number;  // 0..1, fills over time, fires a post at 1
 }
 
 export interface ReturnBuff {
@@ -117,4 +118,4 @@ export interface GameState {
   lastEventAt: number;
 }
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;

@@ -5,6 +5,7 @@ import { clamp } from './math';
 import { computeCaps, computeRates } from './production';
 import { checkPhaseTransitions } from './actions';
 import { tickPlatforms } from './platforms';
+import { tickPosting } from './posting';
 import { tickCureEvents } from './cure';
 import { tickEventScheduler } from './events';
 import { ASSETS, UPGRADES, PROJECTS } from './catalog';
@@ -109,6 +110,7 @@ export function tick(state: GameState, now: number): void {
   // Platforms tick from t=0 so X has visible heat/reach in Grassroots.
   // Cure + cure-events stay gated to Blog era to avoid early-game noise.
   tickPlatforms(state, dt);
+  tickPosting(state, dt);
   tickCure(state, dt);
   if (platformEra(state)) tickCureEvents(state);
   tickEvents(state);
