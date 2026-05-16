@@ -190,6 +190,18 @@
     return entries.map(([res, rate]) => `+${rate} ${res}/s each`).join(' · ');
   }
 
+  // Rotating precedents — each card click advances to the next factoid.
+  let precedentIndex = $state<Record<string, number>>({});
+  function getPrecedent(id: string, precedents?: string[]): string | null {
+    if (!precedents || precedents.length === 0) return null;
+    const i = (precedentIndex[id] ?? 0) % precedents.length;
+    return precedents[i];
+  }
+  function rotatePrecedent(id: string, precedents?: string[]): void {
+    if (!precedents || precedents.length <= 1) return;
+    precedentIndex[id] = ((precedentIndex[id] ?? 0) + 1) % precedents.length;
+  }
+
   // Bulk-buy plumbing.
   function assetBuyCount(id: string): number {
     const a = ASSETS.find((x) => x.id === id);
@@ -223,10 +235,14 @@
   function doBuyAsset(id: string) {
     const n = assetBuyCount(id);
     if (n > 0) buyAsset(game, id, n);
+    const a = ASSETS.find((x) => x.id === id);
+    rotatePrecedent(id, a?.precedents);
   }
   function doBuyUpgrade(id: string) {
     const n = upgradeBuyCount(id);
     if (n > 0) buyUpgrade(game, id, n);
+    const u = UPGRADES.find((x) => x.id === id);
+    rotatePrecedent(id, u?.precedents);
   }
 </script>
 
@@ -325,14 +341,22 @@
           {@const cost = assetCost(game, a.id, n)}
           {@const affordable = canBuyAsset(game, a.id, n)}
           {@const ratio = affordabilityRatio(cost, a.costResource)}
-          <button class="card asset" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={a.precedent ?? ''}>
+          {@const pre = getPrecedent(a.id, a.precedents)}
+          <button class="card asset" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={pre ?? ''}>
             <div class="card-head">
               <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
               <span class="owned">×{game.assets[a.id] ?? 0}</span>
             </div>
             <div class="blurb">{a.blurb}</div>
             {#if assetEffectText(a)}<div class="effect">{assetEffectText(a)}</div>{/if}
-            {#if a.precedent}<div class="precedent">{a.precedent}</div>{/if}
+            {#if pre}
+              <div class="precedent">
+                {pre}
+                {#if a.precedents && a.precedents.length > 1}
+                  <span class="precedent-counter">[{((precedentIndex[a.id] ?? 0) % a.precedents.length) + 1}/{a.precedents.length}]</span>
+                {/if}
+              </div>
+            {/if}
             <div class="card-foot">
               <span class="buy-n">+{n}</span>
               <span class="cost num">{fmt(cost)} {a.costResource}</span>
@@ -361,12 +385,20 @@
             {@const affordable = canCompleteProject(game, p.id)}
             {@const [res, amt] = Object.entries(p.cost)[0]}
             {@const ratio = affordabilityRatio(amt as number, res)}
-            <button class="card project" disabled={!affordable} onclick={() => completeProject(game, p.id)} title={p.precedent ?? ''}>
+            {@const ppre = getPrecedent(p.id, p.precedents)}
+            <button class="card project" disabled={!affordable} onclick={() => completeProject(game, p.id)} title={ppre ?? ''}>
               <div class="card-head">
                 <span class="name">{p.name}</span>
               </div>
               <div class="blurb">{p.blurb}</div>
-              {#if p.precedent}<div class="precedent">{p.precedent}</div>{/if}
+              {#if ppre}
+                <div class="precedent">
+                  {ppre}
+                  {#if p.precedents && p.precedents.length > 1}
+                    <span class="precedent-counter">[{((precedentIndex[p.id] ?? 0) % p.precedents.length) + 1}/{p.precedents.length}]</span>
+                  {/if}
+                </div>
+              {/if}
               <div class="card-foot">
                 <span class="buy-n">one-shot</span>
                 <span class="cost num">{fmt(amt as number)} {res}</span>
@@ -497,13 +529,22 @@
                 {@const cost = upgradeCost(game, u.id, n)}
                 {@const affordable = !maxed && canBuyUpgrade(game, u.id, n)}
                 {@const ratio = affordabilityRatio(cost, u.costResource)}
-                <button class="node" disabled={!affordable || maxed} onclick={() => doBuyUpgrade(u.id)} title={u.precedent ?? ''}>
+                {@const upre = getPrecedent(u.id, u.precedents)}
+                <button class="node" disabled={!affordable || maxed} onclick={() => doBuyUpgrade(u.id)} title={upre ?? ''}>
                   <div class="node-head">
                     <span class="node-name">{u.name}</span>
                     <span class="node-lvl num">{lvl}/{u.maxLevel}</span>
                   </div>
                   <div class="node-blurb">{u.blurb}</div>
                   <div class="effect">{upgradeEffectText(u, lvl)}</div>
+                  {#if upre}
+                    <div class="precedent">
+                      {upre}
+                      {#if u.precedents && u.precedents.length > 1}
+                        <span class="precedent-counter">[{((precedentIndex[u.id] ?? 0) % u.precedents.length) + 1}/{u.precedents.length}]</span>
+                      {/if}
+                    </div>
+                  {/if}
                   <div class="node-foot">
                     {#if !maxed}<span class="buy-n">+{n}</span>{/if}
                     <span class="node-cost num">{maxed ? 'maxed' : `${fmt(cost)} ${u.costResource}`}</span>
@@ -862,6 +903,13 @@
     padding-left: 0.5rem;
     line-height: 1.35;
     opacity: 0.85;
+  }
+  .precedent-counter {
+    font-size: 0.6rem;
+    color: var(--accent);
+    opacity: 0.6;
+    margin-left: 0.3em;
+    font-variant-numeric: tabular-nums;
   }
   .effect {
     font-size: 0.72rem;
