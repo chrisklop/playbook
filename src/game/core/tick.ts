@@ -1,20 +1,22 @@
 // Pure tick function. Mutates the passed state in place. No Svelte, no DOM.
-// All time-dependent logic flows through dt (seconds since last tick).
 
 import { type GameState, PLATFORM_IDS, RESOURCE_IDS } from '../types';
 import { clamp } from './math';
+import { computeCaps, computeRates } from './production';
+import { checkPhaseTransitions } from './actions';
 
 const HEAT_DECAY_PER_S = 0.005;
 const CURE_FROM_HEAT_PER_S = 0.0002;
 
-// Phase 1 placeholder: a tiny baseline production so the smoke test shows motion.
-// Real production logic (assets × DEPICT × platforms) lands in Phase 2.
-function baselineProduction(state: GameState, dt: number): void {
-  const buff = state.returnBuff && state.returnBuff.until > state.lastTick ? state.returnBuff.mult : 1;
-  const sockPuppets = state.assets.sockPuppet ?? 0;
-  const baseRate = 0.5 * sockPuppets * buff;
-  const next = state.resources.attention + baseRate * dt;
-  state.resources.attention = Math.min(next, state.caps.attention);
+function tickEcon(state: GameState, dt: number): void {
+  state.caps = computeCaps(state);
+  const rates = computeRates(state);
+  for (const r of RESOURCE_IDS) {
+    const cap = state.caps[r];
+    const next = state.resources[r] + rates[r] * dt;
+    state.resources[r] = cap > 0 ? Math.min(next, cap) : next;
+    if (state.resources[r] < 0) state.resources[r] = 0;
+  }
 }
 
 function tickHeat(state: GameState, dt: number): void {
@@ -51,17 +53,14 @@ function trackPeaks(state: GameState): void {
   }
 }
 
-/**
- * Advance the game state by dt seconds. Mutates state in place.
- * Updates state.lastTick = now.
- */
 export function tick(state: GameState, now: number): void {
   const dt = Math.max(0, (now - state.lastTick) / 1000);
   state.lastTick = now;
 
-  baselineProduction(state, dt);
+  tickEcon(state, dt);
   tickHeat(state, dt);
   tickCure(state, dt);
   tickEvents(state);
+  checkPhaseTransitions(state);
   trackPeaks(state);
 }
