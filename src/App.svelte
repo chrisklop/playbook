@@ -8,6 +8,9 @@
   } from './game/core/actions';
   import { ASSETS, UPGRADES, PROJECTS } from './game/core/catalog';
   import { computeRates } from './game/core/production';
+  import { DEPICT_IDS, PHASE_ORDER, type PhaseId } from './game/types';
+  import { PLATFORM_META } from './lib/platforms';
+  import { fmt, fmtRate, etaToCap } from './lib/format';
 
   function reset() {
     if (confirm('Reset run? This wipes the save.')) {
@@ -16,283 +19,586 @@
     }
   }
 
-  function fmt(n: number): string {
-    if (n === 0) return '0';
-    if (n < 10) return n.toFixed(2);
-    if (n < 1000) return n.toFixed(1);
-    if (n < 1_000_000) return (n / 1000).toFixed(2) + 'K';
-    return (n / 1_000_000).toFixed(2) + 'M';
-  }
-
-  function fmtRate(n: number): string {
-    return (n >= 0 ? '+' : '') + fmt(n) + '/s';
+  function phaseGE(a: PhaseId, b: PhaseId): boolean {
+    return PHASE_ORDER.indexOf(a) >= PHASE_ORDER.indexOf(b);
   }
 
   const rates = $derived(computeRates(game));
   const visibleAssets = $derived(ASSETS.filter((a) => a.visible(game)));
-  const visibleUpgrades = $derived(UPGRADES.filter((u) => u.visible(game)));
   const visibleProjects = $derived(
     PROJECTS.filter((p) => p.visible(game) && !game.completedProjects[p.id]),
+  );
+
+  // DEPICT trees grouped — for each tree id, the list of visible upgrades and current total level.
+  const treesView = $derived(
+    DEPICT_IDS.map((tree) => {
+      const all = UPGRADES.filter((u) => u.tree === tree);
+      const visible = all.filter((u) => u.visible(game));
+      const totalLevel = all.reduce((acc, u) => acc + (game.upgrades[u.id] ?? 0), 0);
+      const totalMax = all.reduce((acc, u) => acc + u.maxLevel, 0);
+      return { tree, all, visible, totalLevel, totalMax };
+    }),
   );
 
   const buffActive = $derived(
     game.returnBuff !== null && game.returnBuff.until > Date.now(),
   );
+
+  function affordabilityRatio(cost: number, resource: string): number {
+    const have = game.resources[resource as keyof typeof game.resources] ?? 0;
+    if (cost <= 0) return 1;
+    return Math.min(1, have / cost);
+  }
+
+  function depictLetter(t: string): string {
+    return t[0].toUpperCase();
+  }
 </script>
 
-<main>
-  <header>
-    <h1>The Playbook</h1>
-    <span class="phase">phase · {game.phase}</span>
+<div class="app phase-{game.phase}" class:reveal={game.reveal.active}>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="title">The Playbook</span>
+      <span class="phase">phase · {game.phase}</span>
+    </div>
+    <div class="resources">
+      {#each Object.entries({ attention: 'Attention', engagement: 'Engagement', followers: 'Followers', credibility: 'Credibility', narrativeDominance: 'NarDom', syntheticReality: 'SynReal' }) as [id, label] (id)}
+        {@const r = id as keyof typeof game.resources}
+        {@const val = game.resources[r]}
+        {@const cap = game.caps[r]}
+        {@const rate = rates[r]}
+        {@const eta = etaToCap(val, cap, rate)}
+        {#if cap > 0 || val > 0}
+          <div class="rmeter">
+            <div class="rlabel">{label}</div>
+            <div class="rvalue num">{fmt(val)}<span class="cap"> / {fmt(cap)}</span></div>
+            <div class="rrate" class:positive={rate > 0}>{fmtRate(rate)}</div>
+            {#if eta}<div class="reta">{eta}</div>{/if}
+            <div class="rfill" style="--fill: {cap > 0 ? Math.min(100, (val / cap) * 100) : 0}%"></div>
+          </div>
+        {/if}
+      {/each}
+      <div class="rmeter cure">
+        <div class="rlabel">Cure</div>
+        <div class="rvalue num">{(game.cure * 100).toFixed(2)}<span class="cap">%</span></div>
+        <div class="rrate"></div>
+        <div class="rfill cure-fill" style="--fill: {game.cure * 100}%"></div>
+      </div>
+      {#if buffActive}
+        <div class="buff" title="Return buff: come-back-soon bonus.">×{game.returnBuff!.mult} BUFF</div>
+      {/if}
+    </div>
+    <div class="topbar-actions">
+      <button class="ghost" onclick={reset}>reset</button>
+    </div>
   </header>
 
-  <section class="resources">
-    <div class="res">
-      <span class="label">attention</span>
-      <span class="val">{fmt(game.resources.attention)} / {fmt(game.caps.attention)}</span>
-      <span class="rate">{fmtRate(rates.attention)}</span>
-    </div>
-    {#if game.caps.engagement > 0}
-      <div class="res">
-        <span class="label">engagement</span>
-        <span class="val">{fmt(game.resources.engagement)} / {fmt(game.caps.engagement)}</span>
-        <span class="rate">{fmtRate(rates.engagement)}</span>
+  <!-- TICKER (placeholder slot for v0.1) -->
+  <div class="ticker">
+    <span class="tick-fact">
+      A 2018 MIT study found false news travels six times faster than true news on Twitter. Humans, not bots, drove most of the gap. — Vosoughi et al., <em>Science</em>, 2018.
+    </span>
+  </div>
+
+  <!-- MAIN GRID -->
+  <main class="grid">
+    <!-- LEFT: Assets + Projects -->
+    <section class="col left">
+      <h2>Assets</h2>
+      <div class="cards">
+        {#each visibleAssets as a (a.id)}
+          {@const cost = assetCost(game, a.id, 1)}
+          {@const affordable = canBuyAsset(game, a.id, 1)}
+          {@const ratio = affordabilityRatio(cost, a.costResource)}
+          <button class="card asset" disabled={!affordable} onclick={() => buyAsset(game, a.id, 1)}>
+            <div class="card-head">
+              <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
+              <span class="owned">×{game.assets[a.id] ?? 0}</span>
+            </div>
+            <div class="blurb">{a.blurb}</div>
+            <div class="card-foot">
+              <span class="cost num">{fmt(cost)} {a.costResource}</span>
+            </div>
+            <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
+          </button>
+        {/each}
       </div>
-    {/if}
-    <div class="res">
-      <span class="label">cure</span>
-      <span class="val">{(game.cure * 100).toFixed(2)}%</span>
-      <span class="rate"></span>
-    </div>
-    {#if buffActive}
-      <div class="buff">RETURN BUFF ×{game.returnBuff!.mult}</div>
-    {/if}
-  </section>
 
-  {#if visibleProjects.length > 0}
-    <section class="panel">
-      <h2>Projects</h2>
-      {#each visibleProjects as p (p.id)}
-        {@const affordable = canCompleteProject(game, p.id)}
-        <button class="card project" disabled={!affordable} onclick={() => completeProject(game, p.id)}>
-          <div class="card-head">
-            <span class="name">{p.name}</span>
-            <span class="cost">{Object.entries(p.cost).map(([r, n]) => `${fmt(n as number)} ${r}`).join(' · ')}</span>
-          </div>
-          <div class="blurb">{p.blurb}</div>
-        </button>
-      {/each}
+      {#if visibleProjects.length > 0}
+        <h2>Projects</h2>
+        <div class="cards">
+          {#each visibleProjects as p (p.id)}
+            {@const affordable = canCompleteProject(game, p.id)}
+            {@const [res, amt] = Object.entries(p.cost)[0]}
+            {@const ratio = affordabilityRatio(amt as number, res)}
+            <button class="card project" disabled={!affordable} onclick={() => completeProject(game, p.id)}>
+              <div class="card-head">
+                <span class="name">{p.name}</span>
+              </div>
+              <div class="blurb">{p.blurb}</div>
+              <div class="card-foot">
+                <span class="cost num">{fmt(amt as number)} {res}</span>
+              </div>
+              <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
+            </button>
+          {/each}
+        </div>
+      {/if}
     </section>
-  {/if}
 
-  <section class="panel">
-    <h2>Assets</h2>
-    {#each visibleAssets as a (a.id)}
-      {@const cost = assetCost(game, a.id, 1)}
-      {@const affordable = canBuyAsset(game, a.id, 1)}
-      <button class="card" disabled={!affordable} onclick={() => buyAsset(game, a.id, 1)}>
-        <div class="card-head">
-          <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
-          <span class="owned">×{game.assets[a.id] ?? 0}</span>
-        </div>
-        <div class="blurb">{a.blurb}</div>
-        <div class="cost-line">
-          <span class="cost">{fmt(cost)} {a.costResource}</span>
-        </div>
-      </button>
-    {/each}
-  </section>
+    <!-- CENTER: Platform grid -->
+    <section class="col center">
+      <h2>Platforms</h2>
+      <div class="platform-grid">
+        {#each PLATFORM_META as meta (meta.id)}
+          {@const p = game.platforms[meta.id]}
+          {@const unlocked = p.unlocked}
+          <div class="platform-card" class:locked={!unlocked} style="--tint: {meta.tint}">
+            <div class="plt-head">
+              <span class="plt-name">{meta.name}</span>
+              {#if !unlocked}
+                <span class="plt-lock">unlocks · {meta.unlocksAt}</span>
+              {/if}
+            </div>
+            <div class="plt-audience">{meta.audience}</div>
+            {#if unlocked}
+              <div class="plt-meter">
+                <div class="meter-row">
+                  <span class="meter-label">heat</span>
+                  <div class="meter-bar">
+                    <div class="meter-fill heat" style="--fill: {p.heat * 100}%"></div>
+                  </div>
+                  <span class="meter-num num">{(p.heat * 100).toFixed(0)}%</span>
+                </div>
+                <div class="meter-row">
+                  <span class="meter-label">reach</span>
+                  <div class="meter-bar">
+                    <div class="meter-fill reach" style="--fill: {Math.min(100, p.reach / 10)}%"></div>
+                  </div>
+                  <span class="meter-num num">{fmt(p.reach)}</span>
+                </div>
+              </div>
+            {:else}
+              <div class="plt-locked-body">
+                <span class="locked-glyph">·</span>
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </section>
 
-  {#if visibleUpgrades.length > 0}
-    <section class="panel">
+    <!-- RIGHT: DEPICT trees -->
+    <section class="col right">
       <h2>DEPICT trees</h2>
-      {#each visibleUpgrades as u (u.id)}
-        {@const lvl = game.upgrades[u.id] ?? 0}
-        {@const cost = upgradeCost(game, u.id, 1)}
-        {@const maxed = lvl >= u.maxLevel}
-        {@const affordable = canBuyUpgrade(game, u.id, 1)}
-        <button class="card upgrade {u.tree}" disabled={!affordable || maxed} onclick={() => buyUpgrade(game, u.id, 1)}>
-          <div class="card-head">
-            <span class="name"><span class="tag">{u.tree[0].toUpperCase()}</span> {u.name}</span>
-            <span class="owned">{lvl}/{u.maxLevel}</span>
+      <div class="trees">
+        {#each treesView as t (t.tree)}
+          <div class="tree tree-{t.tree}">
+            <div class="tree-head">
+              <span class="tree-tag">{depictLetter(t.tree)}</span>
+              <span class="tree-name">{t.tree}</span>
+              <span class="tree-progress num">{t.totalLevel}/{t.totalMax}</span>
+            </div>
+            <div class="tree-nodes">
+              {#each t.visible as u (u.id)}
+                {@const lvl = game.upgrades[u.id] ?? 0}
+                {@const cost = upgradeCost(game, u.id, 1)}
+                {@const maxed = lvl >= u.maxLevel}
+                {@const affordable = canBuyUpgrade(game, u.id, 1)}
+                {@const ratio = affordabilityRatio(cost, u.costResource)}
+                <button class="node" disabled={!affordable || maxed} onclick={() => buyUpgrade(game, u.id, 1)}>
+                  <div class="node-head">
+                    <span class="node-name">{u.name}</span>
+                    <span class="node-lvl num">{lvl}/{u.maxLevel}</span>
+                  </div>
+                  <div class="node-blurb">{u.blurb}</div>
+                  <div class="node-foot">
+                    <span class="node-cost num">{maxed ? 'maxed' : `${fmt(cost)} ${u.costResource}`}</span>
+                  </div>
+                  <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
+                </button>
+              {/each}
+              {#if t.visible.length === 0}
+                <div class="tree-locked">???</div>
+              {/if}
+            </div>
           </div>
-          <div class="blurb">{u.blurb}</div>
-          <div class="cost-line">
-            <span class="cost">{maxed ? 'maxed' : `${fmt(cost)} ${u.costResource}`}</span>
-          </div>
-        </button>
-      {/each}
+        {/each}
+      </div>
     </section>
-  {/if}
+  </main>
 
-  <section class="panel log-panel">
+  <!-- LOG -->
+  <footer class="log">
     <h2>Log</h2>
-    <div class="log">
-      {#each game.log.slice(0, 8) as line, i (i)}
+    <div class="log-lines">
+      {#each game.log.slice(0, 12) as line, i (i)}
         <div class="line">{line}</div>
       {/each}
     </div>
-  </section>
-
-  <footer>
-    <button class="reset" onclick={reset}>reset</button>
-    <span class="sub">phase 2 · grassroots playable</span>
   </footer>
-</main>
+</div>
 
 <style>
-  :global(body) { margin: 0; }
-  main {
-    max-width: 560px;
-    margin: 0 auto;
-    padding: 1.5rem 1rem 3rem;
-    display: grid;
-    gap: 1.25rem;
+  :global(:root) {
+    --paper:   hsl(40 25% 97%);
+    --paper-2: hsl(40 20% 94%);
+    --ink:     hsl(220 18% 12%);
+    --muted:   hsl(220 10% 50%);
+    --line:    hsl(220 14% 86%);
+    --accent:  hsl(220 70% 45%);
+    --ok:      hsl(150 55% 40%);
+    --warn:    hsl(30 90% 50%);
+    --bad:     hsl(0 70% 50%);
   }
-  header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-  }
-  h1 {
-    font-size: 1.4rem;
+  :global(body) {
     margin: 0;
-    letter-spacing: -0.02em;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    font-feature-settings: 'tnum' 1;
   }
-  h2 {
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-    margin: 0 0 0.5rem;
-    font-weight: 600;
+  @media (prefers-color-scheme: dark) {
+    :global(:root) {
+      --paper:   hsl(220 18% 9%);
+      --paper-2: hsl(220 18% 12%);
+      --ink:     hsl(40 20% 92%);
+      --muted:   hsl(220 10% 60%);
+      --line:    hsl(220 14% 22%);
+      --accent:  hsl(220 70% 60%);
+    }
   }
-  .phase {
-    color: var(--muted);
-    font-size: 0.8rem;
-    font-variant-numeric: tabular-nums;
+
+  .app {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
   }
+
+  /* ── TOPBAR ─────────────────────────────────────────────────────────── */
+  .topbar {
+    display: grid;
+    grid-template-columns: 220px 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper-2);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .brand { display: flex; flex-direction: column; gap: 0.1rem; }
+  .title { font-weight: 700; letter-spacing: -0.02em; font-size: 1.05rem; }
+  .phase { font-size: 0.75rem; color: var(--muted); text-transform: lowercase; }
   .resources {
     display: grid;
-    gap: 0.3rem;
-    padding: 0.9rem 1rem;
-    border: 1px solid color-mix(in oklab, var(--ink) 12%, transparent);
-    border-radius: 6px;
-    background: color-mix(in oklab, var(--ink) 2%, transparent);
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.6rem;
   }
-  .res {
+  .rmeter {
+    position: relative;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--paper);
+    overflow: hidden;
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 0.75rem;
-    align-items: baseline;
-    font-size: 0.95rem;
+    grid-template-rows: auto auto auto;
   }
-  .label { color: var(--muted); }
-  .val { font-variant-numeric: tabular-nums; }
-  .rate {
-    font-variant-numeric: tabular-nums;
-    font-size: 0.8rem;
-    color: color-mix(in oklab, var(--accent) 80%, var(--ink));
-    min-width: 4.5rem;
-    text-align: right;
+  .rmeter .rfill {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 2px;
+    background: var(--accent);
+    width: var(--fill, 0%);
+    transition: width 200ms;
   }
+  .rmeter .cure-fill { background: var(--bad); }
+  .rlabel { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .rvalue { font-size: 0.95rem; font-weight: 600; }
+  .rvalue .cap { color: var(--muted); font-weight: 400; }
+  .rrate { font-size: 0.7rem; color: var(--muted); }
+  .rrate.positive { color: var(--ok); }
+  .reta { font-size: 0.65rem; color: var(--muted); font-style: italic; }
+  .num { font-variant-numeric: tabular-nums; }
   .buff {
-    margin-top: 0.4rem;
-    font-size: 0.85rem;
-    font-weight: 600;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid var(--accent);
+    background: color-mix(in oklab, var(--accent) 12%, transparent);
     color: var(--accent);
-  }
-  .panel { display: grid; gap: 0.4rem; }
-  .card {
-    appearance: none;
-    text-align: left;
-    background: transparent;
-    color: inherit;
-    border: 1px solid color-mix(in oklab, var(--ink) 14%, transparent);
-    border-radius: 5px;
-    padding: 0.7rem 0.9rem;
-    font: inherit;
-    cursor: pointer;
-    display: grid;
-    gap: 0.3rem;
-    transition: background 80ms, border-color 80ms;
-  }
-  .card:hover:not(:disabled) {
-    background: color-mix(in oklab, var(--ink) 4%, transparent);
-    border-color: color-mix(in oklab, var(--ink) 25%, transparent);
-  }
-  .card:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-  }
-  .card-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-  }
-  .name { font-weight: 600; font-size: 0.95rem; }
-  .kind {
-    font-weight: 400;
-    color: var(--muted);
-    font-size: 0.8rem;
-    text-transform: lowercase;
-  }
-  .owned {
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-    font-size: 0.85rem;
-  }
-  .blurb { color: var(--muted); font-size: 0.85rem; line-height: 1.35; }
-  .cost-line { display: flex; justify-content: flex-end; }
-  .cost {
-    font-variant-numeric: tabular-nums;
-    font-size: 0.85rem;
-    font-weight: 600;
-  }
-  .tag {
-    display: inline-block;
-    width: 1.2em;
-    height: 1.2em;
-    line-height: 1.2em;
-    text-align: center;
-    font-weight: 700;
+    border-radius: 4px;
     font-size: 0.75rem;
-    border-radius: 3px;
-    background: color-mix(in oklab, var(--accent) 70%, transparent);
-    color: white;
-    margin-right: 0.3em;
+    font-weight: 700;
+    align-self: center;
   }
-  .upgrade.discrediting .tag { background: hsl(0 60% 45%); }
-  .upgrade.emotional    .tag { background: hsl(20 75% 50%); }
-  .upgrade.polarization .tag { background: hsl(280 55% 50%); }
-  .upgrade.impersonation .tag { background: hsl(160 50% 40%); }
-  .upgrade.conspiracy   .tag { background: hsl(220 60% 45%); }
-  .upgrade.trolling     .tag { background: hsl(60 70% 40%); }
-  .project { border-style: dashed; }
-  .log-panel { margin-top: 0.5rem; }
-  .log { display: grid; gap: 0.2rem; }
-  .line {
-    font-size: 0.82rem;
-    color: var(--muted);
-    font-style: italic;
-    line-height: 1.4;
-  }
-  footer {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    margin-top: 1rem;
-  }
-  .reset {
+  .topbar-actions { display: flex; gap: 0.4rem; }
+  .ghost {
     appearance: none;
     font: inherit;
-    padding: 0.35rem 0.8rem;
-    border: 1px solid color-mix(in oklab, var(--ink) 25%, transparent);
+    font-size: 0.8rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--line);
     background: transparent;
     color: var(--ink);
     border-radius: 4px;
     cursor: pointer;
+  }
+  .ghost:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); }
+
+  /* ── TICKER ────────────────────────────────────────────────────────── */
+  .ticker {
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in oklab, var(--ink) 3%, var(--paper-2));
+    overflow: hidden;
+    height: 26px;
+    position: relative;
+  }
+  .tick-fact {
+    display: block;
+    font-size: 0.78rem;
+    line-height: 26px;
+    color: var(--muted);
+    white-space: nowrap;
+    padding: 0 1rem;
+    animation: ticker-scroll 90s linear infinite;
+  }
+  @keyframes ticker-scroll {
+    0%   { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tick-fact { animation: none; padding: 0 1rem; }
+  }
+
+  /* ── MAIN GRID ─────────────────────────────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 360px;
+    gap: 1rem;
+    padding: 1rem;
+    align-items: start;
+    min-height: 0;
+  }
+  .col { display: grid; gap: 0.8rem; align-content: start; }
+  .col h2 {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin: 0;
+    font-weight: 600;
+  }
+  .cards { display: grid; gap: 0.5rem; }
+
+  /* ── GENERIC CARD ──────────────────────────────────────────────────── */
+  .card {
+    position: relative;
+    appearance: none;
+    font: inherit;
+    text-align: left;
+    background: var(--paper-2);
+    color: inherit;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 0.65rem 0.8rem;
+    cursor: pointer;
+    display: grid;
+    gap: 0.3rem;
+    overflow: hidden;
+    transition: border-color 120ms, transform 80ms;
+  }
+  .card:hover:not(:disabled) {
+    border-color: var(--accent);
+  }
+  .card:active:not(:disabled) { transform: translateY(1px); }
+  .card:disabled { opacity: 0.55; cursor: not-allowed; }
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+  .name { font-weight: 600; font-size: 0.9rem; }
+  .kind { font-weight: 400; color: var(--muted); font-size: 0.75rem; }
+  .owned { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+  .blurb { color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
+  .card-foot { display: flex; justify-content: flex-end; }
+  .cost { font-weight: 600; font-size: 0.82rem; }
+  .afford-fill {
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 2px;
+    width: var(--fill, 0%);
+    background: var(--accent);
+    transition: width 200ms;
+  }
+  .project { border-style: dashed; }
+
+  /* ── PLATFORM GRID ─────────────────────────────────────────────────── */
+  .platform-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.7rem;
+  }
+  .platform-card {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.7rem 0.85rem;
+    background: var(--paper-2);
+    border-top: 3px solid var(--tint);
+    display: grid;
+    gap: 0.5rem;
+    min-height: 130px;
+  }
+  .platform-card.locked {
+    background: transparent;
+    border-color: var(--line);
+    border-top-color: var(--line);
+    opacity: 0.45;
+  }
+  .plt-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .plt-name { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; }
+  .plt-lock { font-size: 0.7rem; color: var(--muted); text-transform: lowercase; }
+  .plt-audience { font-size: 0.72rem; color: var(--muted); font-style: italic; }
+  .plt-meter { display: grid; gap: 0.3rem; }
+  .meter-row {
+    display: grid;
+    grid-template-columns: 3rem 1fr 3rem;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+  }
+  .meter-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.6rem; }
+  .meter-num { text-align: right; color: var(--muted); }
+  .meter-bar {
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .meter-fill {
+    height: 100%;
+    width: var(--fill, 0%);
+    transition: width 200ms;
+  }
+  .meter-fill.heat  { background: linear-gradient(90deg, var(--ok), var(--warn) 60%, var(--bad)); }
+  .meter-fill.reach { background: var(--tint, var(--accent)); }
+  .plt-locked-body {
+    display: grid;
+    place-items: center;
+    flex: 1;
+    color: var(--muted);
+    font-size: 1.5rem;
+    opacity: 0.5;
+    min-height: 50px;
+  }
+
+  /* ── DEPICT TREES ──────────────────────────────────────────────────── */
+  .trees { display: grid; gap: 0.5rem; }
+  .tree {
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--paper-2);
+    padding: 0.5rem 0.6rem;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .tree-head {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .tree-tag {
+    width: 1.4em; height: 1.4em; line-height: 1.4em;
+    text-align: center;
+    font-weight: 700; font-size: 0.78rem;
+    border-radius: 3px;
+    color: white;
+  }
+  .tree-discrediting  .tree-tag { background: hsl(0 60% 45%); }
+  .tree-emotional     .tree-tag { background: hsl(20 75% 50%); }
+  .tree-polarization  .tree-tag { background: hsl(280 55% 50%); }
+  .tree-impersonation .tree-tag { background: hsl(160 50% 40%); }
+  .tree-conspiracy    .tree-tag { background: hsl(220 60% 45%); }
+  .tree-trolling      .tree-tag { background: hsl(60 70% 40%); color: hsl(220 18% 12%); }
+  .tree-name { font-size: 0.85rem; text-transform: capitalize; }
+  .tree-progress { font-size: 0.7rem; color: var(--muted); }
+  .tree-nodes { display: grid; gap: 0.4rem; }
+  .node {
+    position: relative;
+    appearance: none;
+    text-align: left;
+    background: var(--paper);
+    color: inherit;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.45rem 0.6rem;
+    font: inherit;
+    cursor: pointer;
+    display: grid;
+    gap: 0.15rem;
+    overflow: hidden;
+  }
+  .node:hover:not(:disabled) { border-color: var(--accent); }
+  .node:disabled { opacity: 0.55; cursor: not-allowed; }
+  .node-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.4rem;
+  }
+  .node-name { font-weight: 600; font-size: 0.82rem; }
+  .node-lvl { font-size: 0.7rem; color: var(--muted); }
+  .node-blurb { font-size: 0.72rem; color: var(--muted); line-height: 1.3; }
+  .node-foot { display: flex; justify-content: flex-end; }
+  .node-cost { font-size: 0.74rem; font-weight: 600; }
+  .tree-locked {
+    padding: 0.5rem;
+    text-align: center;
+    color: var(--muted);
+    opacity: 0.5;
     font-size: 0.85rem;
   }
-  .sub { color: var(--muted); font-size: 0.8rem; }
+
+  /* ── LOG ───────────────────────────────────────────────────────────── */
+  .log {
+    border-top: 1px solid var(--line);
+    background: var(--paper-2);
+    padding: 0.7rem 1rem 1rem;
+    display: grid;
+    gap: 0.3rem;
+  }
+  .log h2 {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin: 0;
+    font-weight: 600;
+  }
+  .log-lines {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.15rem 1rem;
+  }
+  .log-lines .line {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.45;
+  }
+  .log-lines .line:first-child { color: var(--ink); font-style: normal; }
+
+  /* ── RESPONSIVE COLLAPSE ───────────────────────────────────────────── */
+  @media (max-width: 1100px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+    .col.right { grid-column: 1 / -1; }
+  }
+  @media (max-width: 720px) {
+    .topbar { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: 1fr; padding: 0.6rem; }
+    .col.left, .col.center, .col.right { grid-column: auto; }
+  }
 </style>
