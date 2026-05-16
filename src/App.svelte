@@ -52,13 +52,14 @@
     game.cure > 0.0001 ||
     Object.values(game.platforms).some((p) => p.unlocked && p.heat > 0.01),
   );
-  const showLog         = $derived(game.log.length >= 2);
+  // Don't surface the log until enough has happened to feel like a feed.
+  const showLog         = $derived(game.log.length >= 4);
   const showProjects    = $derived(visibleProjects.length > 0);
   const showTrees       = $derived(treesView.length > 0);
+  // Platform grid is a Blog-era surface. Until then the game is abstract:
+  // sock puppets just produce attention — no platform diversification yet.
   const showPlatformGrid = $derived(
-    PHASE_ORDER.indexOf(game.phase) >= PHASE_ORDER.indexOf('blog') ||
-    Object.values(game.platforms).filter((p) => p.unlocked).length > 1 ||
-    game.platforms.x.reach > 1,
+    PHASE_ORDER.indexOf(game.phase) >= PHASE_ORDER.indexOf('blog'),
   );
 
   const isMinimal = $derived(!showTrees && !showProjects && !showPlatformGrid);
@@ -321,7 +322,7 @@
     <footer class="log">
       <h2>Log</h2>
       <div class="log-lines">
-        {#each game.log.slice(0, 12) as line, i (i)}
+        {#each game.log.slice(0, 6) as line, i (i)}
           <div class="line">{line}</div>
         {/each}
       </div>
@@ -495,7 +496,9 @@
   /* Early game: center the lone Assets column. Each reveal expands the grid. */
   .grid.minimal {
     grid-template-columns: 1fr minmax(280px, 360px) 1fr;
-    padding-top: 6vh;
+    align-content: center;
+    padding-top: 0;
+    padding-bottom: 8vh;
   }
   .grid.minimal .col.left { grid-column: 2; }
   .col { display: grid; gap: 0.8rem; align-content: start; }
@@ -701,6 +704,8 @@
     padding: 0.7rem 1rem 1rem;
     display: grid;
     gap: 0.3rem;
+    max-height: 18vh;
+    overflow: hidden;
   }
   .log h2 {
     font-size: 0.65rem;
