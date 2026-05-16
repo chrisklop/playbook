@@ -4,8 +4,8 @@
 import type { GameState } from '../types';
 import { pickEvent } from './eventPool';
 
-const MIN_GAP_MS = 90_000;
-const MAX_GAP_MS = 180_000;
+const MIN_GAP_MS = 45_000;
+const MAX_GAP_MS = 120_000;
 
 function rollGap(): number {
   return MIN_GAP_MS + Math.random() * (MAX_GAP_MS - MIN_GAP_MS);

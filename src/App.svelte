@@ -38,6 +38,27 @@
   const prestigeGain = $derived(computePrestigeGain(game));
   const currentLegacyMult = $derived(legacyMultiplier(legacy.points));
 
+  // Click-to-post: active engagement mechanic. Each click adds 2% of attention
+  // cap, 3-second cooldown. Cookie-Clicker style "click for cookies."
+  const POST_COOLDOWN_MS = 3000;
+  let lastPostClick = $state(0);
+  let nowTick = $state(Date.now());
+  onMount(() => {
+    const handle = setInterval(() => { nowTick = Date.now(); }, 250);
+    return () => clearInterval(handle);
+  });
+  const postCooldown = $derived(Math.max(0, lastPostClick + POST_COOLDOWN_MS - nowTick));
+  function postClick() {
+    if (postCooldown > 0) return;
+    lastPostClick = Date.now();
+    const cap = game.caps.attention;
+    if (cap <= 0) return;
+    game.resources.attention = Math.min(
+      cap,
+      game.resources.attention + cap * 0.02,
+    );
+  }
+
   function prestige() {
     const gain = computePrestigeGain(game);
     if (gain <= 0) {
@@ -296,6 +317,20 @@
       {#if buffActive}
         <div class="buff" title="Return buff: come-back-soon bonus.">×{game.returnBuff!.mult} BUFF</div>
       {/if}
+      <button
+        class="post-btn"
+        class:cooling={postCooldown > 0}
+        onclick={postClick}
+        title="Manually push a piece of content. +2% attention cap. 3s cooldown."
+      >
+        {#if postCooldown > 0}
+          <span class="post-label">POST</span>
+          <span class="post-cd num">{(postCooldown / 1000).toFixed(1)}s</span>
+        {:else}
+          <span class="post-label">POST</span>
+          <span class="post-cd">+2% cap</span>
+        {/if}
+      </button>
     </div>
     <div class="topbar-actions">
       {#if showBulkBuy}
@@ -698,6 +733,34 @@
     font-weight: 700;
     align-self: center;
   }
+  .post-btn {
+    appearance: none;
+    font: inherit;
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 0.1rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--ok);
+    background: color-mix(in oklab, var(--ok) 15%, transparent);
+    color: var(--ok);
+    border-radius: 4px;
+    cursor: pointer;
+    align-self: center;
+    text-align: center;
+    transition: opacity 200ms, background 200ms;
+  }
+  .post-btn:hover:not(.cooling) {
+    background: color-mix(in oklab, var(--ok) 30%, transparent);
+  }
+  .post-btn.cooling {
+    opacity: 0.5;
+    cursor: not-allowed;
+    color: var(--muted);
+    border-color: var(--line);
+    background: transparent;
+  }
+  .post-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; }
+  .post-cd { font-size: 0.65rem; opacity: 0.85; }
   .topbar-actions { display: flex; gap: 0.4rem; align-items: center; }
   .bulk {
     display: inline-flex;

@@ -80,7 +80,7 @@ export const ASSETS: AssetDef[] = [
     era: 'grassroots',
     kind: 'bot',
     baseCost: 50,
-    costGrowth: 1.05,
+    costGrowth: 1.04,
     costResource: 'attention',
     produces: { attention: 2 },
     blurb: 'A fake account dressed for the part. Cheap, fast, low credibility.',
@@ -132,7 +132,7 @@ export const ASSETS: AssetDef[] = [
     era: 'grassroots',
     kind: 'bot',
     baseCost: 300,
-    costGrowth: 1.04,
+    costGrowth: 1.035,
     costResource: 'attention',
     produces: {},
     blurb: 'A WordPress install with a serious-looking masthead. Adds attention storage.',
@@ -512,13 +512,47 @@ export const PROJECTS: ProjectDef[] = [
     cost: { attention: 200 },
     era: 'grassroots',
     blurb: 'A single post catches. The screenshots circulate. Permanent +100% attention production.',
-    precedent: 'Pizzagate (2016) — a single 4chan post going viral in 72 hours; Plandemic (2020) — 8M views in a week; "Bernie\'s mittens" (2021) — anodyne but the same kinetic shape. The first hit changes everything.',
+    precedents: [
+      'Pizzagate (2016): a single 4chan post going viral in 72 hours took the conspiracy from message-board fringe to mainstream news cycle.',
+      'Plandemic (2020): Mikki Willis\'s 26-minute video hit 8M views in one week before takedowns.',
+      '"Bernie\'s mittens" (2021): anodyne content, but the same shape — single image, mass remixing, 24-hour saturation.',
+      'Andrew Tate\'s viral 2022 breakout: TikTok clips remixed across thousands of accounts before YouTube/Meta bans (CCDH "Hidden Hate" 2022).',
+      'The "Couch" rumor about JD Vance (2024) — a single anonymous tweet metastasized into a national meme in 48 hours.',
+      '"Defund the police" 2020 — phrase coined in protest, weaponized within weeks by both flanks for opposing campaigns.',
+      'Q\'s first drop (Oct 28 2017): "Hillary Clinton will be arrested between 7:45 AM - 8:30 AM EST on Monday." Wrong but seeded a movement.',
+    ],
     visible: (s) => s.resources.attention >= 80 && !s.completedProjects['first-viral-moment'],
     teased: (s) => s.resources.attention >= 30 && !s.completedProjects['first-viral-moment'],
     teaseHint: 'A first big hit. Permanent doubler. Unlocks at 80 attention.',
     effect: (s) => {
       s.flags['firstViralMoment'] = true;
       s.log.unshift('Your first post catches fire. Screenshots circulate for days.');
+    },
+  },
+  {
+    id: 'viral-cascade',
+    name: 'Viral Cascade',
+    cost: { attention: 50_000 },
+    era: 'grassroots',
+    blurb: 'Drop a manufactured moment. ×5 attention production for 5 minutes — the cascade does the work.',
+    precedents: [
+      '"Ice Bucket Challenge" (2014): 17 million videos in 6 weeks, $115M raised — non-political but template-defining.',
+      'BLM hashtag spike post-George Floyd (2020): 47.8M tweets in 10 days. (Pew analysis 2020)',
+      'Macedonian Veles 2016: a single fabricated story could drive $5K–$10K of ad revenue in a single day at peak.',
+      '"Stop the Steal" hashtag accelerator (Nov 2020 – Jan 6 2021): J6 Cmte traced the coordinated tag-cluster across 11 platforms.',
+      '"Plandemic" 8M-views-in-a-week phenomenon (May 2020) — same cascade shape.',
+    ],
+    visible: (s) => s.resources.attention >= 50_000 && !s.completedProjects['viral-cascade'],
+    teased: (s) => s.resources.attention >= 20_000 && !s.completedProjects['viral-cascade'],
+    teaseHint: 'A one-shot ×5 burst. Unlocks at 50K attention.',
+    effect: (s) => {
+      s.event = {
+        id: 'viral-cascade',
+        until: s.lastTick + 5 * 60 * 1000,
+        mult: 5,
+        resourceId: 'attention',
+      };
+      s.log.unshift('▶ Viral Cascade ignites. Five minutes of ×5 attention. Ride it.');
     },
   },
   {

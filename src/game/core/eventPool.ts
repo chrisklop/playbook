@@ -18,6 +18,17 @@ export interface EventDef {
 }
 
 export const EVENT_POOL: EventDef[] = [
+  // ── Player-triggered (never auto-picked; project sets state.event) ─────
+  {
+    id: 'viral-cascade',
+    weight: 0,
+    conditions: () => false,
+    headline: 'Viral Cascade ignited. ×5 attention production for 5 minutes.',
+    precedent: 'Single-moment cascade pattern (Ice Bucket, BLM hashtag spike, Plandemic, Stop the Steal). The shape repeats.',
+    duration: 300,
+    resource: 'attention',
+    mult: 5,
+  },
   // ── Grassroots-OK (no phase gate) ──────────────────────────────────────
   {
     id: 'late-night-quote-tweet',
