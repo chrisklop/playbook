@@ -22,9 +22,12 @@ export function computeDepictMultipliers(state: GameState): Record<ResourceId, n
     if (level <= 0) continue;
     for (const [res, perLevel] of Object.entries(u.multiplier)) {
       const r = res as ResourceId;
-      // Stack additively per level then multiply onto base (1 + total).
       mult[r] *= 1 + (perLevel as number) * level;
     }
+  }
+  // Project-flag bumps.
+  if (state.flags['cpcNetwork']) {
+    mult.engagement *= 1.5; // CPC Network: +50% emotional/engagement output.
   }
   return mult;
 }
@@ -32,16 +35,19 @@ export function computeDepictMultipliers(state: GameState): Record<ResourceId, n
 export function computeCaps(state: GameState): Record<ResourceId, number> {
   const caps = emptyResourceMap(0);
   const outlets = state.assets.outlet ?? 0;
+  const newsletters = state.assets.newsletter ?? 0;
+
   if (state.flags['editorialCalendar']) {
-    // Editorial Calendar PARADIGM: outlet cap contribution flips from
-    // additive to geometric (each new outlet adds 12% more than the previous).
-    // Geometric sum: 40 × (1.12^n − 1) / 0.12. Strictly outpaces cost growth
-    // of 1.10, so the invariant holds at any scale.
+    // Editorial Calendar PARADIGM: outlet cap flips from additive to geometric
+    // (each new outlet adds 12% more than the previous). Outpaces 1.10 cost
+    // growth permanently per PLAN.md Invariant 4.
     caps.attention = 50 + Math.floor(40 * (Math.pow(1.12, outlets) - 1) / 0.12);
-    caps.engagement = Math.max(state.caps.engagement ?? 0, 50);
+    caps.engagement = 50 + 40 * newsletters;
+    if (state.flags['cpcNetwork']) {
+      // CPC Network: triples engagement storage.
+      caps.engagement = Math.floor(caps.engagement * 3);
+    }
   } else {
-    // Pre-paradigm: linear cap. Sustainable up to ~50 outlets — player should
-    // trigger Editorial Calendar long before that.
     caps.attention = 50 + 40 * outlets;
   }
   caps.followers = state.caps.followers || 0;

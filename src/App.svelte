@@ -9,7 +9,7 @@
   import { ASSETS, UPGRADES, PROJECTS } from './game/core/catalog';
   import { computeRates } from './game/core/production';
   import { affordableCount } from './game/core/math';
-  import { DEPICT_IDS } from './game/types';
+  import { DEPICT_IDS, PHASE_ORDER } from './game/types';
   import { PLATFORM_META } from './lib/platforms';
   import { fmt, fmtRate, etaToCap } from './lib/format';
 
@@ -36,8 +36,32 @@
       const totalLevel = all.reduce((acc, u) => acc + (game.upgrades[u.id] ?? 0), 0);
       const totalMax = all.reduce((acc, u) => acc + u.maxLevel, 0);
       return { tree, all, visible, totalLevel, totalMax };
-    }),
+    }).filter((t) => t.visible.length > 0 || t.totalLevel > 0),
   );
+
+  // ── Gradual reveal predicates ────────────────────────────────────────
+  // Per PLAN.md §6f: hide UI surfaces until prerequisites are in reach.
+  // Early game = sock-puppet button + log line only. Each milestone reveals.
+
+  const showTicker      = $derived(game.resources.attention >= 5);
+  const showBulkBuy     = $derived(
+    game.resources.attention >= 100 ||
+    Object.values(game.assets).some((c) => c >= 10),
+  );
+  const showCureMeter   = $derived(
+    game.cure > 0.0001 ||
+    Object.values(game.platforms).some((p) => p.unlocked && p.heat > 0.01),
+  );
+  const showLog         = $derived(game.log.length >= 2);
+  const showProjects    = $derived(visibleProjects.length > 0);
+  const showTrees       = $derived(treesView.length > 0);
+  const showPlatformGrid = $derived(
+    PHASE_ORDER.indexOf(game.phase) >= PHASE_ORDER.indexOf('blog') ||
+    Object.values(game.platforms).filter((p) => p.unlocked).length > 1 ||
+    game.platforms.x.reach > 1,
+  );
+
+  const isMinimal = $derived(!showTrees && !showProjects && !showPlatformGrid);
 
   const buffActive = $derived(
     game.returnBuff !== null && game.returnBuff.until > Date.now(),
@@ -117,39 +141,45 @@
           </div>
         {/if}
       {/each}
-      <div class="rmeter cure">
-        <div class="rlabel">Cure</div>
-        <div class="rvalue num">{(game.cure * 100).toFixed(2)}<span class="cap">%</span></div>
-        <div class="rrate"></div>
-        <div class="rfill cure-fill" style="--fill: {game.cure * 100}%"></div>
-      </div>
+      {#if showCureMeter}
+        <div class="rmeter cure">
+          <div class="rlabel">Cure</div>
+          <div class="rvalue num">{(game.cure * 100).toFixed(2)}<span class="cap">%</span></div>
+          <div class="rrate"></div>
+          <div class="rfill cure-fill" style="--fill: {game.cure * 100}%"></div>
+        </div>
+      {/if}
       {#if buffActive}
         <div class="buff" title="Return buff: come-back-soon bonus.">×{game.returnBuff!.mult} BUFF</div>
       {/if}
     </div>
     <div class="topbar-actions">
-      <div class="bulk" role="group" aria-label="bulk-buy quantity">
-        {#each [1, 10, 100, 'max'] as mode (mode)}
-          <button
-            class="bulk-btn"
-            class:active={bulkMode === mode}
-            onclick={() => (bulkMode = mode as BulkMode)}
-          >×{mode}</button>
-        {/each}
-      </div>
+      {#if showBulkBuy}
+        <div class="bulk" role="group" aria-label="bulk-buy quantity">
+          {#each [1, 10, 100, 'max'] as mode (mode)}
+            <button
+              class="bulk-btn"
+              class:active={bulkMode === mode}
+              onclick={() => (bulkMode = mode as BulkMode)}
+            >×{mode}</button>
+          {/each}
+        </div>
+      {/if}
       <button class="ghost" onclick={reset}>reset</button>
     </div>
   </header>
 
   <!-- TICKER (placeholder slot for v0.1) -->
-  <div class="ticker">
-    <span class="tick-fact">
-      A 2018 MIT study found false news travels six times faster than true news on Twitter. Humans, not bots, drove most of the gap. — Vosoughi et al., <em>Science</em>, 2018.
-    </span>
-  </div>
+  {#if showTicker}
+    <div class="ticker">
+      <span class="tick-fact">
+        A 2018 MIT study found false news travels six times faster than true news on Twitter. Humans, not bots, drove most of the gap. — Vosoughi et al., <em>Science</em>, 2018.
+      </span>
+    </div>
+  {/if}
 
   <!-- MAIN GRID -->
-  <main class="grid">
+  <main class="grid" class:minimal={isMinimal}>
     <!-- LEFT: Assets + Projects -->
     <section class="col left">
       <h2>Assets</h2>
@@ -175,7 +205,7 @@
         {/each}
       </div>
 
-      {#if visibleProjects.length > 0}
+      {#if showProjects}
         <h2>Projects</h2>
         <div class="cards">
           {#each visibleProjects as p (p.id)}
@@ -200,12 +230,14 @@
     </section>
 
     <!-- CENTER: Platform grid -->
+    {#if showPlatformGrid}
     <section class="col center">
       <h2>Platforms</h2>
       <div class="platform-grid">
         {#each PLATFORM_META as meta (meta.id)}
           {@const p = game.platforms[meta.id]}
           {@const unlocked = p.unlocked}
+          {#if unlocked || PHASE_ORDER.indexOf(game.phase) >= PHASE_ORDER.indexOf('blog')}
           <div class="platform-card" class:locked={!unlocked} style="--tint: {meta.tint}">
             <div class="plt-head">
               <span class="plt-name">{meta.name}</span>
@@ -237,11 +269,14 @@
               </div>
             {/if}
           </div>
+          {/if}
         {/each}
       </div>
     </section>
+    {/if}
 
     <!-- RIGHT: DEPICT trees -->
+    {#if showTrees}
     <section class="col right">
       <h2>DEPICT trees</h2>
       <div class="trees">
@@ -273,25 +308,25 @@
                   <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
                 </button>
               {/each}
-              {#if t.visible.length === 0}
-                <div class="tree-locked">???</div>
-              {/if}
             </div>
           </div>
         {/each}
       </div>
     </section>
+    {/if}
   </main>
 
   <!-- LOG -->
-  <footer class="log">
-    <h2>Log</h2>
-    <div class="log-lines">
-      {#each game.log.slice(0, 12) as line, i (i)}
-        <div class="line">{line}</div>
-      {/each}
-    </div>
-  </footer>
+  {#if showLog}
+    <footer class="log">
+      <h2>Log</h2>
+      <div class="log-lines">
+        {#each game.log.slice(0, 12) as line, i (i)}
+          <div class="line">{line}</div>
+        {/each}
+      </div>
+    </footer>
+  {/if}
 </div>
 
 <style>
@@ -455,8 +490,16 @@
     padding: 1rem;
     align-items: start;
     min-height: 0;
+    transition: grid-template-columns 400ms ease;
   }
+  /* Early game: center the lone Assets column. Each reveal expands the grid. */
+  .grid.minimal {
+    grid-template-columns: 1fr minmax(280px, 360px) 1fr;
+    padding-top: 6vh;
+  }
+  .grid.minimal .col.left { grid-column: 2; }
   .col { display: grid; gap: 0.8rem; align-content: start; }
+  .col.center:empty, .col.right:empty { display: none; }
   .col h2 {
     font-size: 0.65rem;
     text-transform: uppercase;
