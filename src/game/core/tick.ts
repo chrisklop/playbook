@@ -9,6 +9,7 @@ import { tickCureEvents } from './cure';
 import { tickEventScheduler } from './events';
 import { ASSETS, UPGRADES, PROJECTS } from './catalog';
 import { SYNERGIES, isSynergyVisible, isSynergyTeased } from './synergies';
+import { PATRONS, isPatronVisible, isPatronTeased } from './patrons';
 import { tickAchievements } from './achievements';
 
 const CURE_FROM_HEAT_PER_S = 0.0002;
@@ -48,6 +49,15 @@ function tickCure(state: GameState, dt: number): void {
 
   const cureRate = CURE_FROM_HEAT_PER_S * totalHeat * (1 - suppression);
   state.cure = clamp(state.cure + cureRate * dt, 0, 1);
+
+  // STUB MEBRO REVEAL — triggers at 80% cure. Full reveal sequence
+  // (defection feed, Trust bar, debrief screen) is REVEAL.md v0.2 work.
+  if (state.cure >= 0.80 && !state.reveal.active) {
+    state.reveal.active = true;
+    state.reveal.triggeredAt = state.lastTick;
+    state.log.unshift('── THE PLAYBOOK IS UP ── Mebro fact-check annotations start appearing on your content. Reach plummets.');
+    state.log.unshift('★ Read what you built. Prestige (★) to start clean. Full debrief screen ships in v0.2.');
+  }
 }
 
 function tickEvents(state: GameState): void {
@@ -83,6 +93,11 @@ function tickReveals(state: GameState): void {
     if (state.flags[sn.id]) continue; // already activated
     if (isSynergyVisible(state, sn)) state.flags[`reveal:${sn.id}`] = true;
     if (isSynergyTeased(state, sn)) state.flags[`tease:${sn.id}`] = true;
+  }
+  for (const pa of PATRONS) {
+    if (state.flags[pa.id]) continue;
+    if (isPatronVisible(state, pa)) state.flags[`reveal:${pa.id}`] = true;
+    if (isPatronTeased(state, pa)) state.flags[`tease:${pa.id}`] = true;
   }
 }
 

@@ -11,6 +11,10 @@
     SYNERGIES, activateSynergy, isSynergyVisible,
     isSynergyTeased, canActivateSynergy,
   } from './game/core/synergies';
+  import {
+    PATRONS, activatePatron, isPatronVisible,
+    isPatronTeased, canActivatePatron,
+  } from './game/core/patrons';
   import { computeRates } from './game/core/production';
   import { affordableCount } from './game/core/math';
   import { DEPICT_IDS, PHASE_ORDER } from './game/types';
@@ -23,7 +27,7 @@
   } from './game/legacy';
   import { onMount } from 'svelte';
 
-  type BulkMode = 1 | 10 | 100 | 1000 | 'max';
+  type BulkMode = 1 | 10 | 100 | 'max';
   let bulkMode = $state<BulkMode>(1);
 
   function reset() {
@@ -113,6 +117,22 @@
     ),
   );
   const showSynergies = $derived(visibleSynergies.length > 0 || teasedSynergies.length > 0);
+
+  const visiblePatrons = $derived(
+    PATRONS.filter((p) => isPatronVisible(game, p) || !!game.flags[`reveal:${p.id}`]),
+  );
+  const teasedPatrons = $derived(
+    PATRONS.filter(
+      (p) =>
+        !isPatronVisible(game, p) &&
+        !game.flags[p.id] &&
+        (isPatronTeased(game, p) || !!game.flags[`tease:${p.id}`]),
+    ),
+  );
+  const activePatrons = $derived(PATRONS.filter((p) => game.flags[p.id]));
+  const showPatrons = $derived(
+    visiblePatrons.length > 0 || teasedPatrons.length > 0 || activePatrons.length > 0,
+  );
 
   // Sort priority so the newest/most-relevant tree floats to top:
   //   1. Teased-only (??? placeholder, just about to unlock) → top
@@ -333,17 +353,7 @@
       </button>
     </div>
     <div class="topbar-actions">
-      {#if showBulkBuy}
-        <div class="bulk" role="group" aria-label="bulk-buy quantity">
-          {#each [1, 10, 100, 1000, 'max'] as mode (mode)}
-            <button
-              class="bulk-btn"
-              class:active={bulkMode === mode}
-              onclick={() => (bulkMode = mode as BulkMode)}
-            >×{mode}</button>
-          {/each}
-        </div>
-      {/if}
+      {#if showBulkBuy && false /* moved to Assets section */}{/if}
       {#if legacy.points > 0 || prestigeGain > 0}
         <button class="ghost prestige" onclick={prestige} title="Reset run, bank legacy points">
           ★ {legacy.points}{prestigeGain > 0 ? ` (+${prestigeGain})` : ''}
@@ -384,7 +394,20 @@
   <main class="grid">
     <!-- LEFT: Assets + Projects -->
     <section class="col left">
-      <h2>Assets</h2>
+      <div class="section-head">
+        <h2>Assets</h2>
+        {#if showBulkBuy}
+          <div class="bulk" role="group" aria-label="bulk-buy quantity">
+            {#each [1, 10, 100, 'max'] as mode (mode)}
+              <button
+                class="bulk-btn"
+                class:active={bulkMode === mode}
+                onclick={() => (bulkMode = mode as BulkMode)}
+              >×{mode}</button>
+            {/each}
+          </div>
+        {/if}
+      </div>
       <div class="cards">
         {#each visibleAssets as a (a.id)}
           {@const n = Math.max(1, assetBuyCount(a.id))}
@@ -511,11 +534,66 @@
           {/each}
         </div>
       {/if}
+
+      {#if showPatrons}
+        <h2>Patrons</h2>
+        <div class="cards">
+          {#each activePatrons as pa (pa.id)}
+            <div class="card patron active">
+              <div class="card-head">
+                <span class="name">✓ {pa.name}</span>
+                <span class="owned">active</span>
+              </div>
+              <div class="blurb">{pa.archetype}</div>
+              <div class="effect">{Object.entries(pa.buffs).map(([r, v]) => `+${Math.round((v as number) * 100)}% ${r}`).join(' · ')}</div>
+            </div>
+          {/each}
+          {#each visiblePatrons as pa (pa.id)}
+            {@const [res, amt] = Object.entries(pa.cost)[0]}
+            {@const affordable = canActivatePatron(game, pa)}
+            {@const ppre = getPrecedent(pa.id, pa.precedents)}
+            <button
+              class="card patron"
+              disabled={!affordable}
+              onclick={() => { activatePatron(game, pa.id); rotatePrecedent(pa.id, pa.precedents); }}
+              title={ppre ?? ''}
+            >
+              <div class="card-head">
+                <span class="name">{pa.name}</span>
+                <span class="owned">{pa.archetype}</span>
+              </div>
+              <div class="blurb">{pa.blurb}</div>
+              <div class="effect">{Object.entries(pa.buffs).map(([r, v]) => `+${Math.round((v as number) * 100)}% ${r}`).join(' · ')} · cure +{Math.round(pa.cureJump * 100)}%</div>
+              {#if ppre}
+                <div class="precedent">
+                  {ppre}
+                  {#if pa.precedents.length > 1}
+                    <span class="precedent-counter">[{((precedentIndex[pa.id] ?? 0) % pa.precedents.length) + 1}/{pa.precedents.length}]</span>
+                  {/if}
+                </div>
+              {/if}
+              <div class="card-foot">
+                <span class="buy-n">one-shot</span>
+                <span class="cost num">{fmt(amt as number)} {res}</span>
+              </div>
+            </button>
+          {/each}
+          {#each teasedPatrons as pa (pa.id)}
+            <div class="card patron teased">
+              <div class="card-head">
+                <span class="name">???</span>
+                <span class="owned">{pa.archetype}</span>
+              </div>
+              <div class="blurb">A powerful backer. Unlocks in {pa.era}.{pa.requiresHint ? ' ' + pa.requiresHint : ''}</div>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </section>
 
-    <!-- RIGHT: Platform dashboard (passive gauges) -->
+    <!-- RIGHT: Platform dashboard (passive gauges) — uses explicit grid-column -->
     {#if showPlatformGrid}
-    <section class="col right platforms-col">
+    <section class="col platforms-col">
       <h2>Platforms</h2>
       <div class="platform-grid">
         {#each PLATFORM_META as meta (meta.id)}
@@ -559,9 +637,9 @@
     </section>
     {/if}
 
-    <!-- CENTER: DEPICT trees (most interactive) -->
+    <!-- CENTER: DEPICT trees — explicit grid-column 2 -->
     {#if showTrees}
-    <section class="col center trees-col">
+    <section class="col trees-col">
       <h2>DEPICT trees</h2>
       <div class="trees">
         {#each treesView as t (t.tree)}
@@ -762,6 +840,13 @@
   .post-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; }
   .post-cd { font-size: 0.65rem; opacity: 0.85; }
   .topbar-actions { display: flex; gap: 0.4rem; align-items: center; }
+  .section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .section-head h2 { margin: 0; }
   .bulk {
     display: inline-flex;
     border: 1px solid var(--line);
@@ -912,23 +997,23 @@
     padding: 0.6rem 0.8rem;
     border-radius: 8px;
   }
+  /* Explicit column placement — no longer relying on DOM order. */
   .col.left {
+    grid-column: 1;
     background: color-mix(in oklab, hsl(25 60% 50%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(25 60% 50%) 25%, var(--line));
   }
   .col.trees-col {
+    grid-column: 2;
     background: color-mix(in oklab, hsl(220 70% 50%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(220 70% 50%) 25%, var(--line));
   }
   .col.platforms-col {
+    grid-column: 3;
     background: color-mix(in oklab, hsl(165 40% 45%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(165 40% 45%) 25%, var(--line));
   }
-  .col.center:empty, .col.right:empty { display: none; }
-  .grid:has(.col.center:empty):has(.col.right:empty) {
-    grid-template-columns: minmax(280px, 360px);
-    justify-content: center;
-  }
+  .col:empty { display: none; }
   .col h2 {
     font-size: 0.65rem;
     text-transform: uppercase;
@@ -1012,6 +1097,19 @@
     border: 1px dashed color-mix(in oklab, var(--accent) 50%, transparent);
     background: transparent;
   }
+  .patron {
+    border: 1.5px solid hsl(45 90% 45%);
+    background: color-mix(in oklab, hsl(45 90% 45%) 8%, var(--paper-2));
+  }
+  .patron.teased {
+    border: 1px dashed color-mix(in oklab, hsl(45 90% 45%) 50%, transparent);
+    background: transparent;
+  }
+  .patron.active {
+    background: color-mix(in oklab, hsl(45 90% 45%) 18%, var(--paper-2));
+    cursor: default;
+  }
+  .patron .name { color: hsl(45 90% 35%); }
 
   /* Teased placeholders — show ??? + cost + hint so the player has an
      anticipation hook before the real card appears. */

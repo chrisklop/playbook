@@ -6,6 +6,7 @@ import { ASSETS, UPGRADES } from './catalog';
 import { RESOURCE_IDS } from '../types';
 import { totalAchievementBuffs } from './achievements';
 import { loadLegacy, legacyMultiplier } from '../legacy';
+import { PATRONS } from './patrons';
 
 export interface ProductionSnapshot {
   rates: Record<ResourceId, number>;       // net /sec
@@ -42,6 +43,14 @@ export function computeDepictMultipliers(state: GameState): Record<ResourceId, n
   if (state.flags['syn:tribal-trojan'])      { mult.followers *= 1.50; mult.engagement *= 1.20; }
   // Flood the Zone / Reverse-Smear apply to heat/cure, not production.
 
+  // Patron buffs.
+  for (const p of PATRONS) {
+    if (!state.flags[p.id]) continue;
+    for (const [res, amt] of Object.entries(p.buffs)) {
+      mult[res as ResourceId] *= 1 + (amt as number);
+    }
+  }
+
   // Achievement buffs (additive over base 1).
   const achBuffs = totalAchievementBuffs(state);
   for (const [r, amt] of Object.entries(achBuffs)) {
@@ -54,6 +63,13 @@ export function computeDepictMultipliers(state: GameState): Record<ResourceId, n
   if (legacyMult > 1) {
     for (const r of RESOURCE_IDS) {
       mult[r] *= legacyMult;
+    }
+  }
+
+  // Mebro reveal — production collapses to 10% during the reveal stub.
+  if (state.reveal.active) {
+    for (const r of RESOURCE_IDS) {
+      mult[r] *= 0.1;
     }
   }
 
