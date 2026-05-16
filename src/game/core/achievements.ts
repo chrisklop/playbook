@@ -177,6 +177,84 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     trigger: (s) => (s.upgrades['discrediting-2'] ?? 0) >= 10,
     buff: { resource: 'attention', amount: 0.03 },
   },
+
+  // ── Asset-count milestones (Cookie-Clicker "milk" pattern) ───────────
+  // Each gives a permanent percentage boost to the relevant resource.
+  // Visible progress targets at every step of Grassroots/Blog/Social.
+  {
+    id: 'ach-puppets-100',
+    name: 'Hundred Hands',
+    hint: 'Field 100 sock puppets.',
+    trigger: (s) => (s.assets.sockPuppet ?? 0) >= 100,
+    buff: { resource: 'attention', amount: 0.05 },
+  },
+  {
+    id: 'ach-puppets-250',
+    name: 'A Whole Movement',
+    hint: 'Field 250 sock puppets.',
+    trigger: (s) => (s.assets.sockPuppet ?? 0) >= 250,
+    buff: { resource: 'attention', amount: 0.10 },
+  },
+  {
+    id: 'ach-puppets-500',
+    name: 'Coordinated Inauthentic Behavior',
+    hint: 'Field 500 sock puppets.',
+    precedent: 'Meta\'s 2018 "Coordinated Inauthentic Behavior" enforcement framework, the technical term-of-art for state-scale fake-account ops.',
+    trigger: (s) => (s.assets.sockPuppet ?? 0) >= 500,
+    buff: { resource: 'attention', amount: 0.15 },
+  },
+  {
+    id: 'ach-puppets-1000',
+    name: 'IRA-Scale',
+    hint: 'Field 1,000 sock puppets.',
+    precedent: 'The Russian Internet Research Agency operated ~80 staff but ran thousands of personas across platforms (Senate Intel Vol. II, 2019).',
+    trigger: (s) => (s.assets.sockPuppet ?? 0) >= 1000,
+    buff: { resource: 'attention', amount: 0.25 },
+  },
+  {
+    id: 'ach-outlets-50',
+    name: 'Veles Veterans',
+    hint: 'Own 50 pseudo-news sites.',
+    trigger: (s) => (s.assets.outlet ?? 0) >= 50,
+    buff: { resource: 'attention', amount: 0.05 },
+  },
+  {
+    id: 'ach-outlets-150',
+    name: 'Pink Slime',
+    hint: 'Own 150 pseudo-news sites.',
+    precedent: '"Pink slime" outlets — algorithmically-generated local "news" sites with hyper-partisan content. NewsGuard tracks 1,200+ of them (2024).',
+    trigger: (s) => (s.assets.outlet ?? 0) >= 150,
+    buff: { resource: 'attention', amount: 0.12 },
+  },
+  {
+    id: 'ach-bloggers-50',
+    name: 'Substack Salon',
+    hint: 'Own 50 anonymous bloggers.',
+    trigger: (s) => (s.assets.anonymousBlogger ?? 0) >= 50,
+    buff: { resource: 'attention', amount: 0.05 },
+  },
+  {
+    id: 'ach-bloggers-200',
+    name: 'Pundit Pipeline',
+    hint: 'Own 200 anonymous bloggers.',
+    trigger: (s) => (s.assets.anonymousBlogger ?? 0) >= 200,
+    buff: { resource: 'attention', amount: 0.15 },
+  },
+  {
+    id: 'ach-doppelganger-50',
+    name: 'Mirror Sites',
+    hint: 'Own 50 Doppelganger Clusters.',
+    precedent: 'Meta\'s 2022–2024 Adversarial Threat Reports document quarterly takedowns of Russian Doppelganger network — 5,000+ accounts.',
+    trigger: (s) => (s.assets.doppelganger ?? 0) >= 50,
+    buff: { resource: 'engagement', amount: 0.10 },
+  },
+  {
+    id: 'ach-newsletter-100',
+    name: 'Inbox Saturation',
+    hint: 'Own 100 Newsletter Stacks.',
+    trigger: (s) => (s.assets.newsletter ?? 0) >= 100,
+    buff: { resource: 'engagement', amount: 0.08 },
+  },
 ];
 
 export function tickAchievements(state: GameState): void {

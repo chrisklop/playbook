@@ -23,7 +23,7 @@
   } from './game/legacy';
   import { onMount } from 'svelte';
 
-  type BulkMode = 1 | 10 | 100 | 'max';
+  type BulkMode = 1 | 10 | 100 | 1000 | 'max';
   let bulkMode = $state<BulkMode>(1);
 
   function reset() {
@@ -269,7 +269,7 @@
     <div class="topbar-actions">
       {#if showBulkBuy}
         <div class="bulk" role="group" aria-label="bulk-buy quantity">
-          {#each [1, 10, 100, 'max'] as mode (mode)}
+          {#each [1, 10, 100, 1000, 'max'] as mode (mode)}
             <button
               class="bulk-btn"
               class:active={bulkMode === mode}
@@ -431,9 +431,9 @@
       {/if}
     </section>
 
-    <!-- CENTER: Platform grid -->
+    <!-- RIGHT: Platform dashboard (passive gauges) -->
     {#if showPlatformGrid}
-    <section class="col center">
+    <section class="col right platforms-col">
       <h2>Platforms</h2>
       <div class="platform-grid">
         {#each PLATFORM_META as meta (meta.id)}
@@ -477,9 +477,9 @@
     </section>
     {/if}
 
-    <!-- RIGHT: DEPICT trees -->
+    <!-- CENTER: DEPICT trees (most interactive) -->
     {#if showTrees}
-    <section class="col right">
+    <section class="col center trees-col">
       <h2>DEPICT trees</h2>
       <div class="trees">
         {#each treesView as t (t.tree)}
@@ -769,24 +769,43 @@
   }
 
   /* ── MAIN GRID ─────────────────────────────────────────────────────── */
-  /* Layout never shifts the assets column. Empty center/right columns
-     just collapse via :empty. Card position is stable from t=0. */
+  /* Three columns. Layout never shifts. Each column has distinct tinting
+     so it's visually clear they're separate functional areas:
+     - LEFT (assets/projects/synergies): warm — the "spend" side
+     - CENTER (DEPICT trees): cool — the "research" side
+     - RIGHT (platforms): subdued — passive dashboard / gauges */
   .grid {
     display: grid;
-    grid-template-columns: minmax(280px, 360px) 1fr 360px;
+    grid-template-columns: minmax(280px, 360px) 1fr minmax(280px, 360px);
     gap: 1rem;
     padding: 1rem;
     align-items: start;
     align-content: start;
     min-height: 0;
-    max-width: 1600px;
+    max-width: 1700px;
     margin: 0 auto;
     width: 100%;
   }
-  .col { display: grid; gap: 0.8rem; align-content: start; }
+  .col {
+    display: grid;
+    gap: 0.8rem;
+    align-content: start;
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+  }
+  .col.left {
+    background: color-mix(in oklab, hsl(25 60% 50%) 4%, var(--paper-2));
+    border: 1px solid color-mix(in oklab, hsl(25 60% 50%) 25%, var(--line));
+  }
+  .col.trees-col {
+    background: color-mix(in oklab, hsl(220 70% 50%) 4%, var(--paper-2));
+    border: 1px solid color-mix(in oklab, hsl(220 70% 50%) 25%, var(--line));
+  }
+  .col.platforms-col {
+    background: color-mix(in oklab, hsl(165 40% 45%) 4%, var(--paper-2));
+    border: 1px solid color-mix(in oklab, hsl(165 40% 45%) 25%, var(--line));
+  }
   .col.center:empty, .col.right:empty { display: none; }
-  /* When only the left column has content, give the grid 1 column so the
-     card occupies the natural width — but the card itself doesn't move. */
   .grid:has(.col.center:empty):has(.col.right:empty) {
     grid-template-columns: minmax(280px, 360px);
     justify-content: center;
