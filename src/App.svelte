@@ -48,10 +48,9 @@
     game.resources.attention >= 100 ||
     Object.values(game.assets).some((c) => c >= 10),
   );
-  const showCureMeter   = $derived(
-    game.cure > 0.0001 ||
-    Object.values(game.platforms).some((p) => p.unlocked && p.heat > 0.01),
-  );
+  // Cure is dormant until Blog era and below 5%. It's the long-game pressure
+  // counter — when it crosses 80% in AI Saturation, the Mebro reveal triggers.
+  const showCureMeter   = $derived(game.cure >= 0.05);
   // Don't surface the log until enough has happened to feel like a feed.
   const showLog         = $derived(game.log.length >= 4);
   const showProjects    = $derived(visibleProjects.length > 0);

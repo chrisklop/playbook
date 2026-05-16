@@ -116,4 +116,4 @@ export interface GameState {
   event: ActiveEvent | null;
 }
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;

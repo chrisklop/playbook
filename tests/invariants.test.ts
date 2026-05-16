@@ -104,12 +104,19 @@ describe('save round-trip', () => {
     expect(s.phase).toBe('grassroots');
   });
 
-  it('migrate fills missing fields', () => {
-    const partial = JSON.stringify({ version: 1, resources: { attention: 10 } });
+  it('migrate fills missing fields when version matches', async () => {
+    const { SAVE_VERSION } = await import('../src/game/types');
+    const partial = JSON.stringify({ version: SAVE_VERSION, resources: { attention: 10 } });
     const s = deserialize(partial, T0);
     expect(s.resources.attention).toBe(10);
     expect(s.caps.attention).toBeGreaterThan(0);
     expect(s.platforms.facebook).toBeDefined();
+  });
+
+  it('migrate wipes when version mismatches', () => {
+    const old = JSON.stringify({ version: 0, resources: { attention: 99999 } });
+    const s = deserialize(old, T0);
+    expect(s.resources.attention).toBe(1);
   });
 });
 

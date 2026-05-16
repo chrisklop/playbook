@@ -1,12 +1,19 @@
 // Pure tick function. Mutates the passed state in place. No Svelte, no DOM.
 
-import { type GameState, PLATFORM_IDS, RESOURCE_IDS } from '../types';
+import { type GameState, PLATFORM_IDS, PHASE_ORDER, RESOURCE_IDS } from '../types';
 import { clamp } from './math';
 import { computeCaps, computeRates } from './production';
 import { checkPhaseTransitions } from './actions';
 import { tickPlatforms } from './platforms';
+import { tickCureEvents } from './cure';
 
 const CURE_FROM_HEAT_PER_S = 0.0002;
+
+// Heat/cure are Blog-era+ mechanics. Grassroots is abstract — sock puppets
+// just produce attention; no platform diversification yet, no counter-pressure.
+function platformEra(state: GameState): boolean {
+  return PHASE_ORDER.indexOf(state.phase) >= PHASE_ORDER.indexOf('blog');
+}
 
 function tickEcon(state: GameState, dt: number): void {
   state.caps = computeCaps(state);
@@ -21,6 +28,7 @@ function tickEcon(state: GameState, dt: number): void {
 
 function tickCure(state: GameState, dt: number): void {
   if (state.reveal.active) return;
+  if (!platformEra(state)) return;
   let totalHeat = 0;
   for (const id of PLATFORM_IDS) {
     if (state.platforms[id].unlocked) totalHeat += state.platforms[id].heat;
@@ -45,8 +53,9 @@ export function tick(state: GameState, now: number): void {
   state.lastTick = now;
 
   tickEcon(state, dt);
-  tickPlatforms(state, dt);
+  if (platformEra(state)) tickPlatforms(state, dt);
   tickCure(state, dt);
+  if (platformEra(state)) tickCureEvents(state);
   tickEvents(state);
   checkPhaseTransitions(state);
   trackPeaks(state);

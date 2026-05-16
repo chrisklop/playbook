@@ -19,8 +19,10 @@ export function deserialize(json: string, now: number = Date.now()): GameState {
 }
 
 function migrate(raw: Partial<GameState>, now: number): GameState {
-  // v0.1: only one version exists. Scaffolding for future migrations:
-  //   if (raw.version === 1) raw = migrateV1toV2(raw);
+  // Pre-v0.1 saves used a different balance — wipe rather than rescue.
+  if (raw.version !== SAVE_VERSION) {
+    return initialState(now);
+  }
   const base = initialState(now);
   return {
     ...base,

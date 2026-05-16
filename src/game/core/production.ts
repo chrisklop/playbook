@@ -39,16 +39,17 @@ export function computeCaps(state: GameState): Record<ResourceId, number> {
 
   if (state.flags['editorialCalendar']) {
     // Editorial Calendar PARADIGM: outlet cap flips from additive to geometric
-    // (each new outlet adds 12% more than the previous). Outpaces 1.10 cost
+    // (each new outlet adds 16% more than the previous). Outpaces 1.13 cost
     // growth permanently per PLAN.md Invariant 4.
-    caps.attention = 50 + Math.floor(40 * (Math.pow(1.12, outlets) - 1) / 0.12);
-    caps.engagement = 50 + 40 * newsletters;
+    caps.attention = 50 + Math.floor(40 * (Math.pow(1.16, outlets) - 1) / 0.16);
+    caps.engagement = 50 + 60 * newsletters;
     if (state.flags['cpcNetwork']) {
-      // CPC Network: triples engagement storage.
       caps.engagement = Math.floor(caps.engagement * 3);
     }
   } else {
-    caps.attention = 50 + 40 * outlets;
+    // Pre-paradigm: 60 cap/outlet. Cost growth 1.10 vs +60 contribution holds
+    // up to ~30 outlets — Edcal threshold (600 att) is reachable inside that.
+    caps.attention = 50 + 60 * outlets;
   }
   caps.followers = state.caps.followers || 0;
   caps.credibility = state.caps.credibility || 0;
