@@ -93,6 +93,12 @@
   );
   const showSynergies = $derived(visibleSynergies.length > 0 || teasedSynergies.length > 0);
 
+  // Sort priority so the newest/most-relevant tree floats to top:
+  //   1. Teased-only (??? placeholder, just about to unlock) → top
+  //   2. Revealed but lightly-invested → next, sorted by least progress
+  //   3. Heavily-developed / maxed → bottom
+  // Player attention follows their currency: new things prominent, mastered
+  // things tucked away but still accessible.
   const treesView = $derived(
     DEPICT_IDS.map((tree) => {
       const all = UPGRADES.filter((u) => u.tree === tree);
@@ -100,8 +106,17 @@
       const teased  = all.filter((u) => !isRevealed(u.id, u.visible) && isTeased(u.id, u.teased));
       const totalLevel = all.reduce((acc, u) => acc + (game.upgrades[u.id] ?? 0), 0);
       const totalMax = all.reduce((acc, u) => acc + u.maxLevel, 0);
-      return { tree, all, visible, teased, totalLevel, totalMax };
-    }).filter((t) => t.visible.length > 0 || t.teased.length > 0 || t.totalLevel > 0),
+      const hasTeased = teased.length > 0;
+      const hasRevealed = visible.length > 0;
+      const sortKey = hasTeased && !hasRevealed
+        ? 0
+        : hasRevealed
+          ? 1 + (totalMax > 0 ? totalLevel / totalMax : 0)
+          : 2;
+      return { tree, all, visible, teased, totalLevel, totalMax, sortKey };
+    })
+      .filter((t) => t.visible.length > 0 || t.teased.length > 0 || t.totalLevel > 0)
+      .sort((a, b) => a.sortKey - b.sortKey),
   );
 
   // ── Gradual reveal predicates ────────────────────────────────────────
