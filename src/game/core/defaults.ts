@@ -64,5 +64,6 @@ export function initialState(now: number = Date.now()): GameState {
     peakResources: emptyResources() as GameState['peakResources'],
     returnBuff: null,
     event: null,
+    lastEventAt: now,
   };
 }

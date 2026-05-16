@@ -12,6 +12,9 @@
   import { DEPICT_IDS, PHASE_ORDER } from './game/types';
   import { PLATFORM_META } from './lib/platforms';
   import { fmt, fmtRate, etaToCap } from './lib/format';
+  import { FACTS } from './lib/facts';
+  import { eventDefById } from './game/core/eventPool';
+  import { onMount } from 'svelte';
 
   type BulkMode = 1 | 10 | 100 | 'max';
   let bulkMode = $state<BulkMode>(1);
@@ -75,6 +78,26 @@
   const buffActive = $derived(
     game.returnBuff !== null && game.returnBuff.until > Date.now(),
   );
+
+  // Active event banner derives
+  const activeEvent = $derived(
+    game.event && game.event.until > game.lastTick ? game.event : null,
+  );
+  const activeEventDef = $derived(activeEvent ? eventDefById(activeEvent.id) : null);
+  const eventSecsLeft = $derived(
+    activeEvent ? Math.max(0, Math.ceil((activeEvent.until - Date.now()) / 1000)) : 0,
+  );
+
+  // Rotating ticker
+  let factIndex = $state(0);
+  onMount(() => {
+    factIndex = Math.floor(Math.random() * FACTS.length);
+    const handle = setInterval(() => {
+      factIndex = (factIndex + 1) % FACTS.length;
+    }, 25_000);
+    return () => clearInterval(handle);
+  });
+  const currentFact = $derived(FACTS[factIndex]);
 
   function affordabilityRatio(cost: number, resource: string): number {
     const have = game.resources[resource as keyof typeof game.resources] ?? 0;
@@ -178,12 +201,25 @@
     </div>
   </header>
 
-  <!-- TICKER (placeholder slot for v0.1) -->
+  <!-- TICKER -->
   {#if showTicker}
     <div class="ticker">
       <span class="tick-fact">
-        A 2018 MIT study found false news travels six times faster than true news on Twitter. Humans, not bots, drove most of the gap. — Vosoughi et al., <em>Science</em>, 2018.
+        {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
       </span>
+    </div>
+  {/if}
+
+  <!-- ACTIVE EVENT BANNER -->
+  {#if activeEvent && activeEventDef}
+    <div class="event-banner" class:negative={activeEvent.mult < 1}>
+      <span class="event-pulse">▶</span>
+      <span class="event-headline">{activeEventDef.headline}</span>
+      <span class="event-effect">
+        {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
+        {activeEvent.resourceId}
+      </span>
+      <span class="event-countdown num">{eventSecsLeft}s</span>
     </div>
   {/if}
 
@@ -521,16 +557,59 @@
     font-size: 0.78rem;
     line-height: 26px;
     color: var(--muted);
-    white-space: nowrap;
     padding: 0 1rem;
-    animation: ticker-scroll 90s linear infinite;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: opacity 400ms;
   }
-  @keyframes ticker-scroll {
-    0%   { transform: translateX(0%); }
-    100% { transform: translateX(-50%); }
+  .tick-source { opacity: 0.7; font-style: italic; }
+
+  /* Event banner — pulses between topbar and ticker. */
+  .event-banner {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 0.7rem;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: color-mix(in oklab, var(--ok) 12%, var(--paper-2));
+    border-bottom: 1px solid var(--line);
+    font-size: 0.85rem;
+    flex-shrink: 0;
   }
-  @media (prefers-reduced-motion: reduce) {
-    .tick-fact { animation: none; padding: 0 1rem; }
+  .event-banner.negative {
+    background: color-mix(in oklab, var(--bad) 14%, var(--paper-2));
+  }
+  .event-pulse {
+    color: var(--ok);
+    font-size: 0.7rem;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .event-banner.negative .event-pulse { color: var(--bad); }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 1; }
+  }
+  .event-headline {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .event-effect {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: var(--ok);
+    text-transform: lowercase;
+  }
+  .event-banner.negative .event-effect { color: var(--bad); }
+  .event-countdown {
+    font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+    color: var(--muted);
+    min-width: 2.5rem;
+    text-align: right;
   }
 
   /* ── MAIN GRID ─────────────────────────────────────────────────────── */

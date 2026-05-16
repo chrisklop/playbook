@@ -114,6 +114,7 @@ export interface GameState {
   peakResources: Record<ResourceId, number>;
   returnBuff: ReturnBuff | null;
   event: ActiveEvent | null;
+  lastEventAt: number;
 }
 
 export const SAVE_VERSION = 2;

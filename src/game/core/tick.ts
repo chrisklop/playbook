@@ -6,6 +6,7 @@ import { computeCaps, computeRates } from './production';
 import { checkPhaseTransitions } from './actions';
 import { tickPlatforms } from './platforms';
 import { tickCureEvents } from './cure';
+import { tickEventScheduler } from './events';
 
 const CURE_FROM_HEAT_PER_S = 0.0002;
 
@@ -57,6 +58,7 @@ export function tick(state: GameState, now: number): void {
   tickCure(state, dt);
   if (platformEra(state)) tickCureEvents(state);
   tickEvents(state);
+  tickEventScheduler(state);
   checkPhaseTransitions(state);
   trackPeaks(state);
 }

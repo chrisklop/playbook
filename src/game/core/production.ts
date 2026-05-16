@@ -75,9 +75,13 @@ export function computeRates(state: GameState): Record<ResourceId, number> {
     }
   }
 
-  // Apply DEPICT multiplier × return buff.
+  // Apply DEPICT multiplier × return buff × active-event multiplier.
   for (const r of RESOURCE_IDS) {
-    rates[r] *= depict[r] * buff;
+    let m = depict[r] * buff;
+    if (state.event && state.event.resourceId === r && state.event.until > state.lastTick) {
+      m *= state.event.mult;
+    }
+    rates[r] *= m;
   }
 
   return rates;
