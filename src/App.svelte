@@ -407,9 +407,14 @@
 
   .app {
     min-height: 100vh;
-    display: grid;
-    grid-template-rows: auto auto 1fr auto;
+    display: flex;
+    flex-direction: column;
   }
+  /* Topbar / ticker / log are fixed-height bands; main flexes to fill so the
+     log is always pinned to the bottom of the viewport regardless of which
+     bands are present. */
+  .topbar, .ticker, .log { flex-shrink: 0; }
+  .grid { flex: 1 1 auto; }
 
   /* ── TOPBAR ─────────────────────────────────────────────────────────── */
   .topbar {
