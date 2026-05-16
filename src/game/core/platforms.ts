@@ -85,8 +85,10 @@ export function tickPlatforms(state: GameState, dt: number): void {
     p.reach = Math.max(0, p.reach + reachGain - reachDecay);
 
     // Heat: bot-asset count contributes, decays with platform moderation.
+    // Flood the Zone synergy boosts heat decay rate ×1.4 platform-wide.
     const heatGain = botsPerPlatform * HEAT_PER_BOT_PER_S * (1 - meta.moderation * 0.5) * dt;
-    const heatDecay = HEAT_DECAY_PER_S * (0.5 + meta.moderation) * dt;
+    const floodMult = state.flags['syn:flood-the-zone'] ? 1.4 : 1.0;
+    const heatDecay = HEAT_DECAY_PER_S * (0.5 + meta.moderation) * floodMult * dt;
     p.heat = clamp(p.heat + heatGain - heatDecay, 0, 1);
 
     // Ban triggers — high heat may burn the platform for a cooldown.

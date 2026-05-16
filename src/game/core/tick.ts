@@ -8,6 +8,8 @@ import { tickPlatforms } from './platforms';
 import { tickCureEvents } from './cure';
 import { tickEventScheduler } from './events';
 import { ASSETS, UPGRADES, PROJECTS } from './catalog';
+import { SYNERGIES, isSynergyVisible, isSynergyTeased } from './synergies';
+import { tickAchievements } from './achievements';
 
 const CURE_FROM_HEAT_PER_S = 0.0002;
 
@@ -35,7 +37,17 @@ function tickCure(state: GameState, dt: number): void {
   for (const id of PLATFORM_IDS) {
     if (state.platforms[id].unlocked) totalHeat += state.platforms[id].heat;
   }
-  state.cure = clamp(state.cure + CURE_FROM_HEAT_PER_S * totalHeat * dt, 0, 1);
+
+  // Discrediting suppression: each tier-1 level −1% cure rate (max 30%);
+  // each tier-2 level −2% (max 60%). Combined cap 80%.
+  const dt1 = state.upgrades['discrediting-1'] ?? 0;
+  const dt2 = state.upgrades['discrediting-2'] ?? 0;
+  let suppression = dt1 * 0.01 + dt2 * 0.02;
+  if (state.flags['syn:reverse-smear']) suppression += 0.10;
+  suppression = clamp(suppression, 0, 0.80);
+
+  const cureRate = CURE_FROM_HEAT_PER_S * totalHeat * (1 - suppression);
+  state.cure = clamp(state.cure + cureRate * dt, 0, 1);
 }
 
 function tickEvents(state: GameState): void {
@@ -67,6 +79,11 @@ function tickReveals(state: GameState): void {
     if (p.visible(state)) state.flags[`reveal:${p.id}`] = true;
     if (p.teased?.(state)) state.flags[`tease:${p.id}`] = true;
   }
+  for (const sn of SYNERGIES) {
+    if (state.flags[sn.id]) continue; // already activated
+    if (isSynergyVisible(state, sn)) state.flags[`reveal:${sn.id}`] = true;
+    if (isSynergyTeased(state, sn)) state.flags[`tease:${sn.id}`] = true;
+  }
 }
 
 export function tick(state: GameState, now: number): void {
@@ -80,6 +97,7 @@ export function tick(state: GameState, now: number): void {
   tickEvents(state);
   tickEventScheduler(state);
   checkPhaseTransitions(state);
+  tickAchievements(state);
   tickReveals(state);
   trackPeaks(state);
 }

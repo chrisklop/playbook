@@ -7,6 +7,10 @@
     canBuyAsset, canBuyUpgrade, canCompleteProject,
   } from './game/core/actions';
   import { ASSETS, UPGRADES, PROJECTS } from './game/core/catalog';
+  import {
+    SYNERGIES, activateSynergy, isSynergyVisible,
+    isSynergyTeased, canActivateSynergy,
+  } from './game/core/synergies';
   import { computeRates } from './game/core/production';
   import { affordableCount } from './game/core/math';
   import { DEPICT_IDS, PHASE_ORDER } from './game/types';
@@ -54,6 +58,19 @@
     ),
   );
 
+  const visibleSynergies = $derived(
+    SYNERGIES.filter((sn) => isSynergyVisible(game, sn) || !!game.flags[`reveal:${sn.id}`]),
+  );
+  const teasedSynergies = $derived(
+    SYNERGIES.filter(
+      (sn) =>
+        !isSynergyVisible(game, sn) &&
+        !game.flags[sn.id] &&
+        (isSynergyTeased(game, sn) || !!game.flags[`tease:${sn.id}`]),
+    ),
+  );
+  const showSynergies = $derived(visibleSynergies.length > 0 || teasedSynergies.length > 0);
+
   const treesView = $derived(
     DEPICT_IDS.map((tree) => {
       const all = UPGRADES.filter((u) => u.tree === tree);
@@ -90,16 +107,23 @@
   // (no "minimal mode" toggle — layout stays put; empty columns just collapse.)
 
   const buffActive = $derived(
-    game.returnBuff !== null && game.returnBuff.until > Date.now(),
+    game.returnBuff !== null && game.returnBuff.until > game.lastTick,
   );
 
-  // Active event banner derives
+  // Active event banner derives. Use game.lastTick (reactive, updates every
+  // tick) instead of Date.now() — Svelte 5 derived only re-runs on tracked
+  // state changes; Date.now() isn't tracked so the countdown wouldn't move.
   const activeEvent = $derived(
     game.event && game.event.until > game.lastTick ? game.event : null,
   );
   const activeEventDef = $derived(activeEvent ? eventDefById(activeEvent.id) : null);
   const eventSecsLeft = $derived(
-    activeEvent ? Math.max(0, Math.ceil((activeEvent.until - Date.now()) / 1000)) : 0,
+    activeEvent ? Math.max(0, Math.ceil((activeEvent.until - game.lastTick) / 1000)) : 0,
+  );
+  const eventProgress = $derived(
+    activeEvent && activeEventDef
+      ? Math.max(0, Math.min(1, 1 - (activeEvent.until - game.lastTick) / (activeEventDef.duration * 1000)))
+      : 0,
   );
 
   // Rotating ticker
@@ -227,13 +251,18 @@
   <!-- ACTIVE EVENT BANNER -->
   {#if activeEvent && activeEventDef}
     <div class="event-banner" class:negative={activeEvent.mult < 1}>
-      <span class="event-pulse">▶</span>
-      <span class="event-headline">{activeEventDef.headline}</span>
-      <span class="event-effect">
-        {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
-        {activeEvent.resourceId}
-      </span>
-      <span class="event-countdown num">{eventSecsLeft}s</span>
+      <div class="event-row">
+        <span class="event-pulse">▶</span>
+        <span class="event-headline">{activeEventDef.headline}</span>
+        <span class="event-effect">
+          {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
+          {activeEvent.resourceId}
+        </span>
+        <span class="event-countdown num">{eventSecsLeft}s</span>
+      </div>
+      <div class="event-progress">
+        <div class="event-progress-fill" style="--fill: {eventProgress * 100}%"></div>
+      </div>
     </div>
   {/if}
 
@@ -304,6 +333,46 @@
                 <span class="owned">locked</span>
               </div>
               <div class="blurb">{p.teaseHint ?? 'A paradigm project coming.'}</div>
+              <div class="card-foot">
+                <span class="cost num">{fmt(amt as number)} {res}</span>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+
+      {#if showSynergies}
+        <h2>Synergies</h2>
+        <div class="cards">
+          {#each visibleSynergies as sn (sn.id)}
+            {@const [res, amt] = Object.entries(sn.cost)[0]}
+            {@const affordable = canActivateSynergy(game, sn)}
+            <button
+              class="card synergy"
+              disabled={!affordable}
+              onclick={() => activateSynergy(game, sn.id)}
+              title={sn.precedent ?? ''}
+            >
+              <div class="card-head">
+                <span class="name">{sn.name}</span>
+                <span class="owned">{sn.trees[0][0].toUpperCase()}+{sn.trees[1][0].toUpperCase()}</span>
+              </div>
+              <div class="blurb">{sn.blurb}</div>
+              {#if sn.precedent}<div class="precedent">{sn.precedent}</div>{/if}
+              <div class="card-foot">
+                <span class="buy-n">combo</span>
+                <span class="cost num">{fmt(amt as number)} {res}</span>
+              </div>
+            </button>
+          {/each}
+          {#each teasedSynergies as sn (sn.id)}
+            {@const [res, amt] = Object.entries(sn.cost)[0]}
+            <div class="card synergy teased">
+              <div class="card-head">
+                <span class="name">??? + ???</span>
+                <span class="owned">locked</span>
+              </div>
+              <div class="blurb">Push both {sn.trees[0]} and {sn.trees[1]} to tier {sn.threshold}.</div>
               <div class="card-foot">
                 <span class="cost num">{fmt(amt as number)} {res}</span>
               </div>
@@ -581,11 +650,10 @@
 
   /* Event banner — pulses between topbar and ticker. */
   .event-banner {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
-    gap: 0.7rem;
-    align-items: center;
-    padding: 0.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.5rem 1rem 0.4rem;
     background: color-mix(in oklab, var(--ok) 12%, var(--paper-2));
     border-bottom: 1px solid var(--line);
     font-size: 0.85rem;
@@ -594,6 +662,25 @@
   .event-banner.negative {
     background: color-mix(in oklab, var(--bad) 14%, var(--paper-2));
   }
+  .event-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 0.7rem;
+    align-items: center;
+  }
+  .event-progress {
+    height: 3px;
+    background: color-mix(in oklab, var(--ink) 8%, transparent);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .event-progress-fill {
+    height: 100%;
+    width: var(--fill, 0%);
+    background: var(--ok);
+    transition: width 200ms;
+  }
+  .event-banner.negative .event-progress-fill { background: var(--bad); }
   .event-pulse {
     color: var(--ok);
     font-size: 0.7rem;
@@ -711,6 +798,14 @@
     transition: width 200ms;
   }
   .project { border-style: dashed; }
+  .synergy {
+    border: 1px solid var(--accent);
+    background: color-mix(in oklab, var(--accent) 6%, var(--paper-2));
+  }
+  .synergy.teased {
+    border: 1px dashed color-mix(in oklab, var(--accent) 50%, transparent);
+    background: transparent;
+  }
 
   /* Teased placeholders — show ??? + cost + hint so the player has an
      anticipation hook before the real card appears. */

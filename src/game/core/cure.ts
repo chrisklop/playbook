@@ -68,6 +68,33 @@ export const CURE_EVENTS: CureEvent[] = [
     headline: 'A defamation suit lands. Settle or fight; either way, discovery is brutal.',
     precedent: 'Alex Jones / Sandy Hook families: $1.5B judgment (2022). Dominion v Fox News: $787M settlement (2023). E. Jean Carroll v Trump: $83.3M (2024). Defamation suits are slow but devastating when they hit.',
   },
+  {
+    id: 'isd-graphika-report',
+    trigger: (s) => !s.flags['cure:isd-graphika-report'] && (s.assets.spamouflage ?? 0) >= 3,
+    cureJump: 0.04,
+    headline: 'Graphika publishes an OSINT thread mapping your AI-generated personas across TikTok and X.',
+    precedent: 'Graphika "Spamouflage Dragon" reporting (2019–2024); Mandiant "Dragonbridge"; Meta\'s Q1 2023 takedown of ~5,000 accounts. State-network attribution is a real ongoing process.',
+  },
+  {
+    id: 'platform-collective-action',
+    trigger: (s) => !s.flags['cure:platform-collective-action'] && s.phase === 'social',
+    cureJump: 0.05,
+    headline: 'EU DSA enforcement: TikTok, YT, X formalize "election integrity" cooperation. Your rate limits tighten.',
+    precedent: 'EU Digital Services Act (in force Feb 2024) requires "Very Large Online Platforms" to mitigate systemic risk from election disinfo. Real cross-platform enforcement floor.',
+  },
+  {
+    id: 'whistleblower-leak',
+    trigger: (s) => {
+      if (s.flags['cure:whistleblower-leak']) return false;
+      const totalBots = (s.assets.sockPuppet ?? 0) +
+        (s.assets.doppelganger ?? 0) +
+        (s.assets.spamouflage ?? 0);
+      return totalBots >= 500;
+    },
+    cureJump: 0.07,
+    headline: 'A former operator leaks 4,000 internal pages to a major outlet. Photos and all.',
+    precedent: 'Frances Haugen (Facebook Papers, 2021); Sophie Zhang (Facebook coordinated-inauthentic-behavior whistleblower); Daniel Motaung (Sama/Facebook moderator suit, 2022). Insiders defect.',
+  },
 ];
 
 export function tickCureEvents(state: GameState): void {

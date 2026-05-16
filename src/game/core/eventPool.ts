@@ -215,6 +215,17 @@ export const EVENT_POOL: EventDef[] = [
     mult: 1.60,
     technique: 'emotional',
   },
+  {
+    id: 'manosphere-uptake',
+    weight: 4,
+    conditions: (s) => s.resources.attention >= 50_000,
+    headline: 'A "red-pill" manosphere podcaster cites your framing approvingly. The DMs are intense.',
+    precedent: 'Andrew Tate (Romania: rape + human trafficking + organized crime charges, 2022–2024; CCDH "Hidden Hate" report 2022). Fresh & Fit (YouTube ban 2023 for hate speech). Documented funnel from "self-improvement" to misogynist radicalization (ISD 2023).',
+    duration: 75,
+    resource: 'attention',
+    mult: 1.40,
+    technique: 'emotional',
+  },
 ];
 
 export function pickEvent(state: GameState): EventDef | null {

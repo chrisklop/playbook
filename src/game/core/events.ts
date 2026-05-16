@@ -25,5 +25,6 @@ export function tickEventScheduler(state: GameState): void {
     resourceId: def.resource,
   };
   state.lastEventAt = state.lastTick;
+  state.flags['__eventFired'] = true;
   state.log.unshift(`▶ ${def.headline}`);
 }

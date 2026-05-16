@@ -108,6 +108,7 @@ export function checkPhaseTransitions(state: GameState): void {
   } else if (state.phase === 'blog') {
     if (state.resources.engagement >= 5_000_000) {
       state.phase = 'social';
+      state.flags['socialEraReached'] = true;
       unlockPlatforms(state, ['tiktok', 'youtube'], ['TikTok', 'YouTube']);
       pushLog(state, '── Phase: SOCIAL ── The algorithm starts serving your content to people who never asked for it.');
     }
