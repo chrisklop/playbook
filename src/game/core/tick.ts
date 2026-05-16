@@ -91,7 +91,9 @@ export function tick(state: GameState, now: number): void {
   state.lastTick = now;
 
   tickEcon(state, dt);
-  if (platformEra(state)) tickPlatforms(state, dt);
+  // Platforms tick from t=0 so X has visible heat/reach in Grassroots.
+  // Cure + cure-events stay gated to Blog era to avoid early-game noise.
+  tickPlatforms(state, dt);
   tickCure(state, dt);
   if (platformEra(state)) tickCureEvents(state);
   tickEvents(state);

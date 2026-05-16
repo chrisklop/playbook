@@ -120,11 +120,14 @@
   const showLog         = $derived(game.log.length >= 1);
   const showProjects    = $derived(visibleProjects.length > 0 || teasedProjects.length > 0);
   const showTrees       = $derived(treesView.length > 0);
-  // Platform grid is a Blog-era surface. Until then the game is abstract:
-  // sock puppets just produce attention — no platform diversification yet.
-  const showPlatformGrid = $derived(
-    PHASE_ORDER.indexOf(game.phase) >= PHASE_ORDER.indexOf('blog'),
-  );
+  // Platform grid is visible from t=0 (only X is unlocked in Grassroots).
+  // Locked previews of next-phase platforms appear for anticipation.
+  const showPlatformGrid = $derived(true);
+  function isNextPhase(unlocksAt: typeof game.phase): boolean {
+    const ci = PHASE_ORDER.indexOf(game.phase);
+    const ui = PHASE_ORDER.indexOf(unlocksAt);
+    return ui === ci + 1;
+  }
 
   // (no "minimal mode" toggle — layout stays put; empty columns just collapse.)
 
@@ -436,7 +439,7 @@
         {#each PLATFORM_META as meta (meta.id)}
           {@const p = game.platforms[meta.id]}
           {@const unlocked = p.unlocked}
-          {#if unlocked || PHASE_ORDER.indexOf(game.phase) >= PHASE_ORDER.indexOf('blog')}
+          {#if unlocked || isNextPhase(meta.unlocksAt)}
           <div class="platform-card" class:locked={!unlocked} style="--tint: {meta.tint}">
             <div class="plt-head">
               <span class="plt-name">{meta.name}</span>
