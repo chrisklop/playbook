@@ -35,8 +35,10 @@ function defaultPlatform(unlocked = false): PlatformState {
 function defaultPlatforms(): Record<string, PlatformState> {
   const out: Record<string, PlatformState> = {};
   for (const id of PLATFORM_IDS) {
-    // Facebook + X unlocked at start (v0.1 MVP scope per PLAN §11).
-    out[id] = defaultPlatform(id === 'facebook' || id === 'x');
+    // Grassroots: only X unlocked. Real disinfo ops enter the news cycle via
+    // Twitter virality (Pizzagate 2016, Spamouflage Dragon, Doppelganger). FB
+    // unlocks at Blog era; TikTok/YT at Social; etc.
+    out[id] = defaultPlatform(id === 'x');
   }
   return out;
 }
@@ -55,7 +57,7 @@ export function initialState(now: number = Date.now()): GameState {
     cure: 0,
     defections: 0,
     reveal: { active: false, triggeredAt: 0 },
-    log: ['You open a fresh account. The cursor blinks.'],
+    log: ['You open a fresh account on X. The cursor blinks.'],
     startedAt: now,
     lastTick: now,
     lastSave: now,

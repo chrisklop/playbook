@@ -4,8 +4,8 @@ import { type GameState, PLATFORM_IDS, RESOURCE_IDS } from '../types';
 import { clamp } from './math';
 import { computeCaps, computeRates } from './production';
 import { checkPhaseTransitions } from './actions';
+import { tickPlatforms } from './platforms';
 
-const HEAT_DECAY_PER_S = 0.005;
 const CURE_FROM_HEAT_PER_S = 0.0002;
 
 function tickEcon(state: GameState, dt: number): void {
@@ -16,19 +16,6 @@ function tickEcon(state: GameState, dt: number): void {
     const next = state.resources[r] + rates[r] * dt;
     state.resources[r] = cap > 0 ? Math.min(next, cap) : next;
     if (state.resources[r] < 0) state.resources[r] = 0;
-  }
-}
-
-function tickHeat(state: GameState, dt: number): void {
-  for (const id of PLATFORM_IDS) {
-    const p = state.platforms[id];
-    if (!p.unlocked) continue;
-    if (p.burned && p.burnedUntil > state.lastTick) continue;
-    if (p.burned && p.burnedUntil <= state.lastTick) {
-      p.burned = false;
-      p.burnedUntil = 0;
-    }
-    p.heat = clamp(p.heat - HEAT_DECAY_PER_S * dt, 0, 1);
   }
 }
 
@@ -58,7 +45,7 @@ export function tick(state: GameState, now: number): void {
   state.lastTick = now;
 
   tickEcon(state, dt);
-  tickHeat(state, dt);
+  tickPlatforms(state, dt);
   tickCure(state, dt);
   tickEvents(state);
   checkPhaseTransitions(state);

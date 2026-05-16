@@ -8,9 +8,13 @@
   } from './game/core/actions';
   import { ASSETS, UPGRADES, PROJECTS } from './game/core/catalog';
   import { computeRates } from './game/core/production';
-  import { DEPICT_IDS, PHASE_ORDER, type PhaseId } from './game/types';
+  import { affordableCount } from './game/core/math';
+  import { DEPICT_IDS } from './game/types';
   import { PLATFORM_META } from './lib/platforms';
   import { fmt, fmtRate, etaToCap } from './lib/format';
+
+  type BulkMode = 1 | 10 | 100 | 'max';
+  let bulkMode = $state<BulkMode>(1);
 
   function reset() {
     if (confirm('Reset run? This wipes the save.')) {
@@ -19,17 +23,12 @@
     }
   }
 
-  function phaseGE(a: PhaseId, b: PhaseId): boolean {
-    return PHASE_ORDER.indexOf(a) >= PHASE_ORDER.indexOf(b);
-  }
-
   const rates = $derived(computeRates(game));
   const visibleAssets = $derived(ASSETS.filter((a) => a.visible(game)));
   const visibleProjects = $derived(
     PROJECTS.filter((p) => p.visible(game) && !game.completedProjects[p.id]),
   );
 
-  // DEPICT trees grouped — for each tree id, the list of visible upgrades and current total level.
   const treesView = $derived(
     DEPICT_IDS.map((tree) => {
       const all = UPGRADES.filter((u) => u.tree === tree);
@@ -52,6 +51,45 @@
 
   function depictLetter(t: string): string {
     return t[0].toUpperCase();
+  }
+
+  // Bulk-buy plumbing.
+  function assetBuyCount(id: string): number {
+    const a = ASSETS.find((x) => x.id === id);
+    if (!a) return 0;
+    if (bulkMode === 'max') {
+      return affordableCount(
+        a.baseCost, a.costGrowth,
+        game.assets[id] ?? 0,
+        game.resources[a.costResource],
+      );
+    }
+    return bulkMode;
+  }
+  function upgradeBuyCount(id: string): number {
+    const u = UPGRADES.find((x) => x.id === id);
+    if (!u) return 0;
+    const current = game.upgrades[id] ?? 0;
+    const headroom = u.maxLevel - current;
+    if (bulkMode === 'max') {
+      return Math.min(
+        headroom,
+        affordableCount(
+          u.baseCost, u.costGrowth, current,
+          game.resources[u.costResource],
+          u.maxLevel,
+        ),
+      );
+    }
+    return Math.min(bulkMode, headroom);
+  }
+  function doBuyAsset(id: string) {
+    const n = assetBuyCount(id);
+    if (n > 0) buyAsset(game, id, n);
+  }
+  function doBuyUpgrade(id: string) {
+    const n = upgradeBuyCount(id);
+    if (n > 0) buyUpgrade(game, id, n);
   }
 </script>
 
@@ -90,6 +128,15 @@
       {/if}
     </div>
     <div class="topbar-actions">
+      <div class="bulk" role="group" aria-label="bulk-buy quantity">
+        {#each [1, 10, 100, 'max'] as mode (mode)}
+          <button
+            class="bulk-btn"
+            class:active={bulkMode === mode}
+            onclick={() => (bulkMode = mode as BulkMode)}
+          >×{mode}</button>
+        {/each}
+      </div>
       <button class="ghost" onclick={reset}>reset</button>
     </div>
   </header>
@@ -108,16 +155,19 @@
       <h2>Assets</h2>
       <div class="cards">
         {#each visibleAssets as a (a.id)}
-          {@const cost = assetCost(game, a.id, 1)}
-          {@const affordable = canBuyAsset(game, a.id, 1)}
+          {@const n = Math.max(1, assetBuyCount(a.id))}
+          {@const cost = assetCost(game, a.id, n)}
+          {@const affordable = canBuyAsset(game, a.id, n)}
           {@const ratio = affordabilityRatio(cost, a.costResource)}
-          <button class="card asset" disabled={!affordable} onclick={() => buyAsset(game, a.id, 1)}>
+          <button class="card asset" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={a.precedent ?? ''}>
             <div class="card-head">
               <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
               <span class="owned">×{game.assets[a.id] ?? 0}</span>
             </div>
             <div class="blurb">{a.blurb}</div>
+            {#if a.precedent}<div class="precedent">{a.precedent}</div>{/if}
             <div class="card-foot">
+              <span class="buy-n">+{n}</span>
               <span class="cost num">{fmt(cost)} {a.costResource}</span>
             </div>
             <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
@@ -132,12 +182,14 @@
             {@const affordable = canCompleteProject(game, p.id)}
             {@const [res, amt] = Object.entries(p.cost)[0]}
             {@const ratio = affordabilityRatio(amt as number, res)}
-            <button class="card project" disabled={!affordable} onclick={() => completeProject(game, p.id)}>
+            <button class="card project" disabled={!affordable} onclick={() => completeProject(game, p.id)} title={p.precedent ?? ''}>
               <div class="card-head">
                 <span class="name">{p.name}</span>
               </div>
               <div class="blurb">{p.blurb}</div>
+              {#if p.precedent}<div class="precedent">{p.precedent}</div>{/if}
               <div class="card-foot">
+                <span class="buy-n">one-shot</span>
                 <span class="cost num">{fmt(amt as number)} {res}</span>
               </div>
               <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
@@ -203,17 +255,19 @@
             <div class="tree-nodes">
               {#each t.visible as u (u.id)}
                 {@const lvl = game.upgrades[u.id] ?? 0}
-                {@const cost = upgradeCost(game, u.id, 1)}
                 {@const maxed = lvl >= u.maxLevel}
-                {@const affordable = canBuyUpgrade(game, u.id, 1)}
+                {@const n = Math.max(1, upgradeBuyCount(u.id))}
+                {@const cost = upgradeCost(game, u.id, n)}
+                {@const affordable = !maxed && canBuyUpgrade(game, u.id, n)}
                 {@const ratio = affordabilityRatio(cost, u.costResource)}
-                <button class="node" disabled={!affordable || maxed} onclick={() => buyUpgrade(game, u.id, 1)}>
+                <button class="node" disabled={!affordable || maxed} onclick={() => doBuyUpgrade(u.id)} title={u.precedent ?? ''}>
                   <div class="node-head">
                     <span class="node-name">{u.name}</span>
                     <span class="node-lvl num">{lvl}/{u.maxLevel}</span>
                   </div>
                   <div class="node-blurb">{u.blurb}</div>
                   <div class="node-foot">
+                    {#if !maxed}<span class="buy-n">+{n}</span>{/if}
                     <span class="node-cost num">{maxed ? 'maxed' : `${fmt(cost)} ${u.costResource}`}</span>
                   </div>
                   <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
@@ -333,7 +387,28 @@
     font-weight: 700;
     align-self: center;
   }
-  .topbar-actions { display: flex; gap: 0.4rem; }
+  .topbar-actions { display: flex; gap: 0.4rem; align-items: center; }
+  .bulk {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .bulk-btn {
+    appearance: none;
+    font: inherit;
+    font-size: 0.78rem;
+    padding: 0.35rem 0.55rem;
+    border: none;
+    border-right: 1px solid var(--line);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  .bulk-btn:last-child { border-right: none; }
+  .bulk-btn:hover { color: var(--ink); background: color-mix(in oklab, var(--ink) 5%, transparent); }
+  .bulk-btn.active { background: var(--accent); color: white; }
   .ghost {
     appearance: none;
     font: inherit;
@@ -419,8 +494,22 @@
   .kind { font-weight: 400; color: var(--muted); font-size: 0.75rem; }
   .owned { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
   .blurb { color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
-  .card-foot { display: flex; justify-content: flex-end; }
+  .card-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
   .cost { font-weight: 600; font-size: 0.82rem; }
+  .buy-n {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .precedent {
+    font-size: 0.7rem;
+    color: var(--muted);
+    border-left: 2px solid var(--accent);
+    padding-left: 0.5rem;
+    line-height: 1.35;
+    opacity: 0.85;
+  }
   .afford-fill {
     position: absolute;
     inset: auto 0 0 0;
@@ -552,7 +641,7 @@
   .node-name { font-weight: 600; font-size: 0.82rem; }
   .node-lvl { font-size: 0.7rem; color: var(--muted); }
   .node-blurb { font-size: 0.72rem; color: var(--muted); line-height: 1.3; }
-  .node-foot { display: flex; justify-content: flex-end; }
+  .node-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 0.4rem; }
   .node-cost { font-size: 0.74rem; font-weight: 600; }
   .tree-locked {
     padding: 0.5rem;

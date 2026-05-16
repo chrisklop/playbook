@@ -87,14 +87,48 @@ export function completeProject(state: GameState, id: string): boolean {
 
 // ─── Phase transitions ─────────────────────────────────────────────────────
 
+function unlockPlatforms(state: GameState, ids: readonly string[], names: readonly string[]): void {
+  for (let i = 0; i < ids.length; i++) {
+    const id = ids[i];
+    const p = state.platforms[id as keyof typeof state.platforms];
+    if (p && !p.unlocked) {
+      p.unlocked = true;
+      pushLog(state, `New platform: ${names[i]} accounts created.`);
+    }
+  }
+}
+
 export function checkPhaseTransitions(state: GameState): void {
   if (state.phase === 'grassroots') {
     if (state.resources.attention >= 500 && state.flags['editorialCalendar']) {
       state.phase = 'blog';
+      unlockPlatforms(state, ['facebook'], ['Facebook']);
       pushLog(state, '── Phase: BLOG ── You spin up a fake news site. Real ad money starts trickling in.');
     }
+  } else if (state.phase === 'blog') {
+    if (state.resources.engagement >= 5000) {
+      state.phase = 'social';
+      unlockPlatforms(state, ['tiktok', 'youtube'], ['TikTok', 'YouTube']);
+      pushLog(state, '── Phase: SOCIAL ── The algorithm starts serving your content to people who never asked for it.');
+    }
+  } else if (state.phase === 'social') {
+    if (state.resources.followers >= 100_000) {
+      state.phase = 'influencer';
+      unlockPlatforms(state, ['telegram', 'substack'], ['Telegram', 'Substack']);
+      pushLog(state, '── Phase: INFLUENCER ── Paywalled credibility on the front; coordination off-platform.');
+    }
+  } else if (state.phase === 'influencer') {
+    if (state.resources.credibility >= 1_000_000) {
+      state.phase = 'cable';
+      unlockPlatforms(state, ['podcast'], ['Podcast networks']);
+      pushLog(state, '── Phase: CABLE ── Bookings land. Your topic enters the chyron rotation.');
+    }
+  } else if (state.phase === 'cable') {
+    if (state.resources.narrativeDominance >= 10_000_000) {
+      state.phase = 'aisaturation';
+      pushLog(state, '── Phase: AI SATURATION ── Every platform now generates content on its own. So do you.');
+    }
   }
-  // Later phases land in Phase 3+ work.
 }
 
 export const _internal = { pushLog };

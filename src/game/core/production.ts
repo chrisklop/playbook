@@ -31,14 +31,19 @@ export function computeDepictMultipliers(state: GameState): Record<ResourceId, n
 
 export function computeCaps(state: GameState): Record<ResourceId, number> {
   const caps = emptyResourceMap(0);
-  // Base attention cap rises with outlet count.
-  caps.attention = 50 + 40 * (state.assets.outlet ?? 0);
+  const outlets = state.assets.outlet ?? 0;
   if (state.flags['editorialCalendar']) {
-    // Editorial Calendar paradigm: cap grows faster.
-    caps.attention = Math.floor(caps.attention * 1.5);
-    caps.engagement = state.caps.engagement || 25;
+    // Editorial Calendar PARADIGM: outlet cap contribution flips from
+    // additive to geometric (each new outlet adds 12% more than the previous).
+    // Geometric sum: 40 × (1.12^n − 1) / 0.12. Strictly outpaces cost growth
+    // of 1.10, so the invariant holds at any scale.
+    caps.attention = 50 + Math.floor(40 * (Math.pow(1.12, outlets) - 1) / 0.12);
+    caps.engagement = Math.max(state.caps.engagement ?? 0, 50);
+  } else {
+    // Pre-paradigm: linear cap. Sustainable up to ~50 outlets — player should
+    // trigger Editorial Calendar long before that.
+    caps.attention = 50 + 40 * outlets;
   }
-  // Carry forward later-era caps (set by other projects/upgrades).
   caps.followers = state.caps.followers || 0;
   caps.credibility = state.caps.credibility || 0;
   caps.narrativeDominance = state.caps.narrativeDominance || 0;
