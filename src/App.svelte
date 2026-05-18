@@ -399,9 +399,10 @@
       </div>
       <div class="cards">
         {#each visibleAssets as a (a.id)}
-          {@const n = Math.max(1, assetBuyCount(a.id))}
-          {@const cost = assetCost(game, a.id, n)}
-          {@const affordable = canBuyAsset(game, a.id, n)}
+          {@const rawN = assetBuyCount(a.id)}
+          {@const n = bulkMode === 'max' ? rawN : Math.max(1, rawN)}
+          {@const cost = assetCost(game, a.id, Math.max(1, n))}
+          {@const affordable = n > 0 && canBuyAsset(game, a.id, n)}
           {@const ratio = affordabilityRatio(cost, a.costResource)}
           {@const pre = getPrecedent(a.id, a.precedents)}
           <button class="card asset" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={pre ?? ''}>
@@ -614,23 +615,24 @@
                   <span class="meter-num num">{p.chargeProgress >= 1 ? 'READY' : `${(p.chargeProgress * 100).toFixed(0)}%`}</span>
                 </div>
               </div>
-              {@const y = postYield(game, meta.id)}
+              {@const y = postYield(game, meta.id) * p.chargeProgress}
+              {@const ready = p.chargeProgress >= 0.5}
               {@const attCapped = game.resources.attention >= game.caps.attention}
               <button
                 class="post-platform"
-                class:ready={p.chargeProgress >= 1}
-                disabled={p.chargeProgress < 1}
+                class:ready
+                disabled={!ready}
                 onclick={() => postPlatform(game, meta.id)}
-                title="Post on {meta.name}. Burst {fmt(y)} attention; overflow converts to engagement at 10%."
+                title="Post on {meta.name}. Yield scales with charge — full charge is best. Overflow converts to engagement at 10%."
               >
-                {#if p.chargeProgress >= 1}
+                {#if ready}
                   {#if attCapped}
-                    POST · +{fmt(y * 0.1)} eng (overflow)
+                    POST · +{fmt(y * 0.1)} eng
                   {:else}
                     POST · +{fmt(y)} att
                   {/if}
                 {:else}
-                  {(chargeTimeSeconds(game) * (1 - p.chargeProgress)).toFixed(1)}s
+                  charging · {(chargeTimeSeconds(game) * (1 - p.chargeProgress)).toFixed(1)}s
                 {/if}
               </button>
             {:else}
@@ -661,9 +663,10 @@
               {#each t.visible as u (u.id)}
                 {@const lvl = game.upgrades[u.id] ?? 0}
                 {@const maxed = lvl >= u.maxLevel}
-                {@const n = Math.max(1, upgradeBuyCount(u.id))}
-                {@const cost = upgradeCost(game, u.id, n)}
-                {@const affordable = !maxed && canBuyUpgrade(game, u.id, n)}
+                {@const rawN = upgradeBuyCount(u.id)}
+                {@const n = bulkMode === 'max' ? rawN : Math.max(1, rawN)}
+                {@const cost = upgradeCost(game, u.id, Math.max(1, n))}
+                {@const affordable = !maxed && n > 0 && canBuyUpgrade(game, u.id, n)}
                 {@const ratio = affordabilityRatio(cost, u.costResource)}
                 {@const upre = getPrecedent(u.id, u.precedents)}
                 <button class="node" disabled={!affordable || maxed} onclick={() => doBuyUpgrade(u.id)} title={upre ?? ''}>
@@ -1098,10 +1101,18 @@
   .card-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
   .cost { font-weight: 600; font-size: 0.82rem; }
   .buy-n {
-    font-size: 0.7rem;
-    color: var(--muted);
+    font-size: 0.78rem;
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
-    font-weight: 600;
+    font-weight: 700;
+    padding: 0.1rem 0.4rem;
+    background: color-mix(in oklab, var(--accent) 14%, transparent);
+    border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
+    border-radius: 3px;
+  }
+  /* In ×Max mode the count IS the headline number for that card. */
+  .card:disabled .buy-n {
+    opacity: 0.5;
   }
   .precedent {
     font-size: 0.7rem;

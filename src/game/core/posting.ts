@@ -51,16 +51,23 @@ export function postYield(state: GameState, platformId: PlatformId): number {
   return Math.max(1, bots * amp * POST_BASE_YIELD_MULT * autoBonus);
 }
 
+// Manual posts may fire early — yield scales with chargeProgress.
+// This keeps the POST button usable when auto-poster owns the full-charge
+// window (auto-fire happens within a single tick, the UI never sees POST
+// state at chargeProgress=1 with auto-poster on, so manual posts must be
+// possible from partial charge).
+const MIN_MANUAL_CHARGE = 0.5;
+
 export function canPost(state: GameState, platformId: PlatformId): boolean {
   const p = state.platforms[platformId];
   if (!p?.unlocked || p.burned) return false;
-  return p.chargeProgress >= 1;
+  return p.chargeProgress >= MIN_MANUAL_CHARGE;
 }
 
 export function postPlatform(state: GameState, platformId: PlatformId): boolean {
   if (!canPost(state, platformId)) return false;
   const p = state.platforms[platformId];
-  const y = postYield(state, platformId);
+  const y = postYield(state, platformId) * p.chargeProgress; // proportional yield
   const attCap = state.caps.attention;
   const engCap = state.caps.engagement;
 
