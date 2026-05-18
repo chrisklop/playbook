@@ -46,19 +46,35 @@ export function wipeLegacy(): void {
   localStorage.removeItem(LEGACY_KEY);
 }
 
-// Prestige point formula (PLAN.md §6h): sqrt-scaled so going further is
-// rewarded but never trivialized.
+// Prestige point formula (audit Finding 6): cube-root of peak-of-run,
+// scaled so the cap doesn't max out in 2 prestiges. Pivot constants
+// raised to 10^6 each so first prestige feels earned (~5 points), and
+// the legacyMultiplier cap is reachable only over many runs.
+//
+// Cookie-Clicker-style cbrt: doubling prestige requires 8× more peak.
 export function computePrestigeGain(s: GameState): number {
   const a = s.peakResources?.attention ?? 0;
   const e = s.peakResources?.engagement ?? 0;
   return Math.floor(
-    Math.sqrt(a / 5000) + Math.sqrt(e / 50000),
+    Math.cbrt(a / 1_000_000) + Math.cbrt(e / 1_000_000),
   );
 }
 
-// Permanent multiplier from legacy points. +4% per point, capped at +200%.
+// Permanent multiplier from legacy points (audit Finding 8).
+// Was: +4%/point, cap +200% (50 points = max). Now: sqrt curve with no
+// hard ceiling — diminishing returns instead of a wall.
+//
+//   p=1   → ×1.20  (+20%)
+//   p=10  → ×1.63  (+63%)
+//   p=100 → ×3.00  (+200%)
+//   p=400 → ×5.00  (+400%)
+//   p=1000 → ×7.32 (+632%)
+//
+// Player always gets a little more from each prestige; the curve
+// flattens naturally without a discontinuity.
 export function legacyMultiplier(points: number): number {
-  return Math.min(3, 1 + 0.04 * points);
+  if (points <= 0) return 1;
+  return 1 + Math.sqrt(points) * 0.20;
 }
 
 // Execute prestige: bank points, wipe run save, return new legacy.

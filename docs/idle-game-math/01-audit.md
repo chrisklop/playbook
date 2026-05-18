@@ -15,9 +15,9 @@ Audit pass against [00-principles.md](./00-principles.md). Findings are diagnost
 | 3 — Six DEPICT trees stack on attention | Critical | 🟢 Addressed (push 1) |
 | 4 — No generator-overtake / milestone math | High | 🔴 Open |
 | 5 — Paradigm cap growth tight against new cost growth | Medium | 🟢 Addressed (push 1) |
-| 6 — Prestige formula yields too many points | Critical | 🔴 Open |
+| 6 — Prestige formula yields too many points | Critical | 🟢 Addressed (push 2) |
 | 7 — Native JS Number throughout | High (timed) | 🔴 Open (deferred to v0.2 / pre-AI-Sat) |
-| 8 — Legacy multiplier cap reached too soon | Critical | 🔴 Open |
+| 8 — Legacy multiplier cap reached too soon | Critical | 🟢 Addressed (push 2) |
 | 9 — Legacy applied to all resources blanket-style | Low | 🔴 Open |
 | 10 — Unbounded multiplier stacks | High | 🔴 Open |
 | 11 — Auto-Poster bonus unbounded | Medium | 🔴 Open |
