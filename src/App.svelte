@@ -82,6 +82,32 @@
 
   const rates = $derived(computeRates(game));
   const multBreakdown = $derived(computeMultiplierBreakdown(game));
+
+  // For each resource, count visible items in the catalog that the player
+  // can afford to buy with it RIGHT NOW. Surfaces "you have 29K engagement
+  // — here's what it can buy" affordance in the topbar.
+  function spendableCount(resource: string): number {
+    let n = 0;
+    for (const a of ASSETS) {
+      if (a.costResource !== resource) continue;
+      if (!isRevealed(a.id, a.visible)) continue;
+      if (canBuyAsset(game, a.id, 1)) n++;
+    }
+    for (const u of UPGRADES) {
+      if (u.costResource !== resource) continue;
+      if (!isRevealed(u.id, u.visible)) continue;
+      if ((game.upgrades[u.id] ?? 0) >= u.maxLevel) continue;
+      if (canBuyUpgrade(game, u.id, 1)) n++;
+    }
+    for (const p of PROJECTS) {
+      if (game.completedProjects[p.id]) continue;
+      if (!isRevealed(p.id, p.visible)) continue;
+      const cost = Object.entries(p.cost).find(([k]) => k === resource);
+      if (!cost) continue;
+      if (canCompleteProject(game, p.id)) n++;
+    }
+    return n;
+  }
   let openBreakdown = $state<string | null>(null);  // which resource's breakdown is showing
   function toggleBreakdown(id: string) {
     openBreakdown = openBreakdown === id ? null : id;
@@ -408,8 +434,12 @@
         {@const eta = etaToCap(val, cap, rate)}
         {#if cap > 0 || val > 0}
           {@const bd = multBreakdown[r]}
+          {@const spendable = spendableCount(id)}
           <div class="rmeter res-{id}">
-            <div class="rlabel"><span class="res-dot res-{id}"></span>{label}</div>
+            <div class="rlabel">
+              <span class="res-dot res-{id}"></span>{label}
+              {#if spendable > 0}<span class="spendable-badge" title="{spendable} thing{spendable === 1 ? '' : 's'} you can buy right now with {id}">{spendable}</span>{/if}
+            </div>
             <div class="rvalue num">{fmt(val)}<span class="cap"> / {fmt(cap)}</span></div>
             <button
               type="button"
@@ -1101,7 +1131,31 @@
     transition: width 200ms;
   }
   .rmeter .cure-fill { background: var(--bad); }
-  .rlabel { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .rlabel {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+  }
+  .spendable-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2em;
+    height: 1.2em;
+    padding: 0 0.3em;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border-radius: 999px;
+    background: var(--ok);
+    color: white;
+    letter-spacing: 0;
+    text-transform: none;
+    margin-left: auto;
+  }
   .rvalue { font-size: 0.95rem; font-weight: 600; }
   .rvalue .cap { color: var(--muted); font-weight: 400; }
   .rrate {
@@ -1661,10 +1715,10 @@
     color: inherit;
     border: 1px solid var(--line);
     border-radius: 6px;
-    padding: 0.7rem 0.85rem;
+    padding: 0.5rem 0.7rem;
     cursor: pointer;
     display: grid;
-    gap: 0.35rem;
+    gap: 0.25rem;
     overflow: hidden;
     transition: border-color 140ms, transform 80ms, box-shadow 160ms, background 140ms;
     box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 4%, transparent);
@@ -1691,7 +1745,18 @@
   .name { font-weight: 600; font-size: 0.9rem; }
   .kind { font-weight: 400; color: var(--muted); font-size: 0.75rem; }
   .owned { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
-  .blurb { color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
+  .blurb {
+    color: var(--muted);
+    font-size: 0.72rem;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card:hover .blurb, .node:hover .node-blurb {
+    -webkit-line-clamp: 4;
+  }
   .card-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
   .cost { font-weight: 600; font-size: 0.82rem; }
   .buy-n {
@@ -1717,8 +1782,11 @@
   }
   /* UX-6: precedent — was a colored stripe that read as a clickable link.
      Now a muted quote-style block: subtle italic muted text with a thin
-     muted border. Clearly informational, not interactive. */
+     muted border. Hidden by default to keep cards compact; appears on
+     hover for desktop, or on a tap-and-hold for touch via :focus-within
+     fallback. Clearly informational, not interactive. */
   .precedent {
+    display: none;
     font-size: 0.7rem;
     color: var(--muted);
     font-style: italic;
@@ -1726,6 +1794,12 @@
     padding-left: 0.5rem;
     line-height: 1.4;
     opacity: 0.88;
+  }
+  .card:hover .precedent,
+  .card:focus-within .precedent,
+  .node:hover .precedent,
+  .node:focus-within .precedent {
+    display: block;
   }
   .precedent-counter {
     font-size: 0.6rem;
@@ -2025,11 +2099,11 @@
     color: inherit;
     border: 1px solid var(--line);
     border-radius: 4px;
-    padding: 0.45rem 0.6rem;
+    padding: 0.35rem 0.55rem;
     font: inherit;
     cursor: pointer;
     display: grid;
-    gap: 0.15rem;
+    gap: 0.12rem;
     overflow: hidden;
   }
   .node:hover:not(:disabled) {
@@ -2046,7 +2120,15 @@
   }
   .node-name { font-weight: 600; font-size: 0.82rem; }
   .node-lvl { font-size: 0.7rem; color: var(--muted); }
-  .node-blurb { font-size: 0.72rem; color: var(--muted); line-height: 1.3; }
+  .node-blurb {
+    font-size: 0.68rem;
+    color: var(--muted);
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
   .node-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 0.4rem; }
   .node-cost { font-size: 0.74rem; font-weight: 600; }
   .tree-locked {

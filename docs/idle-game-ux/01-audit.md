@@ -12,7 +12,7 @@ Audit against [00-principles.md](./00-principles.md). Diagnostic — no code cha
 |---|---|---|
 | UX-1 — Missing distinct hover/active button states | Medium | 🟢 Addressed |
 | UX-2 — No animation on POST click or resource increment | Medium | 🟡 POST pulse shipped; number-pop deferred |
-| UX-3 — Card density mid-late game has no internal hierarchy | High | 🔴 |
+| UX-3 — Card density mid-late game has no internal hierarchy | High | 🟡 Density compressed; hover reveal for precedent; mid-late hierarchy still pending |
 | UX-4 — Disabled buttons don't say WHY (no error-recognition text) | High | 🟢 Addressed |
 | UX-5 — No audio feedback layer | Low | 🔴 (defer; may stay) |
 | UX-6 — Precedent text border-left could read as false affordance | Low | 🟢 Addressed (muted italic quote-style) |
