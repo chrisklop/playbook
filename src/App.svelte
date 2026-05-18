@@ -975,23 +975,25 @@
                 />
                 <span class="rate-num num">{Math.round((p.postRate ?? 1) * 100)}%</span>
               </div>
-              {#if p.burned && p.burnedUntil > game.lastTick}
-                <div class="plt-burned">
-                  ⚠ SHADOW-BANNED · {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s · heat cooling fast
-                </div>
-              {:else if p.heat >= 0.85}
-                <div class="plt-hot overheated">
-                  ⚠ OVERHEATED · posts at {Math.round((1 - p.heat * 0.6) * 100)}% strength · throttle rate or ban incoming
-                </div>
-              {:else if p.heat >= 0.75}
-                <div class="plt-hot overheated">
+              <!-- Reserved-height status slot: always rendered so buttons
+                   below don't shift when heat crosses a threshold. -->
+              <div class="plt-status"
+                class:burned={p.burned && p.burnedUntil > game.lastTick}
+                class:overheated={!(p.burned && p.burnedUntil > game.lastTick) && p.heat >= 0.75}
+                class:hot={!(p.burned && p.burnedUntil > game.lastTick) && p.heat >= 0.5 && p.heat < 0.75}
+              >
+                {#if p.burned && p.burnedUntil > game.lastTick}
+                  ⚠ SHADOW-BANNED · {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s · cooling fast
+                {:else if p.heat >= 0.85}
+                  ⚠ OVERHEATED · posts at {Math.round((1 - p.heat * 0.6) * 100)}% · ban incoming
+                {:else if p.heat >= 0.75}
                   ⚠ DANGER · {Math.round(p.heat * 100)}% heat · ban at 100%
-                </div>
-              {:else if p.heat >= 0.5}
-                <div class="plt-hot">
+                {:else if p.heat >= 0.5}
                   HOT · posts at {Math.round((1 - p.heat * 0.6) * 100)}% strength
-                </div>
-              {/if}
+                {:else}
+                  &nbsp;
+                {/if}
+              </div>
               {@const y = postYield(game, meta.id)}
               {@const fy = freestyleYield(game, meta.id)}
               {@const ready = p.chargeProgress >= 1}
@@ -2538,35 +2540,38 @@
     cursor: grab;
     border: 1px solid var(--paper-2);
   }
-  .plt-burned {
+  /* Status slot — always rendered with a fixed height so heat-threshold
+     transitions can't shift the POST/PUSH IT buttons below it. */
+  .plt-status {
     margin-top: 0.2rem;
     padding: 0.25rem 0.4rem;
-    background: color-mix(in oklab, var(--bad) 15%, transparent);
-    border: 1px solid var(--bad);
-    color: var(--bad);
     border-radius: 3px;
     font-size: 0.65rem;
     font-weight: 600;
     text-align: center;
     line-height: 1.2;
+    min-height: calc(0.65rem * 1.2 + 0.5rem + 2px);
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+    transition: background 120ms, border-color 120ms, color 120ms;
   }
-  .plt-hot {
-    margin-top: 0.2rem;
-    padding: 0.2rem 0.4rem;
+  .plt-status.hot {
     background: color-mix(in oklab, var(--warn) 12%, transparent);
-    border: 1px solid color-mix(in oklab, var(--warn) 60%, transparent);
+    border-color: color-mix(in oklab, var(--warn) 60%, transparent);
     color: var(--warn);
-    border-radius: 3px;
-    font-size: 0.62rem;
-    font-weight: 600;
-    text-align: center;
-    line-height: 1.2;
   }
-  .plt-hot.overheated {
+  .plt-status.overheated {
     background: color-mix(in oklab, var(--bad) 14%, transparent);
-    border: 1px solid var(--bad);
+    border-color: var(--bad);
     color: var(--bad);
   }
+  .plt-status.burned {
+    background: color-mix(in oklab, var(--bad) 15%, transparent);
+    border-color: var(--bad);
+    color: var(--bad);
+  }
+  /* (legacy .plt-hot / .plt-burned merged into .plt-status above) */
   .meter-fill.reach  { background: var(--tint, var(--accent)); }
   .meter-fill.charge { background: var(--accent); }
 
