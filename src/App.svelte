@@ -318,7 +318,7 @@
         {@const rate = rates[r]}
         {@const eta = etaToCap(val, cap, rate)}
         {#if cap > 0 || val > 0}
-          <div class="rmeter">
+          <div class="rmeter res-{id}">
             <div class="rlabel">{label}</div>
             <div class="rvalue num">{fmt(val)}<span class="cap"> / {fmt(cap)}</span></div>
             <div class="rrate" class:positive={rate > 0}>{fmtRate(rate)}</div>
@@ -421,7 +421,7 @@
             {/if}
             <div class="card-foot">
               <span class="buy-n">+{n}</span>
-              <span class="cost num">{fmt(cost)} {a.costResource}</span>
+              <span class="cost num res-{a.costResource}">{fmt(cost)} {a.costResource}</span>
             </div>
             <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
           </button>
@@ -434,7 +434,7 @@
             </div>
             <div class="blurb">{a.teaseHint ?? 'Something coming.'}</div>
             <div class="card-foot">
-              <span class="cost num">{fmt(a.baseCost)} {a.costResource}</span>
+              <span class="cost num res-{a.costResource}">{fmt(a.baseCost)} {a.costResource}</span>
             </div>
           </div>
         {/each}
@@ -463,7 +463,7 @@
               {/if}
               <div class="card-foot">
                 <span class="buy-n">one-shot</span>
-                <span class="cost num">{fmt(amt as number)} {res}</span>
+                <span class="cost num res-{res}">{fmt(amt as number)} {res}</span>
               </div>
               <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
             </button>
@@ -477,7 +477,7 @@
               </div>
               <div class="blurb">{p.teaseHint ?? 'A paradigm project coming.'}</div>
               <div class="card-foot">
-                <span class="cost num">{fmt(amt as number)} {res}</span>
+                <span class="cost num res-{res}">{fmt(amt as number)} {res}</span>
               </div>
             </div>
           {/each}
@@ -504,7 +504,7 @@
               {#if sn.precedent}<div class="precedent">{sn.precedent}</div>{/if}
               <div class="card-foot">
                 <span class="buy-n">combo</span>
-                <span class="cost num">{fmt(amt as number)} {res}</span>
+                <span class="cost num res-{res}">{fmt(amt as number)} {res}</span>
               </div>
             </button>
           {/each}
@@ -517,7 +517,7 @@
               </div>
               <div class="blurb">Push both {sn.trees[0]} and {sn.trees[1]} to tier {sn.threshold}.</div>
               <div class="card-foot">
-                <span class="cost num">{fmt(amt as number)} {res}</span>
+                <span class="cost num res-{res}">{fmt(amt as number)} {res}</span>
               </div>
             </div>
           {/each}
@@ -563,7 +563,7 @@
               {/if}
               <div class="card-foot">
                 <span class="buy-n">one-shot</span>
-                <span class="cost num">{fmt(amt as number)} {res}</span>
+                <span class="cost num res-{res}">{fmt(amt as number)} {res}</span>
               </div>
             </button>
           {/each}
@@ -683,7 +683,7 @@
                   {/if}
                   <div class="node-foot">
                     {#if !maxed}<span class="buy-n">+{n}</span>{/if}
-                    <span class="node-cost num">{maxed ? 'maxed' : `${fmt(cost)} ${u.costResource}`}</span>
+                    <span class="node-cost num res-{u.costResource}">{maxed ? 'maxed' : `${fmt(cost)} ${u.costResource}`}</span>
                   </div>
                   <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
                 </button>
@@ -696,7 +696,7 @@
                   </div>
                   <div class="node-blurb">{u.teaseHint ?? 'A technique coming.'}</div>
                   <div class="node-foot">
-                    <span class="node-cost num">{fmt(u.baseCost)} {u.costResource}</span>
+                    <span class="node-cost num res-{u.costResource}">{fmt(u.baseCost)} {u.costResource}</span>
                   </div>
                 </div>
               {/each}
@@ -732,6 +732,15 @@
     --ok:      hsl(150 55% 40%);
     --warn:    hsl(30 90% 50%);
     --bad:     hsl(0 70% 50%);
+
+    /* Per-resource colors — used on costs, effects, topbar meters,
+       and resource value text so the eye learns which currency is which. */
+    --res-attention:           hsl(40 85% 50%);
+    --res-engagement:          hsl(200 70% 50%);
+    --res-followers:           hsl(140 55% 45%);
+    --res-credibility:         hsl(280 55% 55%);
+    --res-narrativeDominance:  hsl(0 70% 50%);
+    --res-syntheticReality:    hsl(180 65% 55%);
   }
   :global(body) {
     margin: 0;
@@ -809,6 +818,27 @@
   .rrate.positive { color: var(--ok); }
   .reta { font-size: 0.65rem; color: var(--muted); font-style: italic; }
   .num { font-variant-numeric: tabular-nums; }
+
+  /* Resource-color helpers. Apply .res-<resourceId> to any element that
+     should pick up that resource's tint (cost labels, meter values, etc). */
+  .res-attention          { color: var(--res-attention); }
+  .res-engagement         { color: var(--res-engagement); }
+  .res-followers          { color: var(--res-followers); }
+  .res-credibility        { color: var(--res-credibility); }
+  .res-narrativeDominance { color: var(--res-narrativeDominance); }
+  .res-syntheticReality   { color: var(--res-syntheticReality); }
+  .rmeter.res-attention          .rfill { background: var(--res-attention); }
+  .rmeter.res-engagement         .rfill { background: var(--res-engagement); }
+  .rmeter.res-followers          .rfill { background: var(--res-followers); }
+  .rmeter.res-credibility        .rfill { background: var(--res-credibility); }
+  .rmeter.res-narrativeDominance .rfill { background: var(--res-narrativeDominance); }
+  .rmeter.res-syntheticReality   .rfill { background: var(--res-syntheticReality); }
+  .rmeter.res-attention          .rvalue { color: var(--res-attention); }
+  .rmeter.res-engagement         .rvalue { color: var(--res-engagement); }
+  .rmeter.res-followers          .rvalue { color: var(--res-followers); }
+  .rmeter.res-credibility        .rvalue { color: var(--res-credibility); }
+  .rmeter.res-narrativeDominance .rvalue { color: var(--res-narrativeDominance); }
+  .rmeter.res-syntheticReality   .rvalue { color: var(--res-syntheticReality); }
   .buff {
     padding: 0.35rem 0.6rem;
     border: 1px solid var(--accent);
