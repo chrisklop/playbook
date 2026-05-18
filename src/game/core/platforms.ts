@@ -56,6 +56,18 @@ function totalAssetOutput(state: GameState): number {
 }
 
 export function tickPlatforms(state: GameState, dt: number): void {
+  // FIRST PASS — always clear expired burns, even if it would leave the
+  // active-platform set empty. Otherwise: when X is the only unlocked
+  // platform and it's burned, unlockedPlatforms() returns [], the function
+  // early-returns, and the burn never clears (permanent lockout bug).
+  for (const id of PLATFORM_IDS) {
+    const p = state.platforms[id];
+    if (p.unlocked && p.burned && p.burnedUntil <= state.lastTick) {
+      p.burned = false;
+      p.burnedUntil = 0;
+    }
+  }
+
   const active = unlockedPlatforms(state);
   if (active.length === 0) return;
 
@@ -67,12 +79,6 @@ export function tickPlatforms(state: GameState, dt: number): void {
   for (const id of PLATFORM_IDS) {
     const p = state.platforms[id];
     if (!p.unlocked) continue;
-
-    // Burn cooldown.
-    if (p.burned && p.burnedUntil <= state.lastTick) {
-      p.burned = false;
-      p.burnedUntil = 0;
-    }
     if (p.burned) continue;
 
     const meta = PLATFORM_META.find((m) => m.id === id);
