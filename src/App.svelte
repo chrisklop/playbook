@@ -605,7 +605,7 @@
           {@const sf = !affordable && n > 0 ? shortfall(cost, a.costResource) : null}
           {@const owned = game.assets[a.id] ?? 0}
           {@const m = owned > 0 && Object.keys(a.produces).length > 0 ? milestoneInfo(owned) : null}
-          <button class="card asset cost-{a.costResource}" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={pre ?? ''}>
+          <button class="card asset cost-{a.costResource}" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={a.blurb + (pre ? '\n\n' + pre : '')}>
             <div class="card-head">
               <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
               <span class="owned">×{owned}</span>
@@ -675,7 +675,7 @@
             {@const ratio = affordabilityRatio(amt as number, res)}
             {@const ppre = getPrecedent(p.id, p.precedents)}
             {@const psf = !affordable ? shortfall(amt as number, res) : null}
-            <button class="card project cost-{res}" disabled={!affordable} onclick={() => completeProject(game, p.id)} title={ppre ?? ''}>
+            <button class="card project cost-{res}" disabled={!affordable} onclick={() => completeProject(game, p.id)} title={p.blurb + (ppre ? '\n\n' + ppre : '')}>
               <div class="card-head">
                 <span class="name">{p.name}</span>
               </div>
@@ -722,7 +722,7 @@
               class="card synergy cost-{res}"
               disabled={!affordable}
               onclick={() => activateSynergy(game, sn.id)}
-              title={sn.precedent ?? ''}
+              title={sn.blurb + (sn.precedent ? '\n\n' + sn.precedent : '')}
             >
               <div class="card-head">
                 <span class="name">{sn.name}</span>
@@ -773,7 +773,7 @@
               class="card patron cost-{res}"
               disabled={!affordable}
               onclick={() => { activatePatron(game, pa.id); rotatePrecedent(pa.id, pa.precedents); }}
-              title={ppre ?? ''}
+              title={pa.blurb + (ppre ? '\n\n' + ppre : '')}
             >
               <div class="card-head">
                 <span class="name">{pa.name}</span>
@@ -956,7 +956,7 @@
                 {@const ratio = affordabilityRatio(cost, u.costResource)}
                 {@const upre = getPrecedent(u.id, u.precedents)}
                 {@const usf = !maxed && !affordable && n > 0 ? shortfall(cost, u.costResource) : null}
-                <button class="node cost-{u.costResource}" disabled={!affordable || maxed} onclick={() => doBuyUpgrade(u.id)} title={upre ?? ''}>
+                <button class="node cost-{u.costResource}" disabled={!affordable || maxed} onclick={() => doBuyUpgrade(u.id)} title={u.blurb + (upre ? '\n\n' + upre : '')}>
                   <div class="node-head">
                     <span class="node-name">{u.name}</span>
                     <span class="node-lvl num">{lvl}/{u.maxLevel}</span>
@@ -2071,18 +2071,9 @@
   .name { font-weight: 600; font-size: 0.9rem; }
   .kind { font-weight: 400; color: var(--muted); font-size: 0.75rem; }
   .owned { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
-  .blurb {
-    color: var(--muted);
-    font-size: 0.72rem;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .card:hover .blurb, .node:hover .node-blurb {
-    -webkit-line-clamp: 4;
-  }
+  /* Blurb + precedent live in the browser tooltip only — never on the
+     tile — so cards stay compact and the same shape regardless of hover. */
+  .blurb, .node-blurb { display: none !important; }
   .card-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
   .cost { font-weight: 600; font-size: 0.82rem; }
   .buy-n {
