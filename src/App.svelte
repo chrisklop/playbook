@@ -1000,20 +1000,23 @@
     padding: 0.6rem 0.8rem;
     border-radius: 8px;
   }
-  /* Explicit column placement. Trees are the most interactive surface,
-     so they get column 1 (leftmost, first thing you read). Assets get the
-     wide center column. Platforms stay right as a passive dashboard. */
+  /* Explicit column AND row placement so the browser doesn't create
+     new rows when items appear in non-DOM order. All three columns live
+     in row 1; their grid-column slot is fixed regardless of DOM order. */
   .col.trees-col {
+    grid-row: 1;
     grid-column: 1;
     background: color-mix(in oklab, hsl(220 70% 50%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(220 70% 50%) 25%, var(--line));
   }
   .col.left {
+    grid-row: 1;
     grid-column: 2;
     background: color-mix(in oklab, hsl(25 60% 50%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(25 60% 50%) 25%, var(--line));
   }
   .col.platforms-col {
+    grid-row: 1;
     grid-column: 3;
     background: color-mix(in oklab, hsl(165 40% 45%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(165 40% 45%) 25%, var(--line));
