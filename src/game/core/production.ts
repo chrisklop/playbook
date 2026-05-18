@@ -82,8 +82,12 @@ export function computeCaps(state: GameState): Record<ResourceId, number> {
   const newsletters = state.assets.newsletter ?? 0;
 
   if (state.flags['editorialCalendar']) {
-    // Editorial Calendar PARADIGM: outlet cap flips from additive to geometric.
-    caps.attention = 5000 + Math.floor(400 * (Math.pow(1.16, outlets) - 1) / 0.16);
+    // Editorial Calendar PARADIGM: outlet cap flips from additive to
+    // gently-geometric. Cost growth 1.035 → cap growth 1.06 keeps the
+    // invariant (cap > cost) without runaway scaling. Base 600 so the
+    // first post-paradigm outlet still adds ~600 cap (matches the
+    // pre-paradigm contribution — paradigm shouldn't feel like a downgrade).
+    caps.attention = 5000 + Math.floor(600 * (Math.pow(1.06, outlets) - 1) / 0.06);
     caps.engagement = 5000 + 600 * newsletters;
     if (state.flags['cpcNetwork']) {
       caps.engagement = Math.floor(caps.engagement * 3);
