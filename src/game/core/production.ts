@@ -89,8 +89,11 @@ export function computeCaps(state: GameState): Record<ResourceId, number> {
       caps.engagement = Math.floor(caps.engagement * 3);
     }
   } else {
-    // Pre-paradigm: 600 cap/outlet. 10× more outlets needed than v3 economy.
+    // Pre-paradigm: 600 cap/outlet.
     caps.attention = 5000 + 600 * outlets;
+    // Small engagement starter cap so POST overflow has somewhere to land
+    // pre-Blog. Edcal raises this to 5000 when triggered.
+    caps.engagement = 1000;
   }
   // Followers cap: bootstrapped on entering Social era + Audience Pods.
   const pods = state.assets.audiencePod ?? 0;

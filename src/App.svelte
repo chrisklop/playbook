@@ -614,15 +614,21 @@
                   <span class="meter-num num">{p.chargeProgress >= 1 ? 'READY' : `${(p.chargeProgress * 100).toFixed(0)}%`}</span>
                 </div>
               </div>
+              {@const y = postYield(game, meta.id)}
+              {@const attCapped = game.resources.attention >= game.caps.attention}
               <button
                 class="post-platform"
                 class:ready={p.chargeProgress >= 1}
                 disabled={p.chargeProgress < 1}
                 onclick={() => postPlatform(game, meta.id)}
-                title="Post on {meta.name}. Yield ~{fmt(postYield(game, meta.id))} attention, +1.5% heat."
+                title="Post on {meta.name}. Burst {fmt(y)} attention; overflow converts to engagement at 10%."
               >
                 {#if p.chargeProgress >= 1}
-                  POST · +{fmt(postYield(game, meta.id))} att
+                  {#if attCapped}
+                    POST · +{fmt(y * 0.1)} eng (overflow)
+                  {:else}
+                    POST · +{fmt(y)} att
+                  {/if}
                 {:else}
                   {(chargeTimeSeconds(game) * (1 - p.chargeProgress)).toFixed(1)}s
                 {/if}

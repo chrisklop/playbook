@@ -61,8 +61,22 @@ export function postPlatform(state: GameState, platformId: PlatformId): boolean 
   if (!canPost(state, platformId)) return false;
   const p = state.platforms[platformId];
   const y = postYield(state, platformId);
-  const cap = state.caps.attention;
-  state.resources.attention = Math.min(cap || Infinity, state.resources.attention + y);
+  const attCap = state.caps.attention;
+  const engCap = state.caps.engagement;
+
+  // Attention burst — fills attention first, then any overflow converts to
+  // engagement at 10% rate (so posts always reward, never wasted at cap).
+  const attRoom = Math.max(0, (attCap || Infinity) - state.resources.attention);
+  const attGain = Math.min(y, attRoom);
+  state.resources.attention += attGain;
+
+  const overflow = y - attGain;
+  if (overflow > 0 && engCap > 0) {
+    const engRoom = Math.max(0, engCap - state.resources.engagement);
+    const engGain = Math.min(overflow * 0.1, engRoom);
+    state.resources.engagement += engGain;
+  }
+
   p.chargeProgress = 0;
   p.heat = clamp(p.heat + HEAT_PER_POST, 0, 1);
   return true;
