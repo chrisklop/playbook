@@ -8,13 +8,19 @@ import { PLATFORM_META } from '../../lib/platforms';
 import { clamp } from './math';
 import { ASSETS } from './catalog';
 
-// Tuned so ~100 bots can live on a single platform without constant overheating.
-// Equilibrium: HEAT_PER_BOT × bots × (1 - mod*0.5) == HEAT_DECAY × (0.5 + mod) × floodMult
-// For X (mod 0.3): 100 bots equilibrium at heat ~0.5 (warning zone but not blocked).
-// At 200 bots heat climbs but caps at 1.0; player must spread to more platforms.
-const HEAT_DECAY_PER_S = 0.012;
+// Heat math is gated by the per-platform postRate slider — slowing posts
+// slows both heat gain AND charge fill, so the player has a direct dial.
+// At 100% rate, equilibrium ~0.5 with 100 bots on X. Player can scale to 1000+
+// bots if they throttle the slider.
+const HEAT_DECAY_PER_S = 0.015;
 const HEAT_PER_BOT_PER_S = 0.0001;
 const REACH_DECAY_PER_S = 0.02;
+
+// When heat hits 1.0, platform is "shadow-banned" — no posting for 30s.
+// Heat decays 3× faster during ban (so player recovers and can resume).
+const BAN_DURATION_MS = 30_000;
+const BAN_DECAY_MULT = 3;
+const BAN_HEAT_RESET = 0.4;
 
 /** Dominant DEPICT technique = highest-level upgrade tree. */
 function dominantTechnique(state: GameState): DepictId {
@@ -36,6 +42,11 @@ function dominantTechnique(state: GameState): DepictId {
 
 function unlockedPlatforms(state: GameState): PlatformId[] {
   return PLATFORM_IDS.filter((id) => state.platforms[id].unlocked && !state.platforms[id].burned);
+}
+
+export function isBanned(state: GameState, id: PlatformId): boolean {
+  const p = state.platforms[id];
+  return !!(p && p.burned && p.burnedUntil > state.lastTick);
 }
 
 function botAssetCount(state: GameState): number {
@@ -94,12 +105,24 @@ export function tickPlatforms(state: GameState, dt: number): void {
     p.reach = Math.max(0, p.reach + reachGain - reachDecay);
 
     // Heat: bot-asset count contributes, decays with platform moderation.
+    // postRate slider scales bot-heat-gain — throttling posts also throttles
+    // the heat your bots generate. Player has a direct dial.
     // Flood the Zone synergy boosts heat decay rate ×1.4 platform-wide.
-    // Heat ALWAYS decays — even at cap. No more binary burn / random lockout.
-    // Instead, posts get yield-penalized as heat climbs (see posting.ts).
-    const heatGain = botsPerPlatform * HEAT_PER_BOT_PER_S * (1 - meta.moderation * 0.5) * dt;
+    const rate = p.postRate ?? 1;
+    const heatGain = botsPerPlatform * HEAT_PER_BOT_PER_S * (1 - meta.moderation * 0.5) * rate * dt;
     const floodMult = state.flags['syn:flood-the-zone'] ? 1.4 : 1.0;
-    const heatDecay = HEAT_DECAY_PER_S * (0.5 + meta.moderation) * floodMult * dt;
+    const banMult = isBanned(state, id) ? BAN_DECAY_MULT : 1;
+    const heatDecay = HEAT_DECAY_PER_S * (0.5 + meta.moderation) * floodMult * banMult * dt;
     p.heat = clamp(p.heat + heatGain - heatDecay, 0, 1);
+
+    // Deterministic shadow-ban at heat=1.0: 30s lockout with fast cooldown.
+    // Player knows: full bar = forced break. Predictable, no RNG.
+    if (p.heat >= 1 && !p.burned) {
+      p.burned = true;
+      p.burnedUntil = state.lastTick + BAN_DURATION_MS;
+      p.heat = BAN_HEAT_RESET;
+      p.chargeProgress = 0;
+      state.log.unshift(`⚠ ${meta.name} shadow-banned. 30s cooldown.`);
+    }
   }
 }

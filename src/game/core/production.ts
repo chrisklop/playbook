@@ -127,7 +127,10 @@ export function computeCaps(state: GameState): Record<ResourceId, number> {
     // Base 500 so the first post-paradigm outlet adds ~500 cap — matches
     // the pre-paradigm linear contribution within a few percent.
     caps.attention = 5000 + Math.floor(500 * (Math.pow(1.10, outlets) - 1) / 0.10);
-    caps.engagement = 5000 + 800 * newsletters;
+    // Per-newsletter cap raised from 800 → 1500 so 30 newsletters reaches
+    // the first synergy threshold (50k engagement) instead of stalling at 29k.
+    // Newsletter cost grows at 1.08 — comfortably below the cap-growth slope.
+    caps.engagement = 5000 + 1500 * newsletters;
     if (state.flags['cpcNetwork']) {
       caps.engagement = Math.floor(caps.engagement * 3);
     }

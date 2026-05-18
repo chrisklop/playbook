@@ -30,6 +30,7 @@ function defaultPlatform(unlocked = false): PlatformState {
     presence: 0,
     reach: 0,
     chargeProgress: 0,
+    postRate: 1,
   };
 }
 

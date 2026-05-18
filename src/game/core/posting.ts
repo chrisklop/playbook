@@ -124,8 +124,10 @@ export function freestylePost(state: GameState, platformId: PlatformId): boolean
     state.resources.engagement += engGain;
   }
 
-  // Big heat cost — freestyle is loud.
-  p.heat = clamp(p.heat + HEAT_PER_FREESTYLE_POST, 0, 1);
+  // Big heat cost — freestyle is loud. Scales up with current heat so
+  // pushing it while hot punishes harder (0%→+4%, 100%→+8%).
+  const heatCost = HEAT_PER_FREESTYLE_POST * (1 + p.heat);
+  p.heat = clamp(p.heat + heatCost, 0, 1);
   return true;
 }
 
@@ -138,16 +140,20 @@ export function freestyleYield(state: GameState, platformId: PlatformId): number
 
 export function tickPosting(state: GameState, dt: number): void {
   const chargeTime = chargeTimeSeconds(state);
-  const rate = 1 / chargeTime; // chargeProgress per second
+  const baseRate = 1 / chargeTime; // chargeProgress per second at 100% postRate
   const autoOn = (state.assets.autoPoster ?? 0) >= 1;
 
   for (const meta of PLATFORM_META) {
     const p = state.platforms[meta.id];
     if (!p.unlocked) continue;
-    // Charge always fills (no platform lockout). Auto-fires when charged
-    // AND not under a legacy burn cooldown.
-    p.chargeProgress = Math.min(1, p.chargeProgress + rate * dt);
-    if (p.burned && p.burnedUntil > state.lastTick) continue;
+    // Banned platforms freeze the charge entirely.
+    if (p.burned && p.burnedUntil > state.lastTick) {
+      p.chargeProgress = 0;
+      continue;
+    }
+    // postRate slider scales fill speed — the player's heat-management dial.
+    const postRate = p.postRate ?? 1;
+    p.chargeProgress = Math.min(1, p.chargeProgress + baseRate * postRate * dt);
     if (autoOn && p.chargeProgress >= 1) {
       postPlatform(state, meta.id);
     }

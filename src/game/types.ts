@@ -76,6 +76,7 @@ export interface PlatformState {
   presence: number;
   reach: number;
   chargeProgress: number;  // 0..1, fills over time, fires a post at 1
+  postRate: number;        // 0..1, scales charge fill speed (per-platform dial)
 }
 
 export interface ReturnBuff {
@@ -126,4 +127,4 @@ export interface GameState {
   pendingOfflineSummary?: OfflineSummary | null;
 }
 
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;

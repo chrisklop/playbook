@@ -19,11 +19,21 @@ export function deserialize(json: string, now: number = Date.now()): GameState {
 }
 
 function migrate(raw: Partial<GameState>, now: number): GameState {
-  // Pre-v0.1 saves used a different balance — wipe rather than rescue.
-  if (raw.version !== SAVE_VERSION) {
+  // Pre-v8 saves used a different balance — wipe rather than rescue.
+  // v8→v9 adds postRate to each platform; backfill instead of wiping progress.
+  if (typeof raw.version !== 'number' || raw.version < 8) {
     return initialState(now);
   }
   const base = initialState(now);
+  const mergedPlatforms: Record<string, unknown> = { ...base.platforms };
+  if (raw.platforms) {
+    for (const [pid, pstate] of Object.entries(raw.platforms)) {
+      mergedPlatforms[pid] = {
+        ...(base.platforms as Record<string, unknown>)[pid],
+        ...(pstate as object),
+      };
+    }
+  }
   return {
     ...base,
     ...raw,
@@ -37,7 +47,7 @@ function migrate(raw: Partial<GameState>, now: number): GameState {
       ...base.completedProjects,
       ...(raw.completedProjects ?? {}),
     },
-    platforms: { ...base.platforms, ...(raw.platforms ?? {}) },
+    platforms: mergedPlatforms as GameState['platforms'],
     peakResources: { ...base.peakResources, ...(raw.peakResources ?? {}) },
     reveal: { ...base.reveal, ...(raw.reveal ?? {}) },
   };

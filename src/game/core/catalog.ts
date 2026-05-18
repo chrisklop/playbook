@@ -314,7 +314,7 @@ export const UPGRADES: UpgradeDef[] = [
   {
     id: 'emotional-1',
     tree: 'emotional', tier: 1,
-    name: 'Outrage Headlines',
+    name: 'Upworthy Bait Engine',
     baseCost: 2500, costGrowth: 1.12, costResource: 'attention', maxLevel: 30,
     // Tier-1 redistribution (audit Finding 3): E/P/T → attention,
     // C → engagement, I → credibility, D → attention + cure suppression.
@@ -340,7 +340,7 @@ export const UPGRADES: UpgradeDef[] = [
   {
     id: 'polarization-1',
     tree: 'polarization', tier: 1,
-    name: 'Wedge Issue Generator',
+    name: 'Heart of Texas Cell',
     baseCost: 7000, costGrowth: 1.12, costResource: 'attention', maxLevel: 30,
     multiplier: { attention: 0.012 },
     blurb: 'Split your audience into "us" and "them." Both halves come back angry.',
@@ -487,7 +487,7 @@ export const UPGRADES: UpgradeDef[] = [
   {
     id: 'polarization-2',
     tree: 'polarization', tier: 2,
-    name: 'Both-Sides Rally',
+    name: 'Houston Mosque Op',
     baseCost: 20_000, costGrowth: 1.14, costResource: 'engagement', maxLevel: 30,
     multiplier: { engagement: 0.020, attention: 0.020 },
     blurb: 'Run accounts on BOTH sides of an issue. Organize their rallies at the same address, same hour. Watch real people fight.',
@@ -517,7 +517,7 @@ export const UPGRADES: UpgradeDef[] = [
   {
     id: 'trolling-2',
     tree: 'trolling', tier: 2,
-    name: 'Mass-Report Squad',
+    name: 'Brigading Channel',
     baseCost: 9000, costGrowth: 1.14, costResource: 'engagement', maxLevel: 30,
     multiplier: { attention: 0.025, engagement: 0.015 },
     blurb: 'Coordinated terms-of-service reports. Get your opponents suspended; turn enforcement into your weapon.',

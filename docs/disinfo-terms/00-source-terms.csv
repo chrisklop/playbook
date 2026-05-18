@@ -1,0 +1,179 @@
+term,category,description,era
+Internet Research Agency,State Op - Russia,"Russian troll farm in St. Petersburg, indicted by Mueller for 2016 election interference",2013-present
+IRA,State Op - Russia,Common abbreviation for Internet Research Agency,2013-present
+Glavset,State Op - Russia,Corporate parent/successor name for the Internet Research Agency,2013-present
+Project Lakhta,State Op - Russia,Umbrella project name for IRA's foreign influence operations including 2016 US election interference,2014-present
+Doppelganger,State Op - Russia,"Russian operation creating cloned mainstream news sites (e.g. fake Washington Post, Der Spiegel) to spread Kremlin narratives",2022-present
+Storm-1516,State Op - Russia,Microsoft-tracked GRU-linked operation producing fake whistleblower videos and AI-generated content; ran Harris hit-and-run hoax,2023-present
+Storm-1099,State Op - Russia,Russian operation creating fake news websites associated with Doppelganger infrastructure,2022-present
+Storm-1679,State Op - Russia,"Russian operation producing fake documentaries and ""news reports"" from invented credible-looking organizations",2022-present
+Matryoshka,State Op - Russia,"Russian disinfo campaign (aka Operation Overload) that targets fact-checkers with fake content asking them to ""verify"" it",2022-present
+Operation Overload,State Op - Russia,Alternative name for the Matryoshka campaign,2022-present
+Secondary Infektion,State Op - Russia,Long-running Russian disinformation operation focused on forging documents and seeding stories across forums,2014-present
+Ghostwriter,State Op - Russia,"Belarus/Russia-linked operation that hacks and impersonates officials, primarily targeting NATO/EU",2017-present
+Tenet Media,State Op - Russia,"Nashville company that took ~$10M from RT to fund right-wing influencers (Tim Pool, Dave Rubin, Benny Johnson); indicted 2024",2022-2024
+Operation INFEKTION,State Op - Russia,"Soviet KGB campaign spreading the lie that the US invented HIV/AIDS as a bioweapon, still echoed today",1983-1989
+Active Measures,State Op - Russia,Soviet/Russian intelligence term for political warfare including disinformation and forgeries,Cold War-present
+Spamouflage,State Op - China,"Largest known online disinfo network, run by Chinese police; cross-platform pro-CCP harassment",2017-present
+Dragonbridge,State Op - China,Alternate name for Spamouflage (Mandiant/Google nomenclature),2017-present
+50 Cent Army,State Op - China,Paid CCP commenters who flood Chinese social media to distract and steer opinion,2004-present
+Wolf News,State Op - China,Fictitious AI-anchor outlet used by Spamouflage to push anti-US narratives,2022-present
+Endless Mayfly,State Op - Iran,Iranian disinfo operation using cloned news sites and inauthentic personas,2016-present
+Operation Mockingbird,State Op - Historical,Cold War CIA program to cultivate sympathetic journalists/news outlets,1950s-1970s
+COINTELPRO,State Op - Historical,FBI counterintelligence program that smeared civil rights and left groups with forged documents,1956-1971
+Curveball,Specific Hoax/Narrative,Fabricator whose lies were laundered into the case for Iraq WMDs,2000-2003
+Niger Yellowcake Forgery,Specific Hoax/Narrative,Fake documents alleging Iraq sought uranium from Niger,2001-2003
+Firehose of Falsehood,Tactic - Rhetorical,RAND term for high-volume rapid-fire propaganda with no regard for truth or consistency,2016 (term)
+Flood the Zone,Tactic - Rhetorical,"Bannon's phrase for overwhelming the press; ""flood the zone with shit""",2018-present
+Gish Gallop,Tactic - Rhetorical,Overwhelming an opponent with a rapid spray of weak arguments faster than they can be rebutted,1990s-present
+Whataboutism,Tactic - Rhetorical,Soviet/Russian-favored deflection that points to opponents' faults instead of answering,Cold War-present
+Sealioning,Tactic - Rhetorical,Aggressive bad-faith demands for evidence designed to exhaust rather than learn,2014 (term)
+Just Asking Questions,Tactic - Rhetorical,Deniable insinuation framed as inquiry,2000s-present
+Concern Trolling,Tactic - Rhetorical,Faking sympathy to undermine a position from within,2000s-present
+Brigading,Tactic - Organizational,Coordinated mass-piling-on of a target's posts/profile,2010s-present
+Astroturfing,Tactic - Organizational,Manufactured fake-grassroots campaigns,1980s-present
+Sockpuppetry,Tactic - Organizational,Operating multiple fake online identities to fake support,2000s-present
+Coordinated Inauthentic Behavior,Tactic - Organizational,Meta's category term for networked fake-account influence ops,2018 (term)
+FIMI,Tactic - Organizational,EU abbreviation for Foreign Information Manipulation and Interference,2022-present
+Hybrid Warfare,Concept/Theory,Blending of disinfo with cyber/economic/kinetic operations,2007-present
+Reflexive Control,Concept/Theory,Russian military theory of shaping enemy decisions via curated information,Soviet-present
+Maskirovka,Concept/Theory,Russian doctrine of deception and concealment,Soviet-present
+Dezinformatsiya,Concept/Theory,Russian word for disinformation; origin of the English term,1923-present
+Pre-Bunking,Concept/Theory,Inoculating audiences against manipulation by showing tactics ahead of time,2017-present
+Narrative Laundering,Tactic - Rhetorical,Moving a story from fringe to mainstream via intermediaries,2010s-present
+Information Alibi,Tactic - Rhetorical,Pre-positioning a false narrative to deflect blame for an upcoming action (Russian wartime tactic),2022-present
+Big Lie,Tactic - Rhetorical,Repetition of an outrageous falsehood until it gains traction,1925 (term)
+Illusory Truth Effect,Concept/Theory,Cognitive bias: repeated statements feel truer,1977 (study)
+Continued Influence Effect,Concept/Theory,Misinformation continues to shape beliefs even after correction,1980s-present
+Backfire Effect,Concept/Theory,Corrections sometimes harden the original false belief,2010s
+Echo Chamber,Concept/Theory,Closed information environment where dissenting views are filtered out,2000s (term)
+Filter Bubble,Concept/Theory,Personalization-driven information silo,2011 (term)
+Engagement Bait,Tactic - Technical,Content designed to trigger reactions to game algorithms,2010s-present
+Rage Bait,Tactic - Technical,Content engineered to provoke anger for engagement,2010s-present
+Outrage Farming,Tactic - Technical,Business model of harvesting attention through anger,2010s-present
+LLM Grooming,Tactic - Technical,"Flooding the web with content to bias AI model training (e.g. Pravda Network)",2024-present
+Pravda Network,State Op - Russia,Moscow-based network seeding pro-Kremlin content to bias LLM outputs,2022-present
+Pink Slime Journalism,Outlet - Conspiracy,Mass-produced fake-local-news sites pushing partisan content,2019 (term)
+Deepfake,Tactic - Technical,Synthetic media using AI to swap faces or voices,2017 (term)
+Cheapfake,Tactic - Technical,Low-tech manipulated media (selective edits and slowdowns) rather than AI,2019 (term)
+GAN Face,Tactic - Technical,AI-generated headshot for fake accounts (ThisPersonDoesNotExist style),2019-present
+Hack and Leak,Tactic - Organizational,"Combined cyber/info op (e.g. DNC, Macron Leaks)",2010s-present
+Tainted Leak,Tactic - Organizational,Real leaked material adulterated with planted fakes,2015-present
+Pizzagate,Conspiracy Theory,2016 hoax alleging child trafficking ring under Comet Ping Pong pizzeria,2016
+QAnon,Conspiracy Theory,Sprawling cult-like conspiracy theory built around anonymous Q drops,2017-present
+Adrenochrome Conspiracy,Conspiracy Theory,Antisemitic blood libel updated for QAnon claiming elites harvest a youth chemical,2017-present
+The Great Replacement,Conspiracy Theory,White-nationalist conspiracy theory popularized by Renaud Camus and Tucker Carlson,2011-present
+Deep State Conspiracy,Conspiracy Theory,Belief in a permanent shadow government coordinating to thwart Trump (and others),2010s-present
+Crisis Actor Claim,Conspiracy Theory,False allegation that mass-shooting victims/survivors are paid actors,2012-present
+Stop the Steal,Domestic Campaign,Movement built on the false claim that the 2020 election was stolen,2020-present
+2000 Mules,Specific Hoax/Narrative,Discredited Dinesh D'Souza film alleging mass ballot-trafficking,2022
+Fake Electors Scheme,Domestic Campaign,Coordinated effort to submit false slates of electors after 2020 election,2020-2021
+ACORN Sting,Specific Hoax/Narrative,2009 deceptively edited videos that destroyed the voter-registration group,2009
+Project Veritas,Person - Domestic Disinformer,James O'Keefe's organization known for deceptively edited sting videos,2010-present
+Plandemic Film,Specific Hoax/Narrative,Viral 2020 COVID conspiracy film featuring Judy Mikovits,2020
+Ivermectin Push,COVID Disinformation,Mass promotion of livestock dewormer as COVID cure,2020-present
+Disinformation Dozen,Person - Domestic Disinformer,12 individuals identified by CCDH as source of bulk of anti-vax content online,2021
+Tobacco Doubt Campaign,Industry Disinfo - Health,Pioneer disinfo strategy creating doubt about smoking-cancer link via fake studies,1953-1990s
+Merchants of Doubt,Concept/Theory,Book/film exposing recurring industry disinfo playbook across tobacco/climate/etc.,2010
+Heartland Institute,Front Group/Think Tank,Free-market think tank central to climate-denial campaigns,1984-present
+Exxon Knew,Industry Disinfo - Climate,Body of evidence showing ExxonMobil knew about climate change while funding denial,1977-present
+Climategate,Specific Hoax/Narrative,Stolen-email cherry-pick used to manufacture a climate science scandal,2009
+Cambridge Analytica,PR/Influence Firm,Data firm that harvested Facebook data and ran targeted political ads (Trump 2016/Brexit),2013-2018
+SCL Group,PR/Influence Firm,Parent company of Cambridge Analytica with global influence-ops history,1990-2018
+Bell Pottinger,PR/Influence Firm,UK firm collapsed after South Africa Gupta racial-tension campaign exposed,1987-2017
+Team Jorge,PR/Influence Firm,Israeli ex-special-forces group exposed by Forbidden Stories 2023,2010s-present
+New Knowledge,PR/Influence Firm,Firm that ran an inauthentic 2017 Alabama Senate operation against Roy Moore,2015-present
+Infowars,Outlet - Conspiracy,Alex Jones outlet behind Sandy Hook defamation and many conspiracy theories,1999-present
+The Gateway Pundit,Outlet - Conspiracy,"Conspiracy site behind ""election fraud"" claims and 2020 worker defamation",2004-present
+Breitbart News,Outlet - Far Right,"Right-wing outlet that helped mainstream ""alt-right"" content",2007-present
+The Epoch Times,Outlet - Conspiracy,Falun-Gong-linked outlet that became a major QAnon/Trump-friendly publication,2000-present
+OAN,Outlet - Far Right,One America News; pushed 2020 election fraud claims and lost defamation rulings,2013-present
+Newsmax,Outlet - Far Right,Right-wing cable network that settled Dominion/Smartmatic defamation suits,1998-present
+Truth Social,Platform,Trump-owned platform launched after his Twitter ban,2022-present
+Gab,Platform,Far-right social network associated with extremist content,2016-present
+4chan,Platform,Imageboard origin of many disinfo memes and QAnon,2003-present
+8kun,Platform,8chan's successor site hosting Q drops,2019-present
+Kiwi Farms,Platform,Harassment-focused forum,2013-present
+Rumble,Platform,Video platform that became safe haven for deplatformed conspiracy content,2013-present
+Tucker Carlson,Person - Domestic Disinformer,Former Fox host central to Great Replacement and Ukraine narratives,2009-present
+Steve Bannon,Person - Domestic Disinformer,"Former Breitbart chair, Trump strategist; popularized ""flood the zone""",2012-present
+Alex Jones,Person - Domestic Disinformer,Founder of Infowars; ordered to pay ~$1.5B for Sandy Hook defamation,1999-present
+RFK Jr.,Person - Domestic Disinformer,Long-running anti-vaccine activist; founded Children's Health Defense,2005-present
+Joseph Mercola,Person - Domestic Disinformer,Physician and one of the largest sources of online anti-vax content,1997-present
+Roger Stone,Person - Domestic Disinformer,Long-time GOP operative and dirty-tricks strategist,1970s-present
+Jack Posobiec,Person - Domestic Disinformer,Far-right activist behind Pizzagate amplification,2015-present
+Sidney Powell,Person - Domestic Disinformer,Lawyer behind Kraken lawsuits; pleaded guilty in Georgia,2020-present
+Rudy Giuliani,Person - Domestic Disinformer,Trump lawyer behind many 2020 election lies; disbarred,2020-present
+Mike Lindell,Person - Domestic Disinformer,MyPillow CEO who funded election-fraud claims/films,2020-present
+Tim Pool,Person - Domestic Disinformer,Right-wing podcaster paid by Tenet Media/RT,2010s-present
+Dave Rubin,Person - Domestic Disinformer,Right-wing podcaster paid by Tenet Media/RT,2010s-present
+Benny Johnson,Person - Domestic Disinformer,Right-wing commentator paid by Tenet Media/RT,2010s-present
+Russia Today,Outlet - State Media (Foreign),Russian state propaganda network branded as RT,2005-present
+Sputnik,Outlet - State Media (Foreign),Russian state-funded multilingual outlet,2014-present
+CGTN,Outlet - State Media (Foreign),China Global Television Network; English-language Chinese state propaganda outlet,2016-present
+WikiLeaks,Outlet - Conspiracy,Publishing outlet that distributed GRU-hacked 2016 Democratic emails,2006-present
+DCLeaks,Hack & Leak Op,GRU-operated leak site for hacked DNC and Podesta emails (2016 election),2016
+Guccifer 2.0,Hack & Leak Op,GRU persona that claimed to be a lone Romanian hacker behind DNC leak,2016
+DNC Email Hack,Hack & Leak Op,GRU theft and selective release of DNC emails,2016
+Macron Leaks,Hack & Leak Op,Last-minute 2017 dump of Macron campaign emails mixed with forgeries,2017
+Hamilton 68 Dashboard,Concept/Theory,Alliance for Securing Democracy tool tracking Russian-influence accounts,2017-present
+Bellingcat,Concept/Theory,Open-source investigations outlet exposing many state ops,2014-present
+Graphika,Concept/Theory,Firm specializing in network analysis of disinformation,2013-present
+Stanford Internet Observatory,Concept/Theory,Academic research center documenting many influence ops,2019-2024
+Atlantic Council DFRLab,Concept/Theory,Digital Forensic Research Lab documenting online influence operations,2016-present
+EU DisinfoLab,Concept/Theory,European non-profit that exposes major foreign disinfo ops,2017-present
+VIGINUM,Concept/Theory,French government agency monitoring digital foreign interference,2021-present
+Inoculation Theory,Concept/Theory,Communication theory underpinning pre-bunking,1961 (term)
+Bad News Game,Concept/Theory,Educational game from Cambridge DROG team using inoculation theory,2018
+Information Disorder Framework,Concept/Theory,Wardle/Derakhshan taxonomy of mis/dis/malinformation,2017
+Malinformation,Concept/Theory,True information shared to cause harm (e.g. weaponized leaks),2017 (term)
+PSYOP,Concept/Theory,Military psychological operations,Cold War-present
+Computational Propaganda,Concept/Theory,Oxford Internet Institute term for bot/algorithm-driven propaganda,2017 (term)
+Sharp Power,Concept/Theory,NED-coined term for authoritarian influence via manipulation,2017 (term)
+Wagner Group Info Ops,State Op - Russia,Information operations component of the Wagner private military company across Africa and Ukraine,2015-present
+Prigozhin Network,State Op - Russia,"Disinformation infrastructure run by the late Yevgeny Prigozhin (IRA, Wagner, media holdings)",2013-2023
+Voice of Europe,State Op - Russia,Czech-based Russian influence outlet exposed for paying EU politicians,2017-2024
+Saudi Twitter Army,State Op - Saudi,Coordinated pro-MBS troll operation that targeted Khashoggi and critics,2017-present
+Khashoggi Smear Operation,Specific Hoax/Narrative,Pre/post-murder disinformation against journalist Jamal Khashoggi,2017-2018
+Stochastic Terrorism,Concept/Theory,Public rhetoric likely to incite some unidentified follower to violence,2011 (term)
+Manufacturing Consent,Concept/Theory,Chomsky/Herman model describing how mass media manufactures elite-friendly consensus,1988
+Babies in Incubators Hoax,Specific Hoax/Narrative,1990 false Congressional testimony used to sell Gulf War,1990
+Yellow Rain,State Op - Historical,Cold War fabrication of a Soviet chemical weapon based on bee feces,1981-1982
+Nayirah Testimony,Specific Hoax/Narrative,Specific name for the babies-in-incubators hoax (Kuwaiti ambassador's daughter),1990
+Stasi Zersetzung,State Op - Historical,East German psychological-decomposition program (model for harassment ops),1970s-1989
+Operation Trust,State Op - Historical,Classic Soviet deception operation against émigrés,1921-1926
+Pegasus,Tactic - Technical,Spyware vendor whose targeting often pairs with influence operations,2010-present
+Heart of Texas,Specific Hoax/Narrative,IRA Facebook page that staged 2016 Houston rally vs counter-rally,2015-2016
+Blacktivist,Specific Hoax/Narrative,IRA Facebook page impersonating Black activism,2015-2017
+Ruby Freeman Smear,Specific Hoax/Narrative,False accusations against Georgia election worker; $148M Giuliani judgment,2020-present
+Eric Coomer Smear,Specific Hoax/Narrative,False targeting of Dominion executive; defamation litigation,2020-present
+Springfield Ohio Smear,Specific Hoax/Narrative,Coordinated targeting of Haitian community,2024-present
+Critical Race Theory Panic,Domestic Campaign,Manufactured campaign turning legal-academic term into culture-war flashpoint,2020-present
+Litter Box in Schools Hoax,Specific Hoax/Narrative,Debunked claim schools have litter boxes for 'furries',2022-present
+Hunter Biden Laptop Op,Specific Hoax/Narrative,Late-2020 hack-leak/genuine laptop story with contested provenance and selective framing,2020
+Italygate,Conspiracy Theory,Post-2020 election lie that Italian satellites changed US votes,2020-2021
+Sharpiegate,Specific Hoax/Narrative,2020 Arizona false claim that Sharpies invalidated ballots,2020
+Dominion Voting Conspiracy,Conspiracy Theory,Lies about Dominion machines flipping votes; led to $787M Fox settlement,2020-present
+The Big Lie,Specific Hoax/Narrative,Common label for Trump's stolen-election narrative,2020-present
+Seth Rich Hoax,Specific Hoax/Narrative,Story Fox News retracted; central to Russian disinfo and Fox litigation,2016-2017
+Project 2025,Domestic Campaign,Heritage-led policy blueprint with associated coordinated messaging,2023-present
+Heritage Foundation,Front Group/Think Tank,Conservative think tank that has driven policy and Project 2025,1973-present
+ALEC,Front Group/Think Tank,American Legislative Exchange Council; model-bill mill,1973-present
+Koch Network,Front Group/Think Tank,Charles Koch's web of political and policy organizations,1970s-present
+Mercer Network,Front Group/Think Tank,Robert Mercer family's web behind Breitbart and Cambridge Analytica investment,2010s-present
+Brexit Vote Leave Disinformation,Specific Hoax/Narrative,Cambridge Analytica/AggregateIQ tactics in Brexit,2016
+£350M Bus Claim,Specific Hoax/Narrative,Misleading Brexit campaign figure on NHS funding,2016
+Wagner Coup Disinfo,Specific Hoax/Narrative,Confusion narratives during 2023 Prigozhin mutiny,2023
+Biden Robocall Deepfake,Specific Hoax/Narrative,2024 NH AI-cloned Biden call urging Dems not to vote,2024
+Tim Walz Stolen Valor Smear,Specific Hoax/Narrative,2024 attack on VP candidate amplified by Storm-1516,2024
+Kamala Hit-and-Run Hoax,Specific Hoax/Narrative,Storm-1516 fabricated story about Harris injuring teen,2024
+Witch Hunt Frame,Tactic - Rhetorical,Recurring delegitimization label for investigations,1990s-present
+Lawfare Narrative,Tactic - Rhetorical,Casting legal accountability as political weapon,2010s-present
+The Great Reset Conspiracy,Conspiracy Theory,Treating Schwab's 2020 essay as a master plan,2020-present
+15 Minute City Conspiracy,Conspiracy Theory,Claim urban planning concept is a control prison,2022-present
+Soros Conspiracy,Conspiracy Theory,Antisemitic claim that George Soros funds and orchestrates global unrest,1990s-present
+DARVO,Tactic - Rhetorical,"""Deny, Attack, Reverse Victim/Offender"" used in disinfo defense",1997 (term)
+SLAPP Suit,Tactic - Organizational,Strategic litigation against public participation; used to silence critics,1980s-present
+Information Laundering,Tactic - Rhetorical,Cycling fabricated content through legitimate-looking sources to gain credibility,2010s-present
+Limited Hangout,Tactic - Rhetorical,Releasing partial truth to forestall full disclosure,Cold War-present
+Truth Decay,Concept/Theory,RAND-coined term for erosion of facts in public discourse,2018 (term)

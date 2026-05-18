@@ -31,6 +31,21 @@
 
   type BulkMode = 1 | 10 | 100 | 'max';
   let bulkMode = $state<BulkMode>(1);
+  // Per-tile overrides. Falls back to global bulkMode when not set.
+  // Clicking the top bulk bar acts as "select all" — clears overrides.
+  let tileBulkMode = $state<Record<string, BulkMode>>({});
+  function tileMode(id: string): BulkMode {
+    return tileBulkMode[id] ?? bulkMode;
+  }
+  function setGlobalBulk(mode: BulkMode) {
+    bulkMode = mode;
+    tileBulkMode = {}; // select-all: clear all overrides
+  }
+  function setTileBulk(id: string, mode: BulkMode, ev: MouseEvent) {
+    ev.stopPropagation();
+    ev.preventDefault();
+    tileBulkMode = { ...tileBulkMode, [id]: mode };
+  }
 
   function reset() {
     if (confirm('Reset run? This wipes the save and ALL legacy points.')) {
@@ -123,17 +138,11 @@
     return predicate(game) || !!game.flags[`tease:${id}`];
   }
 
-  // Sort unbought (count==0) assets to top so newly-revealed things grab
-  // attention; established assets keep their catalog order beneath.
+  // Stable order = catalog order. Buying an asset must NOT cause it to jump
+  // position (user feedback: tiles moving feels broken). Newly revealed
+  // items slot into their fixed catalog slot.
   const visibleAssets = $derived(
-    ASSETS.filter((a) => isRevealed(a.id, a.visible))
-      .sort((a, b) => {
-        const ac = game.assets[a.id] ?? 0;
-        const bc = game.assets[b.id] ?? 0;
-        if (ac === 0 && bc > 0) return -1;
-        if (bc === 0 && ac > 0) return 1;
-        return 0; // stable: preserve catalog order
-      }),
+    ASSETS.filter((a) => isRevealed(a.id, a.visible)),
   );
   const teasedAssets  = $derived(
     ASSETS.filter((a) => !isRevealed(a.id, a.visible) && isTeased(a.id, a.teased)),
@@ -349,6 +358,8 @@
   }
 
   let showDepictHelp = $state(false);
+  let showAssetsHelp = $state(false);
+  let showPlatformsHelp = $state(false);
 
   function upgradeEffectText(u: { multiplier: Record<string, number> }, lvl: number): string {
     const entries = Object.entries(u.multiplier);
@@ -403,21 +414,23 @@
   function assetBuyCount(id: string): number {
     const a = ASSETS.find((x) => x.id === id);
     if (!a) return 0;
-    if (bulkMode === 'max') {
+    const mode = tileMode(id);
+    if (mode === 'max') {
       return affordableCount(
         a.baseCost, a.costGrowth,
         game.assets[id] ?? 0,
         game.resources[a.costResource],
       );
     }
-    return bulkMode;
+    return mode;
   }
   function upgradeBuyCount(id: string): number {
     const u = UPGRADES.find((x) => x.id === id);
     if (!u) return 0;
     const current = game.upgrades[id] ?? 0;
     const headroom = u.maxLevel - current;
-    if (bulkMode === 'max') {
+    const mode = tileMode(id);
+    if (mode === 'max') {
       return Math.min(
         headroom,
         affordableCount(
@@ -427,7 +440,7 @@
         ),
       );
     }
-    return Math.min(bulkMode, headroom);
+    return Math.min(mode, headroom);
   }
   function doBuyAsset(id: string) {
     const n = assetBuyCount(id);
@@ -566,13 +579,15 @@
     <section class="col left">
       <div class="section-head">
         <h2>Assets</h2>
+        <button class="ghost depict-help-btn" onclick={() => (showAssetsHelp = true)} title="What are assets?">?</button>
         {#if showBulkBuy}
           <div class="bulk" role="group" aria-label="bulk-buy quantity">
             {#each [1, 10, 100, 'max'] as mode (mode)}
               <button
                 class="bulk-btn"
                 class:active={bulkMode === mode}
-                onclick={() => (bulkMode = mode as BulkMode)}
+                onclick={() => setGlobalBulk(mode as BulkMode)}
+                title="Set default for all asset tiles (overrides cleared)"
               >×{mode}</button>
             {/each}
           </div>
@@ -581,7 +596,8 @@
       <div class="cards">
         {#each visibleAssets as a (a.id)}
           {@const rawN = assetBuyCount(a.id)}
-          {@const n = bulkMode === 'max' ? rawN : Math.max(1, rawN)}
+          {@const tmode = tileMode(a.id)}
+          {@const n = tmode === 'max' ? rawN : Math.max(1, rawN)}
           {@const cost = assetCost(game, a.id, Math.max(1, n))}
           {@const affordable = n > 0 && canBuyAsset(game, a.id, n)}
           {@const ratio = affordabilityRatio(cost, a.costResource)}
@@ -589,7 +605,7 @@
           {@const sf = !affordable && n > 0 ? shortfall(cost, a.costResource) : null}
           {@const owned = game.assets[a.id] ?? 0}
           {@const m = owned > 0 && Object.keys(a.produces).length > 0 ? milestoneInfo(owned) : null}
-          <button class="card asset" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={pre ?? ''}>
+          <button class="card asset cost-{a.costResource}" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={pre ?? ''}>
             <div class="card-head">
               <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
               <span class="owned">×{owned}</span>
@@ -597,17 +613,14 @@
             <div class="blurb">{a.blurb}</div>
             {#if assetEffectText(a)}<div class="effect">{assetEffectText(a)}</div>{/if}
             {#if m}
-              <div class="milestone" title="At {m.next} owned: production multiplier rises from ×{m.cur.toFixed(2)} to ×{m.nextMult.toFixed(2)}">
+              <div class="milestone" title="At {m.next} owned: production multiplier rises from ×{m.cur.toFixed(2)} to ×{m.nextMult.toFixed(2)}. {m.next - owned} more to unlock.">
                 <div class="milestone-text">
-                  <span class="milestone-now">★ ×{m.cur.toFixed(2)} now</span>
-                  <span class="milestone-next">next ×{m.nextMult.toFixed(2)} at {m.next}</span>
+                  <span class="milestone-now">★×{m.cur.toFixed(2)}</span>
+                  <span class="milestone-next">→ ×{m.nextMult.toFixed(2)} at {m.next}</span>
+                  <span class="milestone-count num">{owned}/{m.next}</span>
                 </div>
                 <div class="milestone-bar">
                   <div class="milestone-fill" style="--fill: {m.progress * 100}%"></div>
-                </div>
-                <div class="milestone-text">
-                  <span class="milestone-next">{m.next - owned} more to unlock</span>
-                  <span class="milestone-count num">{owned}/{m.next}</span>
                 </div>
               </div>
             {/if}
@@ -619,6 +632,18 @@
                 {/if}
               </div>
             {/if}
+            <div class="tile-bulk" role="group" aria-label="bulk-buy for {a.name}">
+              {#each [1, 10, 100, 'max'] as bm (bm)}
+                <span
+                  class="tile-bulk-btn"
+                  class:active={tmode === bm}
+                  onclick={(e) => setTileBulk(a.id, bm as BulkMode, e)}
+                  role="button"
+                  tabindex="0"
+                  title="Buy ×{bm} from this tile"
+                >×{bm}</span>
+              {/each}
+            </div>
             <div class="card-foot">
               <span class="buy-n">+{n}</span>
               <span class="cost num res-{a.costResource}">{fmt(cost)} {a.costResource}</span>
@@ -628,7 +653,7 @@
           </button>
         {/each}
         {#each teasedAssets as a (a.id)}
-          <div class="card teased" title={a.teaseHint ?? ''}>
+          <div class="card teased cost-{a.costResource}" title={a.teaseHint ?? ''}>
             <div class="card-head">
               <span class="name">???</span>
               <span class="owned">locked</span>
@@ -650,7 +675,7 @@
             {@const ratio = affordabilityRatio(amt as number, res)}
             {@const ppre = getPrecedent(p.id, p.precedents)}
             {@const psf = !affordable ? shortfall(amt as number, res) : null}
-            <button class="card project" disabled={!affordable} onclick={() => completeProject(game, p.id)} title={ppre ?? ''}>
+            <button class="card project cost-{res}" disabled={!affordable} onclick={() => completeProject(game, p.id)} title={ppre ?? ''}>
               <div class="card-head">
                 <span class="name">{p.name}</span>
               </div>
@@ -673,7 +698,7 @@
           {/each}
           {#each teasedProjects as p (p.id)}
             {@const [res, amt] = Object.entries(p.cost)[0]}
-            <div class="card project teased" title={p.teaseHint ?? ''}>
+            <div class="card project teased cost-{res}" title={p.teaseHint ?? ''}>
               <div class="card-head">
                 <span class="name">???</span>
                 <span class="owned">locked</span>
@@ -694,7 +719,7 @@
             {@const [res, amt] = Object.entries(sn.cost)[0]}
             {@const affordable = canActivateSynergy(game, sn)}
             <button
-              class="card synergy"
+              class="card synergy cost-{res}"
               disabled={!affordable}
               onclick={() => activateSynergy(game, sn.id)}
               title={sn.precedent ?? ''}
@@ -713,7 +738,7 @@
           {/each}
           {#each teasedSynergies as sn (sn.id)}
             {@const [res, amt] = Object.entries(sn.cost)[0]}
-            <div class="card synergy teased">
+            <div class="card synergy teased cost-{res}">
               <div class="card-head">
                 <span class="name">??? + ???</span>
                 <span class="owned">locked</span>
@@ -745,7 +770,7 @@
             {@const affordable = canActivatePatron(game, pa)}
             {@const ppre = getPrecedent(pa.id, pa.precedents)}
             <button
-              class="card patron"
+              class="card patron cost-{res}"
               disabled={!affordable}
               onclick={() => { activatePatron(game, pa.id); rotatePrecedent(pa.id, pa.precedents); }}
               title={ppre ?? ''}
@@ -786,13 +811,16 @@
     <!-- RIGHT: Platform dashboard (passive gauges) — uses explicit grid-column -->
     {#if showPlatformGrid}
     <section class="col platforms-col">
-      <h2>Platforms</h2>
+      <div class="section-head">
+        <h2>Platforms</h2>
+        <button class="ghost depict-help-btn" onclick={() => (showPlatformsHelp = true)} title="What are platforms?">?</button>
+      </div>
       <div class="platform-grid">
         {#each PLATFORM_META as meta (meta.id)}
           {@const p = game.platforms[meta.id]}
           {@const unlocked = p.unlocked}
           {#if unlocked || isNextPhase(meta.unlocksAt)}
-          <div class="platform-card" class:locked={!unlocked} style="--tint: {meta.tint}">
+          <div class="platform-card" class:locked={!unlocked} class:hot={unlocked && p.heat >= 0.75} class:banned={unlocked && p.burned && p.burnedUntil > game.lastTick} style="--tint: {meta.tint}">
             <div class="plt-head">
               <span class="plt-name">{meta.name}</span>
               {#if !unlocked}
@@ -805,7 +833,7 @@
                 <div class="meter-row">
                   <span class="meter-label">heat</span>
                   <div class="meter-bar">
-                    <div class="meter-fill heat" style="--fill: {p.heat * 100}%"></div>
+                    <div class="meter-fill heat" class:critical={p.heat >= 0.75} style="--fill: {p.heat * 100}%"></div>
                   </div>
                   <span class="meter-num num" class:hot={p.heat > 0.7}>{(p.heat * 100).toFixed(0)}%</span>
                 </div>
@@ -817,15 +845,32 @@
                   <span class="meter-num num">{p.chargeProgress >= 1 ? 'READY' : `${(p.chargeProgress * 100).toFixed(0)}%`}</span>
                 </div>
               </div>
+              <div class="rate-row" title="Auto-poster rate: throttles post frequency AND bot-heat. Lower the slider when overheating; raise it for max output.">
+                <span class="rate-label">rate</span>
+                <input
+                  class="rate-slider"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  bind:value={p.postRate}
+                  aria-label="auto-poster rate for {meta.name}"
+                />
+                <span class="rate-num num">{Math.round((p.postRate ?? 1) * 100)}%</span>
+              </div>
               {#if p.burned && p.burnedUntil > game.lastTick}
                 <div class="plt-burned">
-                  ⚠ BURNED · {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s
+                  ⚠ SHADOW-BANNED · {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s · heat cooling fast
                 </div>
               {:else if p.heat >= 0.85}
                 <div class="plt-hot overheated">
-                  ⚠ OVERHEATED · posts at {Math.round((1 - p.heat * 0.6) * 100)}% strength · let it cool
+                  ⚠ OVERHEATED · posts at {Math.round((1 - p.heat * 0.6) * 100)}% strength · throttle rate or ban incoming
                 </div>
-              {:else if p.heat >= 0.7}
+              {:else if p.heat >= 0.75}
+                <div class="plt-hot overheated">
+                  ⚠ DANGER · {Math.round(p.heat * 100)}% heat · ban at 100%
+                </div>
+              {:else if p.heat >= 0.5}
                 <div class="plt-hot">
                   HOT · posts at {Math.round((1 - p.heat * 0.6) * 100)}% strength
                 </div>
@@ -856,7 +901,7 @@
                 class="post-platform freestyle"
                 onclick={() => { freestylePost(game, meta.id); firingPlatforms[meta.id + ':f'] = Date.now(); setTimeout(() => { delete firingPlatforms[meta.id + ':f']; firingPlatforms = { ...firingPlatforms }; }, 200); }}
                 class:firing={isFiring(meta.id + ':f')}
-                title="Freestyle — fire anytime, ignores charge. {Math.round(fy)} attention right now, but +4% heat per click. Spam to push through."
+                title="Freestyle — fire anytime, ignores charge. {Math.round(fy)} attention right now. Heat cost scales: +{Math.round(4 * (1 + p.heat))}% per click. Spam carefully."
               >
                 {#if attCapped}
                   PUSH IT · +{fmt(fy * 0.1)} eng
@@ -904,13 +949,14 @@
                 {@const lvl = game.upgrades[u.id] ?? 0}
                 {@const maxed = lvl >= u.maxLevel}
                 {@const rawN = upgradeBuyCount(u.id)}
-                {@const n = bulkMode === 'max' ? rawN : Math.max(1, rawN)}
+                {@const utmode = tileMode(u.id)}
+                {@const n = utmode === 'max' ? rawN : Math.max(1, rawN)}
                 {@const cost = upgradeCost(game, u.id, Math.max(1, n))}
                 {@const affordable = !maxed && n > 0 && canBuyUpgrade(game, u.id, n)}
                 {@const ratio = affordabilityRatio(cost, u.costResource)}
                 {@const upre = getPrecedent(u.id, u.precedents)}
                 {@const usf = !maxed && !affordable && n > 0 ? shortfall(cost, u.costResource) : null}
-                <button class="node" disabled={!affordable || maxed} onclick={() => doBuyUpgrade(u.id)} title={upre ?? ''}>
+                <button class="node cost-{u.costResource}" disabled={!affordable || maxed} onclick={() => doBuyUpgrade(u.id)} title={upre ?? ''}>
                   <div class="node-head">
                     <span class="node-name">{u.name}</span>
                     <span class="node-lvl num">{lvl}/{u.maxLevel}</span>
@@ -934,7 +980,7 @@
                 </button>
               {/each}
               {#each t.teased as u (u.id)}
-                <div class="node teased" title={u.teaseHint ?? ''}>
+                <div class="node teased cost-{u.costResource}" title={u.teaseHint ?? ''}>
                   <div class="node-head">
                     <span class="node-name">???</span>
                     <span class="node-lvl num">locked</span>
@@ -1032,6 +1078,77 @@
         <div class="depict-help-section">
           <strong>Synergies (combo upgrades)</strong>
           <p>When TWO trees both pass a threshold, a named real-world technique unlocks as a one-shot project — Wedge Content (E+P), Fake Whistleblower (I+C), Flood the Zone (D+T), and others. Find them in the Synergies section.</p>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Assets help modal -->
+  {#if showAssetsHelp}
+    <div class="modal-backdrop" onclick={() => (showAssetsHelp = false)} role="presentation">
+      <div class="depict-modal" role="dialog" onclick={(e) => e.stopPropagation()}>
+        <div class="depict-modal-head">
+          <h3>Assets — Your Operational Inventory</h3>
+          <button class="ghost" onclick={() => (showAssetsHelp = false)}>close</button>
+        </div>
+        <p class="depict-modal-intro">
+          Assets are <strong>passive producers</strong>. Each one quietly generates resources every second. Buy more to scale up; the cost rises geometrically with each one you own.
+        </p>
+        <div class="depict-help-section">
+          <strong>Asset kinds</strong>
+          <ul>
+            <li><strong>Bot</strong> — sock puppets, anonymous accounts. Produce attention. Add heat to platforms while online.</li>
+            <li><strong>Outlet</strong> — pseudo-news sites and blogs. Produce attention <em>and</em> raise the engagement cap, opening room for bigger synergies.</li>
+            <li><strong>Tool</strong> — autoposters, doppelganger clones. Multipliers and quality-of-life (e.g. auto-poster fires platforms for you).</li>
+            <li><strong>Project</strong> — one-shot purchases under the Assets list. Permanent paradigm shifts that unlock new resources or change the rules.</li>
+          </ul>
+        </div>
+        <div class="depict-help-section">
+          <strong>Milestone multipliers</strong>
+          <p>Every doubling of an asset count past 25 grants a permanent +100% production bonus for that asset (Cookie Clicker "milk" pattern). The ★ on each card shows your current multiplier and the next threshold.</p>
+        </div>
+        <div class="depict-help-section">
+          <strong>Reading the tint</strong>
+          <p>Yellow-tinted cards drain <span class="res-attention">attention</span>. Blue-tinted cards drain <span class="res-engagement">engagement</span>. Match cost to your stockpile.</p>
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- Platforms help modal -->
+  {#if showPlatformsHelp}
+    <div class="modal-backdrop" onclick={() => (showPlatformsHelp = false)} role="presentation">
+      <div class="depict-modal" role="dialog" onclick={(e) => e.stopPropagation()}>
+        <div class="depict-modal-head">
+          <h3>Platforms — Where The Posts Land</h3>
+          <button class="ghost" onclick={() => (showPlatformsHelp = false)}>close</button>
+        </div>
+        <p class="depict-modal-intro">
+          Each unlocked platform charges a <strong>POST bar</strong>. When it fills, click POST (or let the auto-poster fire) to convert your bots and DEPICT mastery into a burst of attention. Each platform amplifies different DEPICT techniques.
+        </p>
+        <div class="depict-help-section">
+          <strong>The three meters</strong>
+          <ul>
+            <li><strong>Heat</strong> — your current platform-risk level. Rises with bot count and posts; falls over time. <span class="res-engagement">Higher heat = lower post yield.</span></li>
+            <li><strong>Charge</strong> — fills over time. POST fires at 100% for full yield.</li>
+            <li><strong>Rate</strong> — your throttle. Slide it down to slow posting AND slow heat gain from your bots. Slide it up to push for max output.</li>
+          </ul>
+        </div>
+        <div class="depict-help-section">
+          <strong>Heat thresholds</strong>
+          <ul>
+            <li><strong>50%+</strong> — HOT. Posts produce less.</li>
+            <li><strong>75%+</strong> — DANGER. Card glows red. Throttle now or pay the price.</li>
+            <li><strong>100%</strong> — SHADOW-BAN. Platform locked for 30 seconds, heat cools 3× faster.</li>
+          </ul>
+        </div>
+        <div class="depict-help-section">
+          <strong>POST vs PUSH IT</strong>
+          <p><strong>POST</strong> is the disciplined fire — only at 100% charge, low heat cost (+0.8%). <strong>PUSH IT</strong> (freestyle) fires any time, yielding proportional to charge, but the heat cost scales with current heat (4% cold, 8% hot). Spam when you can afford to. Don't when you can't.</p>
+        </div>
+        <div class="depict-help-section">
+          <strong>Per-platform character</strong>
+          <p>Each platform amplifies different DEPICT techniques. X loves Trolling and Emotional; YouTube loves Conspiracy; Substack rewards Discrediting. The dominant tree in your DEPICT mix determines which amplifier applies on each post.</p>
         </div>
       </div>
     </div>
@@ -1635,6 +1752,29 @@
   .bulk-btn:hover { color: var(--ink); background: color-mix(in oklab, var(--ink) 5%, transparent); }
   .bulk-btn:active { transform: scale(0.97); transition: transform 60ms; }
   .bulk-btn.active { background: var(--accent); color: white; }
+
+  /* Per-tile bulk override. Sits inside the asset card button.
+     Uses <span role="button"> instead of <button> to avoid nesting in <button>. */
+  .tile-bulk {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+    align-self: start;
+    background: color-mix(in oklab, var(--paper-2) 70%, transparent);
+  }
+  .tile-bulk-btn {
+    font-size: 0.65rem;
+    padding: 0.12rem 0.35rem;
+    border-right: 1px solid var(--line);
+    color: var(--muted);
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+  }
+  .tile-bulk-btn:last-child { border-right: none; }
+  .tile-bulk-btn:hover { color: var(--ink); background: color-mix(in oklab, var(--ink) 6%, transparent); }
+  .tile-bulk-btn.active { background: var(--accent); color: white; }
   .ghost {
     appearance: none;
     font: inherit;
@@ -1764,9 +1904,9 @@
   .grid {
     display: grid;
     /* Trees | Assets (wide) | Platforms */
-    grid-template-columns: minmax(320px, 420px) 1fr minmax(280px, 360px);
-    gap: 1rem;
-    padding: 1rem;
+    grid-template-columns: minmax(280px, 360px) 1fr minmax(340px, 480px);
+    gap: 0.7rem;
+    padding: 0.7rem;
     align-items: start;
     align-content: start;
     min-height: 0;
@@ -1776,9 +1916,9 @@
   }
   .col {
     display: grid;
-    gap: 0.8rem;
+    gap: 0.5rem;
     align-content: start;
-    padding: 0.6rem 0.8rem;
+    padding: 0.45rem 0.55rem;
     border-radius: 8px;
   }
   /* Explicit column AND row placement so the browser doesn't create
@@ -1811,7 +1951,12 @@
     margin: 0;
     font-weight: 600;
   }
-  .cards { display: grid; gap: 0.5rem; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.45rem;
+    align-items: start;
+  }
 
   /* ── GENERIC CARD ──────────────────────────────────────────────────── */
   .card {
@@ -1823,11 +1968,12 @@
     color: inherit;
     border: 1px solid var(--line);
     border-radius: 6px;
-    padding: 0.5rem 0.7rem;
+    padding: 0.4rem 0.55rem;
     cursor: pointer;
     display: grid;
-    gap: 0.25rem;
+    gap: 0.18rem;
     overflow: hidden;
+    font-size: 0.85rem;
     transition: border-color 140ms, transform 80ms, box-shadow 160ms, background 140ms;
     box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 4%, transparent);
   }
@@ -1840,6 +1986,76 @@
     transition: transform 60ms;
   }
   .card:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* Resource-cost tint — every purchasable tile bleeds the color of its
+     cost currency so the eye learns "yellow = drains attention", "blue =
+     drains engagement", etc. Subtle on idle, brighter on hover. */
+  .card.cost-attention,
+  .node.cost-attention {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--res-attention) 11%, var(--paper-2)),
+      var(--paper-2));
+    border-left: 2px solid color-mix(in oklab, var(--res-attention) 55%, var(--line));
+  }
+  .card.cost-engagement,
+  .node.cost-engagement {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--res-engagement) 11%, var(--paper-2)),
+      var(--paper-2));
+    border-left: 2px solid color-mix(in oklab, var(--res-engagement) 55%, var(--line));
+  }
+  .card.cost-followers,
+  .node.cost-followers {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--res-followers) 11%, var(--paper-2)),
+      var(--paper-2));
+    border-left: 2px solid color-mix(in oklab, var(--res-followers) 55%, var(--line));
+  }
+  .card.cost-credibility,
+  .node.cost-credibility {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--res-credibility) 11%, var(--paper-2)),
+      var(--paper-2));
+    border-left: 2px solid color-mix(in oklab, var(--res-credibility) 55%, var(--line));
+  }
+  .card.cost-narrativeDominance,
+  .node.cost-narrativeDominance {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--res-narrativeDominance) 11%, var(--paper-2)),
+      var(--paper-2));
+    border-left: 2px solid color-mix(in oklab, var(--res-narrativeDominance) 55%, var(--line));
+  }
+  .card.cost-syntheticReality,
+  .node.cost-syntheticReality {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--res-syntheticReality) 11%, var(--paper-2)),
+      var(--paper-2));
+    border-left: 2px solid color-mix(in oklab, var(--res-syntheticReality) 55%, var(--line));
+  }
+  .card.cost-attention:hover:not(:disabled),
+  .node.cost-attention:hover:not(:disabled) {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--res-attention) 20%, var(--paper-2)),
+      var(--paper-2));
+  }
+  .card.cost-engagement:hover:not(:disabled),
+  .node.cost-engagement:hover:not(:disabled) {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--res-engagement) 20%, var(--paper-2)),
+      var(--paper-2));
+  }
+  .card.cost-followers:hover:not(:disabled),
+  .node.cost-followers:hover:not(:disabled) {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--res-followers) 20%, var(--paper-2)),
+      var(--paper-2));
+  }
+  .card.cost-credibility:hover:not(:disabled),
+  .node.cost-credibility:hover:not(:disabled) {
+    background: linear-gradient(180deg,
+      color-mix(in oklab, var(--res-credibility) 20%, var(--paper-2)),
+      var(--paper-2));
+  }
 
   /* Shortfall hint shown on disabled buy buttons (UX-4). */
   .shortfall {
@@ -1926,21 +2142,22 @@
      Beefy 8px meter with gold gradient + glow at fill edge. Persistent
      reminder of the upcoming bonus. */
   .milestone {
-    margin-top: 0.35rem;
+    margin-top: 0.2rem;
     display: grid;
-    gap: 0.3rem;
-    padding: 0.4rem 0.5rem;
+    gap: 0.15rem;
+    padding: 0.25rem 0.4rem;
     background: color-mix(in oklab, hsl(45 90% 50%) 5%, transparent);
     border: 1px solid color-mix(in oklab, hsl(45 90% 50%) 22%, transparent);
-    border-radius: 5px;
+    border-radius: 4px;
   }
   .milestone-text {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    font-size: 0.72rem;
+    font-size: 0.66rem;
     font-variant-numeric: tabular-nums;
-    line-height: 1.2;
+    line-height: 1.1;
+    gap: 0.3rem;
   }
   .milestone-now {
     font-weight: 700;
@@ -1954,7 +2171,7 @@
     color: hsl(45 90% 45%);
   }
   .milestone-bar {
-    height: 8px;
+    height: 4px;
     background: color-mix(in oklab, var(--ink) 10%, transparent);
     border-radius: 5px;
     overflow: hidden;
@@ -2020,18 +2237,19 @@
   /* ── PLATFORM GRID ─────────────────────────────────────────────────── */
   .platform-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 0.7rem;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.45rem;
   }
   .platform-card {
     border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 0.7rem 0.85rem;
+    border-radius: 5px;
+    padding: 0.4rem 0.55rem;
     background: var(--paper-2);
-    border-top: 3px solid var(--tint);
+    border-top: 2px solid var(--tint);
     display: grid;
-    gap: 0.5rem;
-    min-height: 130px;
+    gap: 0.25rem;
+    min-height: 0;
+    font-size: 0.78rem;
   }
   .platform-card.locked {
     background: transparent;
@@ -2044,18 +2262,18 @@
     justify-content: space-between;
     align-items: baseline;
   }
-  .plt-name { font-weight: 700; font-size: 0.95rem; letter-spacing: -0.01em; }
-  .plt-lock { font-size: 0.7rem; color: var(--muted); text-transform: lowercase; }
-  .plt-audience { font-size: 0.72rem; color: var(--muted); font-style: italic; }
-  .plt-meter { display: grid; gap: 0.3rem; }
+  .plt-name { font-weight: 700; font-size: 0.82rem; letter-spacing: -0.01em; }
+  .plt-lock { font-size: 0.62rem; color: var(--muted); text-transform: lowercase; }
+  .plt-audience { font-size: 0.62rem; color: var(--muted); font-style: italic; line-height: 1.2; }
+  .plt-meter { display: grid; gap: 0.15rem; }
   .meter-row {
     display: grid;
-    grid-template-columns: 3rem 1fr 3rem;
+    grid-template-columns: 2.4rem 1fr 2.6rem;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.7rem;
+    gap: 0.3rem;
+    font-size: 0.62rem;
   }
-  .meter-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.6rem; }
+  .meter-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.52rem; }
   .meter-num { text-align: right; color: var(--muted); }
   .meter-bar {
     height: 4px;
@@ -2069,28 +2287,90 @@
     transition: width 200ms;
   }
   .meter-fill.heat   { background: linear-gradient(90deg, var(--ok), var(--warn) 60%, var(--bad)); }
+  .meter-fill.heat.critical { animation: heat-pulse 1s ease-in-out infinite; }
+  @keyframes heat-pulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.4); }
+  }
   .meter-num.hot { color: var(--bad); font-weight: 700; }
+
+  /* DANGER tint: at 75%+ heat, whole platform card glows red. */
+  .platform-card.hot {
+    background: color-mix(in oklab, var(--bad) 10%, var(--paper-2));
+    border-color: color-mix(in oklab, var(--bad) 40%, var(--line));
+  }
+  .platform-card.banned {
+    background: color-mix(in oklab, var(--bad) 18%, var(--paper-2));
+    border-color: var(--bad);
+    opacity: 0.85;
+  }
+
+  /* Per-platform postRate slider — the heat-management dial. */
+  .rate-row {
+    display: grid;
+    grid-template-columns: 2.4rem 1fr 2.6rem;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.62rem;
+  }
+  .rate-label {
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.52rem;
+  }
+  .rate-num { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .rate-slider {
+    appearance: none;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+    margin: 0;
+  }
+  .rate-slider::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--tint, var(--accent));
+    border-radius: 50%;
+    cursor: grab;
+    border: 1px solid var(--paper-2);
+  }
+  .rate-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: var(--tint, var(--accent));
+    border-radius: 50%;
+    cursor: grab;
+    border: 1px solid var(--paper-2);
+  }
   .plt-burned {
-    margin-top: 0.4rem;
-    padding: 0.4rem 0.5rem;
+    margin-top: 0.2rem;
+    padding: 0.25rem 0.4rem;
     background: color-mix(in oklab, var(--bad) 15%, transparent);
     border: 1px solid var(--bad);
     color: var(--bad);
-    border-radius: 4px;
-    font-size: 0.72rem;
+    border-radius: 3px;
+    font-size: 0.65rem;
     font-weight: 600;
     text-align: center;
+    line-height: 1.2;
   }
   .plt-hot {
-    margin-top: 0.4rem;
-    padding: 0.35rem 0.5rem;
+    margin-top: 0.2rem;
+    padding: 0.2rem 0.4rem;
     background: color-mix(in oklab, var(--warn) 12%, transparent);
     border: 1px solid color-mix(in oklab, var(--warn) 60%, transparent);
     color: var(--warn);
-    border-radius: 4px;
-    font-size: 0.7rem;
+    border-radius: 3px;
+    font-size: 0.62rem;
     font-weight: 600;
     text-align: center;
+    line-height: 1.2;
   }
   .plt-hot.overheated {
     background: color-mix(in oklab, var(--bad) 14%, transparent);
@@ -2103,15 +2383,15 @@
   .post-platform {
     appearance: none;
     font: inherit;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 600;
-    padding: 0.4rem 0.6rem;
+    padding: 0.25rem 0.5rem;
     border: 1px solid var(--line);
     background: transparent;
     color: var(--muted);
-    border-radius: 4px;
+    border-radius: 3px;
     cursor: not-allowed;
-    margin-top: 0.3rem;
+    margin-top: 0.15rem;
     transition: border-color 120ms, background 120ms, color 120ms;
   }
   .post-platform.ready {

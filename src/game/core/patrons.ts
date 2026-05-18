@@ -89,13 +89,13 @@ export const PATRONS: PatronDef[] = [
   },
   {
     id: 'patron:embassy-cutout',
-    name: 'The Embassy Cutout',
+    name: 'The Project Lakhta Account',
     archetype: 'foreign state actor',
     era: 'influencer',
     cost: { engagement: 400_000 },
     cureJump: 0.10,
     buffs: { attention: 0.15, engagement: 0.15, followers: 0.10 },
-    blurb: 'A foreign embassy\'s "cultural attaché" suggests an arrangement. Wire transfers via three shell companies. The money is real; the cure ticks faster.',
+    blurb: 'A Project-Lakhta-style umbrella appears: shell companies, wire transfers, "media holdings" billing for 80 full-time staff posing as Americans. Real money; faster cure.',
     precedents: [
       'Russian IRA: $1.25M/month operating budget, ~80 full-time staff posing as Americans, 2014–2018. (Senate Intel Vol. II, 2019)',
       'Chinese Spamouflage Dragon (Graphika 2019+): single largest covert influence op Meta has tracked — ~7,700 accounts Q3 2023.',
@@ -214,13 +214,13 @@ export const PATRONS: PatronDef[] = [
   },
   {
     id: 'patron:audience-broker',
-    name: 'The Audience Broker',
-    archetype: 'data-broker conglomerate',
+    name: 'The SCL Group Account',
+    archetype: 'psychographic data broker',
     era: 'cable',
     cost: { credibility: 1_800_000 },
     cureJump: 0.02,
     buffs: { followers: 0.30, engagement: 0.15 },
-    blurb: 'A data-broker offers psychographic targeting. Demographics + behavior + interest data — 50,000+ attributes per person.',
+    blurb: 'An SCL-Group-style firm offers psychographic targeting — Big-Five trait inference, 50,000+ attributes per person, dark-ads at scale.',
     precedents: [
       'Cambridge Analytica (2014–2018): claimed psychographic targeting via Facebook data harvested through "thisisyourdigitallife" app (270K consenting → 50M friends).',
       'Acxiom: 23,000+ attributes per consumer, sold to political campaigns + advertisers; revenue ~$1B/yr pre-LiveRamp split.',
