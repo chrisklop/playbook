@@ -15,8 +15,10 @@ const HEAT_PER_POST = 0.008;
 const POST_BASE_YIELD_MULT = 5;
 // Heat → yield penalty curve: yield × (1 - heat × HEAT_YIELD_PENALTY).
 // At heat=0  → 100% yield, at heat=0.5 → 70%, at heat=1.0 → 40%.
-// Posting at high heat is allowed but discouraged — strategic decision.
 const HEAT_YIELD_PENALTY = 0.6;
+// Freestyle posts: fire on demand, no charge required, big heat cost.
+const HEAT_PER_FREESTYLE_POST = 0.04;
+const FREESTYLE_MIN_YIELD = 0.3; // even with 0 charge, freestyle gives 30% yield
 
 export function chargeTimeSeconds(state: GameState): number {
   // Sum DEPICT levels across all trees; each 5 levels = 5% reduction.
@@ -92,6 +94,46 @@ export function postPlatform(state: GameState, platformId: PlatformId): boolean 
   p.chargeProgress = 0;
   p.heat = clamp(p.heat + HEAT_PER_POST, 0, 1);
   return true;
+}
+
+/**
+ * Freestyle post — active player engagement when auto-poster owns the
+ * regular cycle. Always available regardless of charge level. Yields
+ * proportional to charge (with a 30% floor so spamming at 0 still does
+ * SOMETHING). Heat cost is 5× a normal post — high engagement, high risk.
+ * Does NOT consume / reset the charge bar — the auto-poster cycle continues.
+ */
+export function freestylePost(state: GameState, platformId: PlatformId): boolean {
+  const p = state.platforms[platformId];
+  if (!p?.unlocked) return false;
+  if (p.burned && p.burnedUntil > state.lastTick) return false;
+
+  const yieldRatio = Math.max(FREESTYLE_MIN_YIELD, p.chargeProgress);
+  const y = postYield(state, platformId) * yieldRatio;
+  const attCap = state.caps.attention;
+  const engCap = state.caps.engagement;
+
+  const attRoom = Math.max(0, (attCap || Infinity) - state.resources.attention);
+  const attGain = Math.min(y, attRoom);
+  state.resources.attention += attGain;
+
+  const overflow = y - attGain;
+  if (overflow > 0 && engCap > 0) {
+    const engRoom = Math.max(0, engCap - state.resources.engagement);
+    const engGain = Math.min(overflow * 0.1, engRoom);
+    state.resources.engagement += engGain;
+  }
+
+  // Big heat cost — freestyle is loud.
+  p.heat = clamp(p.heat + HEAT_PER_FREESTYLE_POST, 0, 1);
+  return true;
+}
+
+export function freestyleYield(state: GameState, platformId: PlatformId): number {
+  const p = state.platforms[platformId];
+  if (!p) return 0;
+  const yieldRatio = Math.max(FREESTYLE_MIN_YIELD, p.chargeProgress);
+  return postYield(state, platformId) * yieldRatio;
 }
 
 export function tickPosting(state: GameState, dt: number): void {

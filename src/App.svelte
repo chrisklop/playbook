@@ -17,7 +17,7 @@
     isPatronTeased, canActivatePatron,
   } from './game/core/patrons';
   import { computeRates, computeMultiplierBreakdown } from './game/core/production';
-  import { postPlatform, postYield, chargeTimeSeconds } from './game/core/posting';
+  import { postPlatform, postYield, chargeTimeSeconds, freestylePost, freestyleYield } from './game/core/posting';
   import { affordableCount } from './game/core/math';
   import { DEPICT_IDS, PHASE_ORDER } from './game/types';
   import { PLATFORM_META } from './lib/platforms';
@@ -65,16 +65,17 @@
     );
   }
 
-  function prestige() {
+  // UX-14: prestige ceremony — replace browser confirm() with a proper modal
+  let prestigeOpen = $state(false);
+  function openPrestige() {
     const gain = computePrestigeGain(game);
     if (gain <= 0) {
       alert('No legacy points to gain yet. Push further first.');
       return;
     }
-    if (!confirm(
-      `Prestige now? You'll bank ${gain} legacy points (total: ${legacy.points + gain}).\n\n` +
-      `Run state wipes. Legacy points permanently buff all production (+4% each, cap +200%).`,
-    )) return;
+    prestigeOpen = true;
+  }
+  function confirmPrestige() {
     performPrestige(game);
     location.reload();
   }
@@ -455,7 +456,7 @@
     <div class="topbar-actions">
       {#if showBulkBuy && false /* moved to Assets section */}{/if}
       {#if legacy.points > 0 || prestigeGain > 0}
-        <button class="ghost prestige" onclick={prestige} title="Reset run, bank legacy points">
+        <button class="ghost prestige" onclick={openPrestige} title="Reset run, bank legacy points">
           ★ {legacy.points}{prestigeGain > 0 ? ` (+${prestigeGain})` : ''}
         </button>
       {/if}
@@ -767,14 +768,15 @@
                 </div>
               {:else if p.heat >= 0.85}
                 <div class="plt-hot overheated">
-                  ⚠ OVERHEATED · post yield −{Math.round(p.heat * 60)}%
+                  ⚠ OVERHEATED · posts at {Math.round((1 - p.heat * 0.6) * 100)}% strength · let it cool
                 </div>
               {:else if p.heat >= 0.7}
                 <div class="plt-hot">
-                  HOT · yield −{Math.round(p.heat * 60)}%
+                  HOT · posts at {Math.round((1 - p.heat * 0.6) * 100)}% strength
                 </div>
               {/if}
               {@const y = postYield(game, meta.id)}
+              {@const fy = freestyleYield(game, meta.id)}
               {@const ready = p.chargeProgress >= 1}
               {@const attCapped = game.resources.attention >= game.caps.attention}
               <button
@@ -783,7 +785,7 @@
                 class:firing={isFiring(meta.id)}
                 disabled={!ready}
                 onclick={() => postWithPulse(meta.id)}
-                title="Post on {meta.name}. Full burst at 100% charge. Overflow converts to engagement at 10%."
+                title="Disciplined post — fires at 100% charge for full yield. Low heat (+0.8%)."
               >
                 {#if ready}
                   {#if attCapped}
@@ -793,6 +795,18 @@
                   {/if}
                 {:else}
                   charging · {(chargeTimeSeconds(game) * (1 - p.chargeProgress)).toFixed(1)}s
+                {/if}
+              </button>
+              <button
+                class="post-platform freestyle"
+                onclick={() => { freestylePost(game, meta.id); firingPlatforms[meta.id + ':f'] = Date.now(); setTimeout(() => { delete firingPlatforms[meta.id + ':f']; firingPlatforms = { ...firingPlatforms }; }, 200); }}
+                class:firing={isFiring(meta.id + ':f')}
+                title="Freestyle — fire anytime, ignores charge. {Math.round(fy)} attention right now, but +4% heat per click. Spam to push through."
+              >
+                {#if attCapped}
+                  PUSH IT · +{fmt(fy * 0.1)} eng
+                {:else}
+                  PUSH IT · +{fmt(fy)} att
                 {/if}
               </button>
             {:else}
@@ -883,6 +897,53 @@
         {/each}
       </div>
     </footer>
+  {/if}
+
+  <!-- UX-14: prestige ceremony modal -->
+  {#if prestigeOpen}
+    <div class="modal-backdrop" onclick={() => (prestigeOpen = false)} role="presentation">
+      <div class="prestige-modal" role="dialog" onclick={(e) => e.stopPropagation()}>
+        <div class="prestige-icon">★</div>
+        <h3>End this Operation</h3>
+        <p class="prestige-sub">Your operation runs its course. Burn it down, bank the lessons.</p>
+        <div class="prestige-stats">
+          <div class="prestige-stat-row">
+            <span>Peak attention</span>
+            <span class="num res-attention">{fmt(game.peakResources.attention ?? 0)}</span>
+          </div>
+          <div class="prestige-stat-row">
+            <span>Peak engagement</span>
+            <span class="num res-engagement">{fmt(game.peakResources.engagement ?? 0)}</span>
+          </div>
+          <div class="prestige-stat-row">
+            <span>Run duration</span>
+            <span class="num">{fmtDur(Math.floor((Date.now() - game.startedAt) / 1000))}</span>
+          </div>
+          <div class="prestige-stat-row total">
+            <span>Legacy points to gain</span>
+            <span class="num">★ +{prestigeGain}</span>
+          </div>
+          <div class="prestige-stat-row">
+            <span>New legacy total</span>
+            <span class="num">★ {legacy.points + prestigeGain}</span>
+          </div>
+          <div class="prestige-stat-row">
+            <span>Production buff after reset</span>
+            <span class="num">×{legacyMultiplier(legacy.points + prestigeGain).toFixed(2)}</span>
+          </div>
+        </div>
+        <p class="prestige-warning">
+          Everything else resets — generators, upgrades, projects, patrons, achievements (this run).
+          Legacy points and best-run records persist forever.
+        </p>
+        <div class="prestige-actions">
+          <button class="ghost" onclick={() => (prestigeOpen = false)}>cancel</button>
+          <button class="prestige-confirm" onclick={confirmPrestige}>
+            ★ End operation · bank {prestigeGain} points
+          </button>
+        </div>
+      </div>
+    </div>
   {/if}
 
   <!-- UX-7: achievements panel -->
@@ -1221,6 +1282,87 @@
   }
   .ach-buff.locked { opacity: 0.7; }
   .achievement-btn { color: hsl(45 90% 45%); border-color: hsl(45 90% 45%); }
+
+  /* UX-14: prestige ceremony modal */
+  .prestige-modal {
+    background: var(--paper);
+    border: 1px solid color-mix(in oklab, hsl(45 90% 50%) 35%, var(--line));
+    border-radius: 10px;
+    padding: 1.6rem 1.7rem 1.4rem;
+    max-width: 440px;
+    width: calc(100vw - 2rem);
+    box-shadow: 0 16px 48px color-mix(in oklab, hsl(45 90% 40%) 22%, transparent);
+    display: grid;
+    gap: 0.8rem;
+    text-align: center;
+  }
+  .prestige-icon {
+    font-size: 2.4rem;
+    color: hsl(45 90% 50%);
+    text-shadow: 0 0 16px color-mix(in oklab, hsl(45 90% 55%) 70%, transparent);
+    margin-bottom: -0.4rem;
+  }
+  .prestige-modal h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+  }
+  .prestige-sub {
+    color: var(--muted);
+    margin: 0 0 0.4rem;
+    font-size: 0.86rem;
+  }
+  .prestige-stats {
+    display: grid;
+    gap: 0.3rem;
+    text-align: left;
+    background: var(--paper-2);
+    padding: 0.7rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+  }
+  .prestige-stat-row {
+    display: flex;
+    justify-content: space-between;
+  }
+  .prestige-stat-row.total {
+    border-top: 1px solid var(--line);
+    padding-top: 0.35rem;
+    margin-top: 0.15rem;
+    font-weight: 700;
+    color: hsl(45 90% 45%);
+  }
+  .prestige-warning {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-style: italic;
+    margin: 0;
+    line-height: 1.4;
+  }
+  .prestige-actions {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: flex-end;
+    margin-top: 0.4rem;
+  }
+  .prestige-confirm {
+    appearance: none;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 0.6rem 1rem;
+    border: 1px solid hsl(45 90% 45%);
+    background: linear-gradient(135deg, hsl(45 90% 50%), hsl(40 95% 55%));
+    color: hsl(220 18% 12%);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 80ms, box-shadow 200ms;
+    box-shadow: 0 0 0 0 transparent;
+  }
+  .prestige-confirm:hover {
+    box-shadow: 0 0 0 4px color-mix(in oklab, hsl(45 90% 55%) 35%, transparent);
+  }
+  .prestige-confirm:active { transform: scale(0.97); }
   .reta { font-size: 0.65rem; color: var(--muted); font-style: italic; }
   .num { font-variant-numeric: tabular-nums; }
 
@@ -1518,13 +1660,14 @@
     background: var(--paper-2);
     color: inherit;
     border: 1px solid var(--line);
-    border-radius: 5px;
-    padding: 0.65rem 0.8rem;
+    border-radius: 6px;
+    padding: 0.7rem 0.85rem;
     cursor: pointer;
     display: grid;
-    gap: 0.3rem;
+    gap: 0.35rem;
     overflow: hidden;
-    transition: border-color 120ms, transform 80ms;
+    transition: border-color 140ms, transform 80ms, box-shadow 160ms, background 140ms;
+    box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 4%, transparent);
   }
   .card:hover:not(:disabled) {
     border-color: var(--accent);
@@ -1572,13 +1715,17 @@
     font-weight: 600;
     font-size: 0.7rem;
   }
+  /* UX-6: precedent — was a colored stripe that read as a clickable link.
+     Now a muted quote-style block: subtle italic muted text with a thin
+     muted border. Clearly informational, not interactive. */
   .precedent {
     font-size: 0.7rem;
     color: var(--muted);
-    border-left: 2px solid var(--accent);
+    font-style: italic;
+    border-left: 2px solid color-mix(in oklab, var(--ink) 15%, transparent);
     padding-left: 0.5rem;
-    line-height: 1.35;
-    opacity: 0.85;
+    line-height: 1.4;
+    opacity: 0.88;
   }
   .precedent-counter {
     font-size: 0.6rem;
@@ -1795,6 +1942,24 @@
     background: color-mix(in oklab, var(--ok) 30%, transparent);
   }
   .post-platform.ready:active {
+    transform: scale(0.96);
+    transition: transform 60ms;
+  }
+  /* Freestyle post — always-available active engagement button. Visually
+     distinct from the disciplined POST so the player knows they're paying
+     extra heat for the privilege. */
+  .post-platform.freestyle {
+    margin-top: 0.3rem;
+    border-color: hsl(20 75% 50%);
+    background: color-mix(in oklab, hsl(20 75% 50%) 12%, transparent);
+    color: hsl(20 80% 45%);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .post-platform.freestyle:hover {
+    background: color-mix(in oklab, hsl(20 75% 50%) 22%, transparent);
+  }
+  .post-platform.freestyle:active {
     transform: scale(0.96);
     transition: transform 60ms;
   }

@@ -15,7 +15,7 @@ Audit against [00-principles.md](./00-principles.md). Diagnostic — no code cha
 | UX-3 — Card density mid-late game has no internal hierarchy | High | 🔴 |
 | UX-4 — Disabled buttons don't say WHY (no error-recognition text) | High | 🟢 Addressed |
 | UX-5 — No audio feedback layer | Low | 🔴 (defer; may stay) |
-| UX-6 — Precedent text border-left could read as false affordance | Low | 🔴 |
+| UX-6 — Precedent text border-left could read as false affordance | Low | 🟢 Addressed (muted italic quote-style) |
 | UX-7 — Achievement progress not visible | Medium | 🟢 Addressed |
 | UX-8 — No multiplier-stack inspector exposed in UI (despite backend ready) | Medium | 🟢 Addressed |
 | UX-9 — No "next milestone" indicator on assets | Medium | 🟢 Addressed |
@@ -23,7 +23,7 @@ Audit against [00-principles.md](./00-principles.md). Diagnostic — no code cha
 | UX-11 — Number formatting maxes out at `B`; will hit `Infinity` mid-late game | High (timed) | 🟢 Addressed |
 | UX-12 — No welcome-back / offline-progress modal | Medium | 🟢 Addressed |
 | UX-13 — Save-state indicator absent | Low | 🟢 Addressed |
-| UX-14 — Prestige flow is `confirm()` + reload; not ceremonial | Medium | 🔴 |
+| UX-14 — Prestige flow is `confirm()` + reload; not ceremonial | Medium | 🟢 Addressed |
 | UX-15 — Currencies are color-only; no icons | Low | 🟢 Addressed (colored dots) |
 | UX-16 — No tabs/collapsibles planned for mature-state density | High (timed) | 🔴 |
 | UX-17 — Heat mechanic was binary burn with random lockout | Critical | 🟢 Addressed (this push) |
