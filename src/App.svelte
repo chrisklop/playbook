@@ -96,7 +96,18 @@
     return predicate(game) || !!game.flags[`tease:${id}`];
   }
 
-  const visibleAssets = $derived(ASSETS.filter((a) => isRevealed(a.id, a.visible)));
+  // Sort unbought (count==0) assets to top so newly-revealed things grab
+  // attention; established assets keep their catalog order beneath.
+  const visibleAssets = $derived(
+    ASSETS.filter((a) => isRevealed(a.id, a.visible))
+      .sort((a, b) => {
+        const ac = game.assets[a.id] ?? 0;
+        const bc = game.assets[b.id] ?? 0;
+        if (ac === 0 && bc > 0) return -1;
+        if (bc === 0 && ac > 0) return 1;
+        return 0; // stable: preserve catalog order
+      }),
+  );
   const teasedAssets  = $derived(
     ASSETS.filter((a) => !isRevealed(a.id, a.visible) && isTeased(a.id, a.teased)),
   );
@@ -150,7 +161,16 @@
   const treesView = $derived(
     DEPICT_IDS.map((tree) => {
       const all = UPGRADES.filter((u) => u.tree === tree);
-      const visible = all.filter((u) => isRevealed(u.id, u.visible));
+      const visible = all
+        .filter((u) => isRevealed(u.id, u.visible))
+        .sort((a, b) => {
+          // Within a tree: unlearned nodes (lvl 0) float to top.
+          const al = game.upgrades[a.id] ?? 0;
+          const bl = game.upgrades[b.id] ?? 0;
+          if (al === 0 && bl > 0) return -1;
+          if (bl === 0 && al > 0) return 1;
+          return 0;
+        });
       const teased  = all.filter((u) => !isRevealed(u.id, u.visible) && isTeased(u.id, u.teased));
       const totalLevel = all.reduce((acc, u) => acc + (game.upgrades[u.id] ?? 0), 0);
       const totalMax = all.reduce((acc, u) => acc + u.maxLevel, 0);
@@ -382,8 +402,8 @@
               class:positive={rate > 0}
               class:has-breakdown={bd.sources.length > 0}
               onclick={() => toggleBreakdown(id)}
-              title={bd.sources.length > 0 ? 'click for multiplier breakdown' : ''}
-            >{fmtRate(rate)}{#if bd.sources.length > 0} <span class="mult-hint">×{bd.total.toFixed(2)}</span>{/if}</button>
+              title={bd.sources.length > 0 ? `total includes ×${bd.total.toFixed(2)} multiplier — click for breakdown` : ''}
+            >{fmtRate(rate)}</button>
             {#if eta}<div class="reta">{eta}</div>{/if}
             <div class="rfill" style="--fill: {cap > 0 ? Math.min(100, (val / cap) * 100) : 0}%"></div>
             {#if openBreakdown === id && bd.sources.length > 0}
