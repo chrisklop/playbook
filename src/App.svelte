@@ -605,7 +605,7 @@
                   <div class="meter-bar">
                     <div class="meter-fill heat" style="--fill: {p.heat * 100}%"></div>
                   </div>
-                  <span class="meter-num num">{(p.heat * 100).toFixed(0)}%</span>
+                  <span class="meter-num num" class:hot={p.heat > 0.7}>{(p.heat * 100).toFixed(0)}%</span>
                 </div>
                 <div class="meter-row">
                   <span class="meter-label">charge</span>
@@ -615,6 +615,12 @@
                   <span class="meter-num num">{p.chargeProgress >= 1 ? 'READY' : `${(p.chargeProgress * 100).toFixed(0)}%`}</span>
                 </div>
               </div>
+              {#if p.burned}
+                <div class="plt-burned">
+                  ⚠ BURNED · platform suspended your accounts ·
+                  {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s
+                </div>
+              {/if}
               {@const y = postYield(game, meta.id) * p.chargeProgress}
               {@const ready = p.chargeProgress >= 0.5}
               {@const attCapped = game.resources.attention >= game.caps.attention}
@@ -1110,9 +1116,16 @@
     border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
     border-radius: 3px;
   }
-  /* In ×Max mode the count IS the headline number for that card. */
-  .card:disabled .buy-n {
-    opacity: 0.5;
+  .card:disabled .buy-n { opacity: 0.5; }
+  /* DEPICT nodes are graded research items, not inventory — the +N is
+     just disambiguation when bulk-buying. Subtle, not a headline. */
+  .node .buy-n {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 0.7rem;
   }
   .precedent {
     font-size: 0.7rem;
@@ -1235,6 +1248,18 @@
     transition: width 200ms;
   }
   .meter-fill.heat   { background: linear-gradient(90deg, var(--ok), var(--warn) 60%, var(--bad)); }
+  .meter-num.hot { color: var(--bad); font-weight: 700; }
+  .plt-burned {
+    margin-top: 0.4rem;
+    padding: 0.4rem 0.5rem;
+    background: color-mix(in oklab, var(--bad) 15%, transparent);
+    border: 1px solid var(--bad);
+    color: var(--bad);
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-align: center;
+  }
   .meter-fill.reach  { background: var(--tint, var(--accent)); }
   .meter-fill.charge { background: var(--accent); }
 
