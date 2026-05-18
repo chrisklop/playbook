@@ -665,15 +665,15 @@
                   HOT · yield −{Math.round(p.heat * 60)}%
                 </div>
               {/if}
-              {@const y = postYield(game, meta.id) * p.chargeProgress}
-              {@const ready = p.chargeProgress >= 0.5}
+              {@const y = postYield(game, meta.id)}
+              {@const ready = p.chargeProgress >= 1}
               {@const attCapped = game.resources.attention >= game.caps.attention}
               <button
                 class="post-platform"
                 class:ready
                 disabled={!ready}
                 onclick={() => postPlatform(game, meta.id)}
-                title="Post on {meta.name}. Yield scales with charge — full charge is best. Overflow converts to engagement at 10%."
+                title="Post on {meta.name}. Full burst at 100% charge. Overflow converts to engagement at 10%."
               >
                 {#if ready}
                   {#if attCapped}
