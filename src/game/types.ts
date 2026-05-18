@@ -95,6 +95,12 @@ export interface RevealState {
   triggeredAt: number;
 }
 
+export interface OfflineSummary {
+  awaySec: number;
+  gains: Partial<Record<ResourceId, number>>;
+  buffActive: boolean;
+}
+
 export interface GameState {
   version: number;
   phase: PhaseId;
@@ -116,6 +122,8 @@ export interface GameState {
   returnBuff: ReturnBuff | null;
   event: ActiveEvent | null;
   lastEventAt: number;
+  // Pending offline summary to show on next render. Cleared by UI after display.
+  pendingOfflineSummary?: OfflineSummary | null;
 }
 
 export const SAVE_VERSION = 8;

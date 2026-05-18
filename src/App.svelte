@@ -7,6 +7,7 @@
     canBuyAsset, canBuyUpgrade, canCompleteProject,
   } from './game/core/actions';
   import { ASSETS, UPGRADES, PROJECTS } from './game/core/catalog';
+  import { ACHIEVEMENTS } from './game/core/achievements';
   import {
     SYNERGIES, activateSynergy, isSynergyVisible,
     isSynergyTeased, canActivateSynergy,
@@ -213,6 +214,24 @@
       : 0,
   );
 
+  // UX-7: achievement panel
+  let showAchievements = $state(false);
+  const achievementsEarned = $derived(ACHIEVEMENTS.filter((a) => !!game.flags[a.id]));
+  const achievementsLocked = $derived(ACHIEVEMENTS.filter((a) => !game.flags[a.id]));
+
+  // UX-12: welcome-back modal — read pending summary, render once, dismiss.
+  const offlineSummary = $derived(game.pendingOfflineSummary ?? null);
+  function dismissOfflineSummary() {
+    game.pendingOfflineSummary = null;
+  }
+  function fmtDur(sec: number): string {
+    if (sec < 60) return `${sec}s`;
+    if (sec < 3600) return `${Math.floor(sec / 60)}m ${sec % 60}s`;
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec - h * 3600) / 60);
+    return `${h}h ${m}m`;
+  }
+
   // UX-13: save-state indicator. game.lastSave is updated every 5s by the
   // loop. Show how recently we saved so the player knows progress is safe.
   const savedSecsAgo = $derived(
@@ -406,6 +425,11 @@
           ★ {legacy.points}{prestigeGain > 0 ? ` (+${prestigeGain})` : ''}
         </button>
       {/if}
+      <button
+        class="ghost achievement-btn"
+        onclick={() => (showAchievements = true)}
+        title="View achievements"
+      >🏆 {achievementsEarned.length}/{ACHIEVEMENTS.length}</button>
       <span class="save-indicator" title="auto-saved to your browser">
         {savedSecsAgo < 10 ? '● saved' : `● saved ${savedSecsAgo}s ago`}
       </span>
@@ -821,6 +845,70 @@
       </div>
     </footer>
   {/if}
+
+  <!-- UX-7: achievements panel -->
+  {#if showAchievements}
+    <div class="modal-backdrop" onclick={() => (showAchievements = false)} role="presentation">
+      <div class="ach-modal" role="dialog" onclick={(e) => e.stopPropagation()}>
+        <div class="ach-head">
+          <h3>Achievements · {achievementsEarned.length}/{ACHIEVEMENTS.length}</h3>
+          <button class="ghost" onclick={() => (showAchievements = false)}>close</button>
+        </div>
+        <div class="ach-list">
+          {#each achievementsEarned as a (a.id)}
+            <div class="ach-row earned">
+              <span class="ach-mark">★</span>
+              <div class="ach-body">
+                <div class="ach-name">{a.name}</div>
+                <div class="ach-hint">{a.hint}</div>
+                {#if a.precedent}<div class="ach-precedent">{a.precedent}</div>{/if}
+              </div>
+              <span class="ach-buff res-{a.buff.resource}">+{Math.round(a.buff.amount * 100)}% {a.buff.resource}</span>
+            </div>
+          {/each}
+          {#each achievementsLocked as a (a.id)}
+            <div class="ach-row locked">
+              <span class="ach-mark">○</span>
+              <div class="ach-body">
+                <div class="ach-name">{a.name}</div>
+                <div class="ach-hint">{a.hint}</div>
+              </div>
+              <span class="ach-buff locked res-{a.buff.resource}">+{Math.round(a.buff.amount * 100)}% {a.buff.resource}</span>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </div>
+  {/if}
+
+  <!-- UX-12: welcome-back modal — fires once on offline-return -->
+  {#if offlineSummary}
+    <div class="modal-backdrop" onclick={dismissOfflineSummary} role="presentation">
+      <div class="welcome-modal" role="dialog" onclick={(e) => e.stopPropagation()}>
+        <h3>Welcome back</h3>
+        <p class="welcome-subtitle">You were away for {fmtDur(offlineSummary.awaySec)} of game time.</p>
+        {#if Object.keys(offlineSummary.gains).length > 0}
+          <div class="welcome-gains">
+            <div class="welcome-gains-head">Earned (at 25% efficiency, capped at 1h):</div>
+            {#each Object.entries(offlineSummary.gains) as [res, amt] (res)}
+              <div class="welcome-gain-row">
+                <span class="res-{res}">{res}</span>
+                <span class="num res-{res}">+{fmt(amt as number)}</span>
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <p class="welcome-empty">Production was idle — nothing produced while away.</p>
+        {/if}
+        {#if offlineSummary.buffActive}
+          <div class="welcome-buff">
+            ★ Return Buff active: ×2 production for the next 5 minutes.
+          </div>
+        {/if}
+        <button class="ghost welcome-dismiss" onclick={dismissOfflineSummary}>Continue</button>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -970,6 +1058,130 @@
   }
   .breakdown-name { color: var(--ink); }
   .breakdown-factor { color: var(--ok); font-weight: 600; }
+
+  /* UX-12: welcome-back modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: color-mix(in oklab, var(--ink) 60%, transparent);
+    display: grid;
+    place-items: center;
+    z-index: 100;
+    backdrop-filter: blur(2px);
+  }
+  .welcome-modal {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.5rem 1.6rem;
+    max-width: 380px;
+    width: calc(100vw - 2rem);
+    box-shadow: 0 12px 36px color-mix(in oklab, var(--ink) 30%, transparent);
+    display: grid;
+    gap: 0.7rem;
+  }
+  .welcome-modal h3 { margin: 0; font-size: 1.1rem; }
+  .welcome-subtitle { color: var(--muted); margin: 0; font-size: 0.85rem; }
+  .welcome-gains {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.6rem 0.7rem;
+    background: var(--paper-2);
+    border-radius: 5px;
+  }
+  .welcome-gains-head {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.2rem;
+  }
+  .welcome-gain-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  .welcome-empty {
+    margin: 0;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 0.85rem;
+  }
+  .welcome-buff {
+    padding: 0.5rem 0.6rem;
+    background: color-mix(in oklab, var(--accent) 16%, transparent);
+    color: var(--accent);
+    border-radius: 4px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  .welcome-dismiss {
+    margin-top: 0.4rem;
+    align-self: end;
+  }
+
+  /* UX-7: achievement panel */
+  .ach-modal {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 1.2rem 1.3rem;
+    max-width: 640px;
+    width: calc(100vw - 2rem);
+    max-height: 80vh;
+    box-shadow: 0 12px 36px color-mix(in oklab, var(--ink) 30%, transparent);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 0.8rem;
+  }
+  .ach-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .ach-head h3 { margin: 0; }
+  .ach-list {
+    display: grid;
+    gap: 0.4rem;
+    overflow-y: auto;
+    padding-right: 0.4rem;
+  }
+  .ach-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.6rem;
+    align-items: start;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: var(--paper-2);
+  }
+  .ach-row.locked { opacity: 0.55; }
+  .ach-row.earned { border-color: color-mix(in oklab, hsl(45 90% 50%) 50%, var(--line)); background: color-mix(in oklab, hsl(45 90% 50%) 6%, var(--paper-2)); }
+  .ach-mark { font-size: 1rem; line-height: 1.4; }
+  .ach-row.earned .ach-mark { color: hsl(45 90% 45%); }
+  .ach-row.locked .ach-mark { color: var(--muted); }
+  .ach-body { display: grid; gap: 0.15rem; min-width: 0; }
+  .ach-name { font-weight: 600; font-size: 0.92rem; }
+  .ach-hint { font-size: 0.75rem; color: var(--muted); }
+  .ach-precedent {
+    font-size: 0.7rem;
+    color: var(--muted);
+    border-left: 2px solid var(--accent);
+    padding-left: 0.5rem;
+    margin-top: 0.2rem;
+    font-style: italic;
+  }
+  .ach-buff {
+    font-size: 0.78rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .ach-buff.locked { opacity: 0.7; }
+  .achievement-btn { color: hsl(45 90% 45%); border-color: hsl(45 90% 45%); }
   .reta { font-size: 0.65rem; color: var(--muted); font-style: italic; }
   .num { font-variant-numeric: tabular-nums; }
 
