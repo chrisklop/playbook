@@ -6,7 +6,7 @@
     assetCost, upgradeCost,
     canBuyAsset, canBuyUpgrade, canCompleteProject,
   } from './game/core/actions';
-  import { ASSETS, UPGRADES, PROJECTS } from './game/core/catalog';
+  import { ASSETS, UPGRADES, PROJECTS, treeTotalLevel } from './game/core/catalog';
   import { ACHIEVEMENTS } from './game/core/achievements';
   import {
     SYNERGIES, activateSynergy, isSynergyVisible,
@@ -341,6 +341,27 @@
     return `need ${fmt(cost - have)} more ${resource}`;
   }
 
+  // Build a tooltip explaining how a platform works + which DEPICT
+  // techniques it amplifies. Shown on hover of the platform card.
+  function platformTooltip(meta: typeof PLATFORM_META[number]): string {
+    const ampEntries = (Object.entries(meta.amp) as Array<[string, number]>)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([k, v]) => `${k} ×${v.toFixed(1)}`)
+      .join(', ');
+    return [
+      `${meta.name} — ${meta.audience}`,
+      '',
+      `Amplifies: ${ampEntries}`,
+      `Moderation: ${Math.round(meta.moderation * 100)}% (higher = heat decays faster)`,
+      '',
+      'Charge bar fills over time. POST fires at 100% for full yield (low heat cost).',
+      'PUSH IT freestyles anytime — yield scales with charge, heat cost scales with current heat.',
+      'Rate slider throttles both charge fill AND bot-heat gain. Drop it when overheating.',
+      'At 100% heat: 30s shadow-ban with 3× faster cool-down. Plan accordingly.',
+    ].join('\n');
+  }
+
   function depictLetter(t: string): string {
     return t[0].toUpperCase();
   }
@@ -617,7 +638,7 @@
           {@const sf = !affordable && n > 0 ? shortfall(cost, a.costResource) : null}
           {@const owned = game.assets[a.id] ?? 0}
           {@const m = owned > 0 && Object.keys(a.produces).length > 0 ? milestoneInfo(owned) : null}
-          <button class="card asset cost-{a.costResource}" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={a.blurb + (pre ? '\n\n' + pre : '')}>
+          <button class="card asset cost-{a.costResource}" aria-disabled={!affordable} onclick={() => { if (!affordable) return; doBuyAsset(a.id); }} title={a.blurb + (pre ? '\n\n' + pre : '')}>
             <div class="card-head">
               <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
               <span class="owned">×{owned}</span>
@@ -687,7 +708,7 @@
             {@const ratio = affordabilityRatio(amt as number, res)}
             {@const ppre = getPrecedent(p.id, p.precedents)}
             {@const psf = !affordable ? shortfall(amt as number, res) : null}
-            <button class="card project cost-{res}" disabled={!affordable} onclick={() => completeProject(game, p.id)} title={p.blurb + (ppre ? '\n\n' + ppre : '')}>
+            <button class="card project cost-{res}" aria-disabled={!affordable} onclick={() => { if (!affordable) return; completeProject(game, p.id); }} title={p.blurb + (ppre ? '\n\n' + ppre : '')}>
               <div class="card-head">
                 <span class="name">{p.name}</span>
               </div>
@@ -730,10 +751,14 @@
           {#each visibleSynergies as sn (sn.id)}
             {@const [res, amt] = Object.entries(sn.cost)[0]}
             {@const affordable = canActivateSynergy(game, sn)}
+            {@const lvlA = treeTotalLevel(game, sn.trees[0])}
+            {@const lvlB = treeTotalLevel(game, sn.trees[1])}
+            {@const treeMissing = lvlA < sn.threshold || lvlB < sn.threshold}
+            {@const resMissing = (game.resources[res as keyof typeof game.resources] as number) < (amt as number)}
             <button
               class="card synergy cost-{res}"
-              disabled={!affordable}
-              onclick={() => activateSynergy(game, sn.id)}
+              aria-disabled={!affordable}
+              onclick={() => { if (!affordable) return; activateSynergy(game, sn.id); }}
               title={sn.blurb + (sn.precedent ? '\n\n' + sn.precedent : '')}
             >
               <div class="card-head">
@@ -742,10 +767,26 @@
               </div>
               <div class="blurb">{sn.blurb}</div>
               {#if sn.precedent}<div class="precedent">{sn.precedent}</div>{/if}
+              <div class="syn-prereq">
+                <span class:met={lvlA >= sn.threshold}>{sn.trees[0]} {lvlA}/{sn.threshold}</span>
+                <span class:met={lvlB >= sn.threshold}>{sn.trees[1]} {lvlB}/{sn.threshold}</span>
+              </div>
               <div class="card-foot">
                 <span class="buy-n">combo</span>
                 <span class="cost num res-{res}">{fmt(amt as number)} {res}</span>
               </div>
+              {#if !affordable}
+                <div class="shortfall">
+                  {#if treeMissing}
+                    need
+                    {#if lvlA < sn.threshold}{sn.threshold - lvlA} more {sn.trees[0]}{/if}
+                    {#if lvlA < sn.threshold && lvlB < sn.threshold} · {/if}
+                    {#if lvlB < sn.threshold}{sn.threshold - lvlB} more {sn.trees[1]}{/if}
+                  {:else if resMissing}
+                    need {fmt((amt as number) - (game.resources[res as keyof typeof game.resources] as number))} more {res}
+                  {/if}
+                </div>
+              {/if}
             </button>
           {/each}
           {#each teasedSynergies as sn (sn.id)}
@@ -783,8 +824,8 @@
             {@const ppre = getPrecedent(pa.id, pa.precedents)}
             <button
               class="card patron cost-{res}"
-              disabled={!affordable}
-              onclick={() => { activatePatron(game, pa.id); rotatePrecedent(pa.id, pa.precedents); }}
+              aria-disabled={!affordable}
+              onclick={() => { if (!affordable) return; activatePatron(game, pa.id); rotatePrecedent(pa.id, pa.precedents); }}
               title={pa.blurb + (ppre ? '\n\n' + ppre : '')}
             >
               <div class="card-head">
@@ -832,7 +873,7 @@
           {@const p = game.platforms[meta.id]}
           {@const unlocked = p.unlocked}
           {#if unlocked || isNextPhase(meta.unlocksAt)}
-          <div class="platform-card" class:locked={!unlocked} class:hot={unlocked && p.heat >= 0.75} class:banned={unlocked && p.burned && p.burnedUntil > game.lastTick} style="--tint: {meta.tint}">
+          <div class="platform-card" class:locked={!unlocked} class:hot={unlocked && p.heat >= 0.75} class:banned={unlocked && p.burned && p.burnedUntil > game.lastTick} style="--tint: {meta.tint}" title={platformTooltip(meta)}>
             <div class="plt-head">
               <span class="plt-name">{meta.name}</span>
               {#if !unlocked}
@@ -968,7 +1009,7 @@
                 {@const ratio = affordabilityRatio(cost, u.costResource)}
                 {@const upre = getPrecedent(u.id, u.precedents)}
                 {@const usf = !maxed && !affordable && n > 0 ? shortfall(cost, u.costResource) : null}
-                <button class="node cost-{u.costResource}" disabled={!affordable || maxed} onclick={() => doBuyUpgrade(u.id)} title={u.blurb + (upre ? '\n\n' + upre : '')}>
+                <button class="node cost-{u.costResource}" aria-disabled={!affordable || maxed} onclick={() => { if (!affordable || maxed) return; doBuyUpgrade(u.id); }} title={u.blurb + (upre ? '\n\n' + upre : '')}>
                   <div class="node-head">
                     <span class="node-name">{u.name}</span>
                     <span class="node-lvl num">{lvl}/{u.maxLevel}</span>
@@ -1999,7 +2040,15 @@
     transform: scale(0.985);
     transition: transform 60ms;
   }
-  .card:disabled { opacity: 0.55; cursor: not-allowed; }
+  .card:disabled,
+  .card[aria-disabled="true"],
+  .node[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+  /* aria-disabled cards still receive hover events, so the browser title
+     tooltip fires reliably even when the tile is unaffordable. Firefox
+     suppresses mouse events on truly-disabled buttons; aria-disabled fixes
+     that without giving up the visual treatment. */
+  .card[aria-disabled="true"]:hover,
+  .node[aria-disabled="true"]:hover { background: var(--paper-2); }
 
   /* Resource-cost tint — every purchasable tile bleeds the color of its
      cost currency so the eye learns "yellow = drains attention", "blue =
@@ -2086,6 +2135,19 @@
   /* Blurb + precedent live in the browser tooltip only — never on the
      tile — so cards stay compact and the same shape regardless of hover. */
   .blurb, .node-blurb { display: none !important; }
+
+  /* Synergy tree-prereq line — tells the player exactly which DEPICT
+     trees still need levels, separate from the resource cost row. */
+  .syn-prereq {
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.62rem;
+    color: var(--bad);
+    text-transform: lowercase;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .syn-prereq .met { color: var(--ok); }
   .card-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
   .cost { font-weight: 600; font-size: 0.82rem; }
   .buy-n {
