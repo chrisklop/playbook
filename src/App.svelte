@@ -213,6 +213,12 @@
       : 0,
   );
 
+  // UX-13: save-state indicator. game.lastSave is updated every 5s by the
+  // loop. Show how recently we saved so the player knows progress is safe.
+  const savedSecsAgo = $derived(
+    game.lastSave > 0 ? Math.max(0, Math.floor((nowTick - game.lastSave) / 1000)) : 0,
+  );
+
   // Rotating ticker
   let factIndex = $state(0);
   onMount(() => {
@@ -255,6 +261,25 @@
     const entries = Object.entries(a.produces);
     if (entries.length === 0) return '';
     return entries.map(([res, rate]) => `+${rate} ${res}/s each`).join(' · ');
+  }
+
+  // UX-9: per-asset milestone indicator. Mirrors assetMilestoneMultiplier
+  // from production.ts: each doubling of owned past 25 adds +1 to the
+  // multiplier. Returns the next threshold + current mult + progress.
+  function milestoneInfo(count: number) {
+    if (count < 25) {
+      const cur = 1.0;
+      const next = 25;
+      return { cur, next, nextMult: 1.0, progress: count / 25 };
+    }
+    const cur = 1 + Math.log2(count / 25);
+    // Next doubling threshold: smallest 25 * 2^k that exceeds count
+    const tier = Math.floor(Math.log2(count / 25));
+    const next = 25 * Math.pow(2, tier + 1);
+    const nextMult = 1 + Math.log2(next / 25);
+    const prevThreshold = 25 * Math.pow(2, tier);
+    const progress = (count - prevThreshold) / (next - prevThreshold);
+    return { cur, next, nextMult, progress };
   }
 
   // Rotating precedents — each card click advances to the next factoid.
@@ -381,6 +406,9 @@
           ★ {legacy.points}{prestigeGain > 0 ? ` (+${prestigeGain})` : ''}
         </button>
       {/if}
+      <span class="save-indicator" title="auto-saved to your browser">
+        {savedSecsAgo < 10 ? '● saved' : `● saved ${savedSecsAgo}s ago`}
+      </span>
       <button class="ghost" onclick={reset}>reset</button>
     </div>
   </header>
@@ -394,9 +422,10 @@
     </div>
   {/if}
 
-  <!-- ACTIVE EVENT BANNER -->
-  {#if activeEvent && activeEventDef}
-    <div class="event-banner" class:negative={activeEvent.mult < 1}>
+  <!-- ACTIVE EVENT BANNER — always-reserved slot so its appearance
+       doesn't shove the rest of the page up/down. -->
+  <div class="event-band" class:has-event={!!activeEvent} class:negative={activeEvent && activeEvent.mult < 1}>
+    {#if activeEvent && activeEventDef}
       <div class="event-row">
         <span class="event-pulse">▶</span>
         <span class="event-headline">{activeEventDef.headline}</span>
@@ -409,8 +438,13 @@
       <div class="event-progress">
         <div class="event-progress-fill" style="--fill: {eventProgress * 100}%"></div>
       </div>
-    </div>
-  {/if}
+    {:else}
+      <div class="event-row idle">
+        <span class="event-pulse">○</span>
+        <span class="event-headline">no active headline — next event in 1–2 min</span>
+      </div>
+    {/if}
+  </div>
 
   <!-- MAIN GRID -->
   <main class="grid">
@@ -439,13 +473,26 @@
           {@const ratio = affordabilityRatio(cost, a.costResource)}
           {@const pre = getPrecedent(a.id, a.precedents)}
           {@const sf = !affordable && n > 0 ? shortfall(cost, a.costResource) : null}
+          {@const owned = game.assets[a.id] ?? 0}
+          {@const m = owned > 0 && Object.keys(a.produces).length > 0 ? milestoneInfo(owned) : null}
           <button class="card asset" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={pre ?? ''}>
             <div class="card-head">
               <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
-              <span class="owned">×{game.assets[a.id] ?? 0}</span>
+              <span class="owned">×{owned}</span>
             </div>
             <div class="blurb">{a.blurb}</div>
             {#if assetEffectText(a)}<div class="effect">{assetEffectText(a)}</div>{/if}
+            {#if m}
+              <div class="milestone">
+                <div class="milestone-text">
+                  <span>×{m.cur.toFixed(2)} · next ×{m.nextMult.toFixed(2)} at {m.next}</span>
+                  <span class="milestone-count num">{owned}/{m.next}</span>
+                </div>
+                <div class="milestone-bar">
+                  <div class="milestone-fill" style="--fill: {m.progress * 100}%"></div>
+                </div>
+              </div>
+            {/if}
             {#if pre}
               <div class="precedent">
                 {pre}
@@ -1055,18 +1102,33 @@
   .tick-source { opacity: 0.7; font-style: italic; }
 
   /* Event banner — pulses between topbar and ticker. */
-  .event-banner {
+  /* Event band: always present, fixed height, no layout shift. */
+  .event-band {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
     padding: 0.5rem 1rem 0.4rem;
-    background: color-mix(in oklab, var(--ok) 12%, var(--paper-2));
+    background: var(--paper-2);
     border-bottom: 1px solid var(--line);
     font-size: 0.85rem;
     flex-shrink: 0;
+    min-height: 56px;
+    transition: background 200ms;
   }
-  .event-banner.negative {
+  .event-band.has-event {
+    background: color-mix(in oklab, var(--ok) 12%, var(--paper-2));
+  }
+  .event-band.has-event.negative {
     background: color-mix(in oklab, var(--bad) 14%, var(--paper-2));
+  }
+  .event-row.idle {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .event-row.idle .event-pulse {
+    color: var(--muted);
+    opacity: 0.5;
+    animation: none;
   }
   .event-row {
     display: grid;
@@ -1086,13 +1148,13 @@
     background: var(--ok);
     transition: width 200ms;
   }
-  .event-banner.negative .event-progress-fill { background: var(--bad); }
+  .event-band.has-event.negative .event-progress-fill { background: var(--bad); }
   .event-pulse {
     color: var(--ok);
     font-size: 0.7rem;
     animation: pulse 1.2s ease-in-out infinite;
   }
-  .event-banner.negative .event-pulse { color: var(--bad); }
+  .event-band.has-event.negative .event-pulse { color: var(--bad); }
   @keyframes pulse {
     0%, 100% { opacity: 0.4; }
     50%      { opacity: 1; }
@@ -1110,7 +1172,7 @@
     color: var(--ok);
     text-transform: lowercase;
   }
-  .event-banner.negative .event-effect { color: var(--bad); }
+  .event-band.has-event.negative .event-effect { color: var(--bad); }
   .event-countdown {
     font-variant-numeric: tabular-nums;
     font-size: 0.75rem;
@@ -1260,6 +1322,31 @@
     color: var(--ok);
     font-variant-numeric: tabular-nums;
     font-weight: 500;
+  }
+  /* UX-9: per-asset milestone progress (Cookie-Clicker "milk" pattern). */
+  .milestone {
+    margin-top: 0.2rem;
+    display: grid;
+    gap: 0.15rem;
+  }
+  .milestone-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .milestone-bar {
+    height: 3px;
+    background: color-mix(in oklab, var(--ink) 8%, transparent);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .milestone-fill {
+    height: 100%;
+    width: var(--fill, 0%);
+    background: color-mix(in oklab, var(--ok) 80%, var(--accent));
+    transition: width 200ms;
   }
   .afford-fill {
     position: absolute;

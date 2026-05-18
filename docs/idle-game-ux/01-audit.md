@@ -18,11 +18,11 @@ Audit against [00-principles.md](./00-principles.md). Diagnostic — no code cha
 | UX-6 — Precedent text border-left could read as false affordance | Low | 🔴 |
 | UX-7 — Achievement progress not visible | Medium | 🔴 |
 | UX-8 — No multiplier-stack inspector exposed in UI (despite backend ready) | Medium | 🟢 Addressed |
-| UX-9 — No "next milestone" indicator on assets | Medium | 🔴 |
+| UX-9 — No "next milestone" indicator on assets | Medium | 🟢 Addressed |
 | UX-10 — Ticker scrolls but doesn't pause or expand on click | Low | 🔴 |
 | UX-11 — Number formatting maxes out at `B`; will hit `Infinity` mid-late game | High (timed) | 🟢 Addressed |
 | UX-12 — No welcome-back / offline-progress modal | Medium | 🔴 |
-| UX-13 — Save-state indicator absent | Low | 🔴 |
+| UX-13 — Save-state indicator absent | Low | 🟢 Addressed |
 | UX-14 — Prestige flow is `confirm()` + reload; not ceremonial | Medium | 🔴 |
 | UX-15 — Currencies are color-only; no icons | Low | 🔴 |
 | UX-16 — No tabs/collapsibles planned for mature-state density | High (timed) | 🔴 |
