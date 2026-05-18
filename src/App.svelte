@@ -982,7 +982,8 @@
      - RIGHT (platforms): subdued — passive dashboard / gauges */
   .grid {
     display: grid;
-    grid-template-columns: minmax(280px, 360px) 1fr minmax(280px, 360px);
+    /* Trees | Assets (wide) | Platforms */
+    grid-template-columns: minmax(320px, 420px) 1fr minmax(280px, 360px);
     gap: 1rem;
     padding: 1rem;
     align-items: start;
@@ -999,16 +1000,18 @@
     padding: 0.6rem 0.8rem;
     border-radius: 8px;
   }
-  /* Explicit column placement — no longer relying on DOM order. */
-  .col.left {
-    grid-column: 1;
-    background: color-mix(in oklab, hsl(25 60% 50%) 4%, var(--paper-2));
-    border: 1px solid color-mix(in oklab, hsl(25 60% 50%) 25%, var(--line));
-  }
+  /* Explicit column placement. Trees are the most interactive surface,
+     so they get column 1 (leftmost, first thing you read). Assets get the
+     wide center column. Platforms stay right as a passive dashboard. */
   .col.trees-col {
-    grid-column: 2;
+    grid-column: 1;
     background: color-mix(in oklab, hsl(220 70% 50%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(220 70% 50%) 25%, var(--line));
+  }
+  .col.left {
+    grid-column: 2;
+    background: color-mix(in oklab, hsl(25 60% 50%) 4%, var(--paper-2));
+    border: 1px solid color-mix(in oklab, hsl(25 60% 50%) 25%, var(--line));
   }
   .col.platforms-col {
     grid-column: 3;
