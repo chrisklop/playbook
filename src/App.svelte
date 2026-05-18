@@ -205,33 +205,20 @@
   //   3. Heavily-developed / maxed → bottom
   // Player attention follows their currency: new things prominent, mastered
   // things tucked away but still accessible.
+  // Stable layout per user feedback: don't reorder anything. Trees render
+  // in canonical DEPICT_IDS order; nodes within a tree render in catalog
+  // order. A tree only stops rendering once it's been visible/teased — once
+  // shown it stays shown so buying upgrades doesn't shift other trees.
   const treesView = $derived(
     DEPICT_IDS.map((tree) => {
       const all = UPGRADES.filter((u) => u.tree === tree);
-      const visible = all
-        .filter((u) => isRevealed(u.id, u.visible))
-        .sort((a, b) => {
-          // Within a tree: unlearned nodes (lvl 0) float to top.
-          const al = game.upgrades[a.id] ?? 0;
-          const bl = game.upgrades[b.id] ?? 0;
-          if (al === 0 && bl > 0) return -1;
-          if (bl === 0 && al > 0) return 1;
-          return 0;
-        });
+      const visible = all.filter((u) => isRevealed(u.id, u.visible));   // catalog order
       const teased  = all.filter((u) => !isRevealed(u.id, u.visible) && isTeased(u.id, u.teased));
       const totalLevel = all.reduce((acc, u) => acc + (game.upgrades[u.id] ?? 0), 0);
       const totalMax = all.reduce((acc, u) => acc + u.maxLevel, 0);
-      const hasTeased = teased.length > 0;
-      const hasRevealed = visible.length > 0;
-      const sortKey = hasTeased && !hasRevealed
-        ? 0
-        : hasRevealed
-          ? 1 + (totalMax > 0 ? totalLevel / totalMax : 0)
-          : 2;
-      return { tree, all, visible, teased, totalLevel, totalMax, sortKey };
+      return { tree, all, visible, teased, totalLevel, totalMax };
     })
-      .filter((t) => t.visible.length > 0 || t.teased.length > 0 || t.totalLevel > 0)
-      .sort((a, b) => a.sortKey - b.sortKey),
+      .filter((t) => t.visible.length > 0 || t.teased.length > 0 || t.totalLevel > 0),
   );
 
   // ── Gradual reveal predicates ────────────────────────────────────────
@@ -1087,11 +1074,15 @@
               {#if target}<span class="tree-target res-{target}" title="this tree boosts {target}">→ {target}</span>{/if}
               <span class="tree-progress num">{t.totalLevel}/{t.totalMax}</span>
             </div>
-            {#if !t2.unlocked}
-              <div class="tier2-progress" title="Tier 2 unlocks at {t2.need} levels in this tree's tier-1 nodes">
+            <!-- Always-rendered slot so the tier2-progress hint appearing
+                 doesn't push nodes down. Empty when tier 2 is unlocked. -->
+            <div class="tier2-progress" class:tier2-unlocked={t2.unlocked} title={t2.unlocked ? 'Tier 2 unlocked' : `Tier 2 unlocks at ${t2.need} levels in this tree's tier-1 nodes`}>
+              {#if !t2.unlocked}
                 tier 2 unlocks at {t2.need} levels: <span class="num">{t2.current}/{t2.need}</span>
-              </div>
-            {/if}
+              {:else}
+                tier 2 unlocked
+              {/if}
+            </div>
             <div class="tree-nodes">
               {#each t.visible as u (u.id)}
                 {@const lvl = game.upgrades[u.id] ?? 0}
@@ -2721,6 +2712,14 @@
     border-radius: 3px;
     border: 1px dashed color-mix(in oklab, var(--accent) 25%, transparent);
     margin-bottom: 0.2rem;
+    min-height: calc(0.68rem * 1.2 + 0.4rem + 2px);
+    line-height: 1.2;
+  }
+  .tier2-progress.tier2-unlocked {
+    color: var(--ok);
+    border-style: solid;
+    border-color: color-mix(in oklab, var(--ok) 35%, transparent);
+    background: color-mix(in oklab, var(--ok) 5%, transparent);
   }
   .depict-help-btn {
     width: 1.8em;
