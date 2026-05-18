@@ -958,14 +958,10 @@
                 onclick={() => postWithPulse(meta.id)}
                 title="Disciplined post — fires at 100% charge for full yield. Low heat (+0.8%)."
               >
-                {#if ready}
-                  {#if attCapped}
-                    POST · +{fmt(y * 0.1)} eng
-                  {:else}
-                    POST · +{fmt(y)} att
-                  {/if}
+                {#if attCapped}
+                  POST · +{fmt(y * 0.1)} eng
                 {:else}
-                  charging · {(chargeTimeSeconds(game) * (1 - p.chargeProgress)).toFixed(1)}s
+                  POST · +{fmt(y)} att
                 {/if}
               </button>
               <button
