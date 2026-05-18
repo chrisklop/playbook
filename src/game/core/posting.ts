@@ -67,7 +67,10 @@ const MIN_MANUAL_CHARGE = 0.5;
 
 export function canPost(state: GameState, platformId: PlatformId): boolean {
   const p = state.platforms[platformId];
-  if (!p?.unlocked || p.burned) return false;
+  if (!p?.unlocked) return false;
+  // Legacy: very old saves may still have burned=true. Allow posting as soon
+  // as the burn cooldown expires; new burns are never set (see platforms.ts).
+  if (p.burned && p.burnedUntil > state.lastTick) return false;
   return p.chargeProgress >= MIN_MANUAL_CHARGE;
 }
 
@@ -103,8 +106,11 @@ export function tickPosting(state: GameState, dt: number): void {
 
   for (const meta of PLATFORM_META) {
     const p = state.platforms[meta.id];
-    if (!p.unlocked || p.burned) continue;
+    if (!p.unlocked) continue;
+    // Charge always fills (no platform lockout). Auto-fires when charged
+    // AND not under a legacy burn cooldown.
     p.chargeProgress = Math.min(1, p.chargeProgress + rate * dt);
+    if (p.burned && p.burnedUntil > state.lastTick) continue;
     if (autoOn && p.chargeProgress >= 1) {
       postPlatform(state, meta.id);
     }

@@ -134,20 +134,26 @@ Pair colored bars with text labels, icons, or patterns. Accessibility imperative
 
 ---
 
-## 7. Idle-specific conventions
+## 7. Idle-incremental specific conventions
 
-From the corpus of successful idle games (Cookie Clicker, AdVenture Capitalist, Clicker Heroes, Antimatter Dimensions):
+See `sources/08-idle-incremental-ui-conventions.md` for full detail. These are genre-tropes players expect; absence is felt.
 
-| Pattern | Why it works |
-|---|---|
-| **Visible production rate** on every generator card | First-session retention driver |
-| **Time-to-next-buy ETA** in topbar | Player can pace themselves |
-| **Bulk-buy modes** (×1/×10/×100/Max) | Respects expert player time |
-| **Affordable / unaffordable visual contrast** | Glanceable scan reveals the next buy without math |
-| **Number formatting** (1.2K, 4.5M, 1.3B) | Human-readable at every scale |
-| **Persistent currency display** | The "score" is always visible |
-| **Tooltip rich content** | Deep info available but doesn't crowd the main view |
-| **Achievement tracking** | Permanent milestones; progress visible on demand |
+| Pattern | Why it works | Our use |
+|---|---|---|
+| **Number formatting that scales** (K→M→B→T→…→scientific) | Stays legible from 1 to 1e308 | Suffix through `B`; need `Qa`, `Qi`, scientific for late game |
+| **Welcome-back / offline-progress modal** | Reduces "did I miss anything" anxiety; rewards return | We have offline math + return buff, but no ceremonial modal |
+| **Always-glanceable production rate** in topbar | Affirms "game is alive" | ✓ |
+| **"What should I buy next?" affordance** (highlight cheapest affordable / ROI display) | Reduces decision paralysis mid-late game | Have affordability bar; no ROI / next-buy highlight |
+| **Progressive UI emergence** (one button → minimal HUD → full mature UI) | New players don't bounce; mature players still have richness | ✓ |
+| **Tabs / collapsibles at mature state** (50+ buyables breaks single scroll) | Keeps mature UI legible | Need to plan tabs for AI Saturation era |
+| **Save-state indicator** ("saved 3s ago") | Players want to know progress is safe | Missing |
+| **Prestige-loop ceremony** (confirm + animated reward + transition) | The emotional peak of an idle game | Basic `confirm()` only; not ceremonial |
+| **Achievement / completion grid** as a panel/tab | Idle players are completionists | Missing — surfaces only in log |
+| **Icons + colors for currencies** (not color alone) | Multi-modal info; accessibility | Color only; need icons |
+| **Multi-modal info density** (value + rate + fill + ETA) on each meter | High legibility in small space | val/cap + rate; ETA underused |
+| **"Doing nothing is valid"** affordance | Players from action games need permission | Charge bars + auto-poster communicate this |
+| **The "feels alive" heuristic** (something always changing) | Retention | Rate updates + ticker + events ✓ |
+| **Resource-pool color economy** | Visual differentiation between currencies | ✓ but icons missing |
 
 ---
 

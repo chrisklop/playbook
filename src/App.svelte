@@ -615,10 +615,17 @@
                   <span class="meter-num num">{p.chargeProgress >= 1 ? 'READY' : `${(p.chargeProgress * 100).toFixed(0)}%`}</span>
                 </div>
               </div>
-              {#if p.burned}
+              {#if p.burned && p.burnedUntil > game.lastTick}
                 <div class="plt-burned">
-                  ⚠ BURNED · platform suspended your accounts ·
-                  {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s
+                  ⚠ BURNED · {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s
+                </div>
+              {:else if p.heat >= 0.85}
+                <div class="plt-hot overheated">
+                  ⚠ OVERHEATED · post yield −{Math.round(p.heat * 60)}%
+                </div>
+              {:else if p.heat >= 0.7}
+                <div class="plt-hot">
+                  HOT · yield −{Math.round(p.heat * 60)}%
                 </div>
               {/if}
               {@const y = postYield(game, meta.id) * p.chargeProgress}
@@ -1259,6 +1266,22 @@
     font-size: 0.72rem;
     font-weight: 600;
     text-align: center;
+  }
+  .plt-hot {
+    margin-top: 0.4rem;
+    padding: 0.35rem 0.5rem;
+    background: color-mix(in oklab, var(--warn) 12%, transparent);
+    border: 1px solid color-mix(in oklab, var(--warn) 60%, transparent);
+    color: var(--warn);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  .plt-hot.overheated {
+    background: color-mix(in oklab, var(--bad) 14%, transparent);
+    border: 1px solid var(--bad);
+    color: var(--bad);
   }
   .meter-fill.reach  { background: var(--tint, var(--accent)); }
   .meter-fill.charge { background: var(--accent); }
