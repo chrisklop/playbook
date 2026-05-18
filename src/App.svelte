@@ -1003,13 +1003,13 @@
                 class:hot={!(p.burned && p.burnedUntil > game.lastTick) && p.heat >= 0.5 && p.heat < 0.75}
               >
                 {#if p.burned && p.burnedUntil > game.lastTick}
-                  ⚠ SHADOW-BANNED · {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s · cooling fast
+                  ⚠ BANNED · {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s
                 {:else if p.heat >= 0.85}
-                  ⚠ OVERHEATED · posts at {Math.round((1 - p.heat * 0.6) * 100)}% · ban incoming
+                  ⚠ OVERHEATED · {Math.round((1 - p.heat * 0.6) * 100)}% yield
                 {:else if p.heat >= 0.75}
-                  ⚠ DANGER · {Math.round(p.heat * 100)}% heat · ban at 100%
+                  ⚠ DANGER · {Math.round(p.heat * 100)}% heat
                 {:else if p.heat >= 0.5}
-                  HOT · posts at {Math.round((1 - p.heat * 0.6) * 100)}% strength
+                  HOT · {Math.round((1 - p.heat * 0.6) * 100)}% yield
                 {:else}
                   &nbsp;
                 {/if}
@@ -2570,15 +2570,21 @@
     margin-top: 0.2rem;
     padding: 0.25rem 0.4rem;
     border-radius: 3px;
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     font-weight: 600;
     text-align: center;
     line-height: 1.2;
-    min-height: calc(0.65rem * 1.2 + 0.5rem + 2px);
+    /* FIXED height (not min-height) so longer warning text can't grow
+       the slot and shove buttons down. Single line, ellipsis on overflow. */
+    height: calc(0.62rem * 1.2 + 0.5rem + 2px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     background: transparent;
     border: 1px solid transparent;
     color: var(--muted);
     transition: background 120ms, border-color 120ms, color 120ms;
+    box-sizing: border-box;
   }
   .plt-status.hot {
     background: color-mix(in oklab, var(--warn) 12%, transparent);

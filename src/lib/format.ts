@@ -37,7 +37,10 @@ export function fmt(n: number): string {
 }
 
 export function fmtRate(n: number): string {
-  if (Math.abs(n) < 0.001) return '';
+  // Always show the per-second rate, even when zero. Empty string was
+  // confusing: players saw their value climbing (from POST overflow,
+  // events, etc.) but no rate displayed and assumed the meter was broken.
+  if (Math.abs(n) < 0.0005) return '+0/s';
   return (n >= 0 ? '+' : '') + fmt(n) + '/s';
 }
 
