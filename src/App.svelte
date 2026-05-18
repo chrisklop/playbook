@@ -380,6 +380,35 @@
 
   // Build a tooltip explaining how a platform works + which DEPICT
   // techniques it amplifies. Shown on hover of the platform card.
+  // Human-readable tooltip explaining what raises each cap.
+  // Critical for discoverability — players get stuck at 5K engagement
+  // because the game doesn't say "buy Newsletter Stack to grow this".
+  function capSourceTooltip(id: string, s: typeof game): string {
+    if (id === 'attention') {
+      const outlets = s.assets.outlet ?? 0;
+      const formula = s.flags['editorialCalendar']
+        ? `Editorial Calendar paradigm: 5000 + compounding from outlets (geometric +10% each)`
+        : `Baseline 5000 + 600 per Pseudo-News Site (you own ${outlets})`;
+      return `Attention cap. ${formula}. Complete the Editorial Calendar project to flip cap from linear to compounding outlet contribution.`;
+    }
+    if (id === 'engagement') {
+      const newsletters = s.assets.newsletter ?? 0;
+      if (!s.flags['editorialCalendar']) {
+        return `Engagement cap. Currently 1000 (pre-paradigm). Complete the Editorial Calendar project (under Projects in Assets column) to unlock real engagement storage.`;
+      }
+      const cpc = s.flags['cpcNetwork'] ? ' ×3 from Crisis Pregnancy Center Network.' : '';
+      return `Engagement cap. Editorial Calendar paradigm active: 5000 base + 1500 per Newsletter Stack (you own ${newsletters}).${cpc} Newsletter Stack unlocks at 2 outlets OR 1 Anonymous Blogger.`;
+    }
+    if (id === 'followers') {
+      const pods = s.assets.audiencePod ?? 0;
+      if (!s.flags['socialEraReached']) {
+        return `Followers cap. Locked until Social era (Influencer Phase). Reach social era to unlock.`;
+      }
+      return `Followers cap. 5000 base + 6000 per Audience Pod (you own ${pods}).`;
+    }
+    return '';
+  }
+
   function platformTooltip(meta: typeof PLATFORM_META[number]): string {
     const ampEntries = (Object.entries(meta.amp) as Array<[string, number]>)
       .sort((a, b) => b[1] - a[1])
@@ -548,7 +577,11 @@
               <span class="res-dot res-{id}"></span>{label}
               {#if spendable > 0}<span class="spendable-badge" title="{spendable} thing{spendable === 1 ? '' : 's'} you can buy right now with {id}">{spendable}</span>{/if}
             </div>
-            <div class="rvalue num" class:pulsing={isPulsing(id)}>{fmt(val)}<span class="cap"> / {fmt(cap)}</span></div>
+            <div
+              class="rvalue num"
+              class:pulsing={isPulsing(id)}
+              title={capSourceTooltip(id, game)}
+            >{fmt(val)}<span class="cap"> / {fmt(cap)}</span></div>
             <button
               type="button"
               class="rrate"
