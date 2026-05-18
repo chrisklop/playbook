@@ -2109,29 +2109,10 @@
      muted border. Hidden by default to keep cards compact; appears on
      hover for desktop, or on a tap-and-hold for touch via :focus-within
      fallback. Clearly informational, not interactive. */
-  .precedent {
-    display: none;
-    font-size: 0.7rem;
-    color: var(--muted);
-    font-style: italic;
-    border-left: 2px solid color-mix(in oklab, var(--ink) 15%, transparent);
-    padding-left: 0.5rem;
-    line-height: 1.4;
-    opacity: 0.88;
-  }
-  .card:hover .precedent,
-  .card:focus-within .precedent,
-  .node:hover .precedent,
-  .node:focus-within .precedent {
-    display: block;
-  }
-  .precedent-counter {
-    font-size: 0.6rem;
-    color: var(--accent);
-    opacity: 0.6;
-    margin-left: 0.3em;
-    font-variant-numeric: tabular-nums;
-  }
+  /* Precedent lives only in the browser tooltip (title= attr) now —
+     never rendered inline so the tile size/shape never changes on hover. */
+  .precedent,
+  .precedent-counter { display: none !important; }
   .effect {
     font-size: 0.72rem;
     color: var(--ok);
