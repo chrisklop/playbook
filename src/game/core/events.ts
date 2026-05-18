@@ -4,8 +4,10 @@
 import type { GameState } from '../types';
 import { pickEvent } from './eventPool';
 
-const MIN_GAP_MS = 45_000;
-const MAX_GAP_MS = 120_000;
+// Roomier cadence (user feedback): events were firing every 45-120s, which
+// felt constant. 2-5 min gap leaves breathing room.
+const MIN_GAP_MS = 120_000;
+const MAX_GAP_MS = 300_000;
 
 function rollGap(): number {
   return MIN_GAP_MS + Math.random() * (MAX_GAP_MS - MIN_GAP_MS);

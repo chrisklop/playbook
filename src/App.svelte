@@ -325,6 +325,31 @@
     return t[0].toUpperCase();
   }
 
+  // Which resource does this tree primarily boost? Derived from the FIRST
+  // tier-1 upgrade in the tree (the foundational one). Cosmetic — used to
+  // label the tree header so the player knows what their investment funds.
+  function treeTargetResource(treeId: string): string | null {
+    const t1 = UPGRADES.find((u) => u.tree === treeId && u.tier === 1);
+    if (!t1) return null;
+    const keys = Object.keys(t1.multiplier);
+    return keys[0] ?? null;
+  }
+
+  // How close is this tree to unlocking its tier-2? Threshold is total
+  // tier-1 levels >= 10. Pulled from catalog's tier2Visible logic.
+  const TIER2_THRESHOLD = 10;
+  function tier2Progress(treeId: string): { unlocked: boolean; current: number; need: number } {
+    let cur = 0;
+    for (const u of UPGRADES) {
+      if (u.tree === treeId && u.tier === 1) {
+        cur += game.upgrades[u.id] ?? 0;
+      }
+    }
+    return { unlocked: cur >= TIER2_THRESHOLD, current: cur, need: TIER2_THRESHOLD };
+  }
+
+  let showDepictHelp = $state(false);
+
   function upgradeEffectText(u: { multiplier: Record<string, number> }, lvl: number): string {
     const entries = Object.entries(u.multiplier);
     return entries.map(([res, per]) => {
@@ -854,15 +879,26 @@
     <!-- CENTER: DEPICT trees — explicit grid-column 2 -->
     {#if showTrees}
     <section class="col trees-col">
-      <h2>DEPICT trees</h2>
+      <div class="section-head">
+        <h2>DEPICT trees</h2>
+        <button class="ghost depict-help-btn" onclick={() => (showDepictHelp = true)} title="What is DEPICT?">?</button>
+      </div>
       <div class="trees">
         {#each treesView as t (t.tree)}
+          {@const target = treeTargetResource(t.tree)}
+          {@const t2 = tier2Progress(t.tree)}
           <div class="tree tree-{t.tree}">
             <div class="tree-head">
               <span class="tree-tag">{depictLetter(t.tree)}</span>
               <span class="tree-name">{t.tree}</span>
+              {#if target}<span class="tree-target res-{target}" title="this tree boosts {target}">→ {target}</span>{/if}
               <span class="tree-progress num">{t.totalLevel}/{t.totalMax}</span>
             </div>
+            {#if !t2.unlocked}
+              <div class="tier2-progress" title="Tier 2 unlocks at {t2.need} levels in this tree's tier-1 nodes">
+                tier 2 unlocks at {t2.need} levels: <span class="num">{t2.current}/{t2.need}</span>
+              </div>
+            {/if}
             <div class="tree-nodes">
               {#each t.visible as u (u.id)}
                 {@const lvl = game.upgrades[u.id] ?? 0}
@@ -927,6 +963,78 @@
         {/each}
       </div>
     </footer>
+  {/if}
+
+  <!-- DEPICT help modal -->
+  {#if showDepictHelp}
+    <div class="modal-backdrop" onclick={() => (showDepictHelp = false)} role="presentation">
+      <div class="depict-modal" role="dialog" onclick={(e) => e.stopPropagation()}>
+        <div class="depict-modal-head">
+          <h3>DEPICT — The Disinformation Playbook</h3>
+          <button class="ghost" onclick={() => (showDepictHelp = false)}>close</button>
+        </div>
+        <p class="depict-modal-intro">
+          Six techniques from the Cambridge SDML inoculation research (Roozenbeek &amp; van der Linden,
+          2019). Each tree lets you scale that technique. <strong>Where you invest determines which resource you boost.</strong>
+        </p>
+        <div class="depict-techniques">
+          <div class="depict-tech-row">
+            <span class="tree-tag tree-discrediting-letter">D</span>
+            <div>
+              <strong>Discrediting</strong> · attacks on the messenger
+              <span class="depict-tech-target res-attention">→ attention + cure suppression</span>
+            </div>
+          </div>
+          <div class="depict-tech-row">
+            <span class="tree-tag tree-emotional-letter">E</span>
+            <div>
+              <strong>Emotional</strong> · outrage, fear, alarm
+              <span class="depict-tech-target res-attention">→ attention</span>
+            </div>
+          </div>
+          <div class="depict-tech-row">
+            <span class="tree-tag tree-polarization-letter">P</span>
+            <div>
+              <strong>Polarization</strong> · us-vs-them framing
+              <span class="depict-tech-target res-attention">→ attention</span>
+            </div>
+          </div>
+          <div class="depict-tech-row">
+            <span class="tree-tag tree-impersonation-letter">I</span>
+            <div>
+              <strong>Impersonation</strong> · fake authority / stolen identity
+              <span class="depict-tech-target res-credibility">→ credibility</span>
+            </div>
+          </div>
+          <div class="depict-tech-row">
+            <span class="tree-tag tree-conspiracy-letter">C</span>
+            <div>
+              <strong>Conspiracy</strong> · "do your own research" framing
+              <span class="depict-tech-target res-engagement">→ engagement</span>
+            </div>
+          </div>
+          <div class="depict-tech-row">
+            <span class="tree-tag tree-trolling-letter">T</span>
+            <div>
+              <strong>Trolling</strong> · volume + bait + brigading
+              <span class="depict-tech-target res-attention">→ attention</span>
+            </div>
+          </div>
+        </div>
+        <div class="depict-help-section">
+          <strong>How the levels work</strong>
+          <ul>
+            <li><strong>Tier 1:</strong> up to 30 levels per node, costs attention. Each level adds a small percent multiplier to that tree's target resource.</li>
+            <li><strong>Tier 2:</strong> unlocks when a tree's tier-1 nodes total ≥ 10 levels. Tier-2 costs engagement.</li>
+            <li>The "X/60" on each tree header is total levels purchased across all nodes in that tree.</li>
+          </ul>
+        </div>
+        <div class="depict-help-section">
+          <strong>Synergies (combo upgrades)</strong>
+          <p>When TWO trees both pass a threshold, a named real-world technique unlocks as a one-shot project — Wedge Content (E+P), Fake Whistleblower (I+C), Flood the Zone (D+T), and others. Find them in the Synergies section.</p>
+        </div>
+      </div>
+    </div>
   {/if}
 
   <!-- UX-14: prestige ceremony modal -->
@@ -2090,6 +2198,90 @@
   .tree-trolling      .tree-tag { background: hsl(60 70% 40%); color: hsl(220 18% 12%); }
   .tree-name { font-size: 0.85rem; text-transform: capitalize; }
   .tree-progress { font-size: 0.7rem; color: var(--muted); }
+  .tree-head { grid-template-columns: auto 1fr auto auto !important; gap: 0.4rem; }
+  .tree-target {
+    font-size: 0.66rem;
+    font-weight: 600;
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+  }
+  .tier2-progress {
+    font-size: 0.68rem;
+    color: var(--muted);
+    padding: 0.2rem 0.4rem;
+    background: color-mix(in oklab, var(--accent) 6%, transparent);
+    border-radius: 3px;
+    border: 1px dashed color-mix(in oklab, var(--accent) 25%, transparent);
+    margin-bottom: 0.2rem;
+  }
+  .depict-help-btn {
+    width: 1.8em;
+    height: 1.8em;
+    padding: 0;
+    font-weight: 700;
+    border-radius: 50%;
+  }
+  .depict-modal {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.4rem 1.5rem;
+    max-width: 560px;
+    width: calc(100vw - 2rem);
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 16px 48px color-mix(in oklab, var(--ink) 28%, transparent);
+    display: grid;
+    gap: 0.9rem;
+  }
+  .depict-modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .depict-modal-head h3 { margin: 0; font-size: 1.05rem; }
+  .depict-modal-intro {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+  .depict-techniques { display: grid; gap: 0.5rem; }
+  .depict-tech-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.6rem;
+    align-items: start;
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+  .depict-tech-row .tree-tag {
+    width: 1.6em; height: 1.6em; line-height: 1.6em;
+    font-size: 0.85rem;
+  }
+  .tree-tag.tree-discrediting-letter  { background: hsl(0 60% 45%); color: white; }
+  .tree-tag.tree-emotional-letter     { background: hsl(20 75% 50%); color: white; }
+  .tree-tag.tree-polarization-letter  { background: hsl(280 55% 50%); color: white; }
+  .tree-tag.tree-impersonation-letter { background: hsl(160 50% 40%); color: white; }
+  .tree-tag.tree-conspiracy-letter    { background: hsl(220 60% 45%); color: white; }
+  .tree-tag.tree-trolling-letter      { background: hsl(60 70% 40%); color: hsl(220 18% 12%); }
+  .depict-tech-target {
+    display: inline-block;
+    margin-left: 0.5em;
+    font-weight: 600;
+    font-size: 0.78rem;
+  }
+  .depict-help-section {
+    padding: 0.7rem 0.8rem;
+    background: var(--paper-2);
+    border-radius: 5px;
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+  .depict-help-section strong { display: block; margin-bottom: 0.3rem; }
+  .depict-help-section ul { margin: 0.3rem 0 0 1.1rem; padding: 0; }
+  .depict-help-section li { margin-bottom: 0.3rem; }
+  .depict-help-section p { margin: 0; }
   .tree-nodes { display: grid; gap: 0.4rem; }
   .node {
     position: relative;
