@@ -11,7 +11,7 @@ Audit against [00-principles.md](./00-principles.md). Diagnostic — no code cha
 | Finding | Severity | Status |
 |---|---|---|
 | UX-1 — Missing distinct hover/active button states | Medium | 🟢 Addressed |
-| UX-2 — No animation on POST click or resource increment | Medium | 🔴 |
+| UX-2 — No animation on POST click or resource increment | Medium | 🟡 POST pulse shipped; number-pop deferred |
 | UX-3 — Card density mid-late game has no internal hierarchy | High | 🔴 |
 | UX-4 — Disabled buttons don't say WHY (no error-recognition text) | High | 🟢 Addressed |
 | UX-5 — No audio feedback layer | Low | 🔴 (defer; may stay) |
@@ -24,7 +24,7 @@ Audit against [00-principles.md](./00-principles.md). Diagnostic — no code cha
 | UX-12 — No welcome-back / offline-progress modal | Medium | 🟢 Addressed |
 | UX-13 — Save-state indicator absent | Low | 🟢 Addressed |
 | UX-14 — Prestige flow is `confirm()` + reload; not ceremonial | Medium | 🔴 |
-| UX-15 — Currencies are color-only; no icons | Low | 🔴 |
+| UX-15 — Currencies are color-only; no icons | Low | 🟢 Addressed (colored dots) |
 | UX-16 — No tabs/collapsibles planned for mature-state density | High (timed) | 🔴 |
 | UX-17 — Heat mechanic was binary burn with random lockout | Critical | 🟢 Addressed (this push) |
 

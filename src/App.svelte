@@ -234,6 +234,20 @@
       : 0,
   );
 
+  // UX-2: POST click pulse — brief scale animation when manually firing.
+  let firingPlatforms = $state<Record<string, number>>({});
+  function postWithPulse(platformId: string) {
+    postPlatform(game, platformId as Parameters<typeof postPlatform>[1]);
+    firingPlatforms[platformId] = Date.now();
+    setTimeout(() => {
+      delete firingPlatforms[platformId];
+      firingPlatforms = { ...firingPlatforms };
+    }, 200);
+  }
+  function isFiring(platformId: string): boolean {
+    return !!firingPlatforms[platformId];
+  }
+
   // UX-7: achievement panel
   let showAchievements = $state(false);
   const achievementsEarned = $derived(ACHIEVEMENTS.filter((a) => !!game.flags[a.id]));
@@ -394,7 +408,7 @@
         {#if cap > 0 || val > 0}
           {@const bd = multBreakdown[r]}
           <div class="rmeter res-{id}">
-            <div class="rlabel">{label}</div>
+            <div class="rlabel"><span class="res-dot res-{id}"></span>{label}</div>
             <div class="rvalue num">{fmt(val)}<span class="cap"> / {fmt(cap)}</span></div>
             <button
               type="button"
@@ -426,7 +440,7 @@
       {/each}
       {#if showCureMeter}
         <div class="rmeter cure">
-          <div class="rlabel">Cure</div>
+          <div class="rlabel"><span class="res-dot cure-dot"></span>Cure</div>
           <div class="rvalue num">{(game.cure * 100).toFixed(2)}<span class="cap">%</span></div>
           <div class="rrate"></div>
           <div class="rfill cure-fill" style="--fill: {game.cure * 100}%"></div>
@@ -527,13 +541,17 @@
             <div class="blurb">{a.blurb}</div>
             {#if assetEffectText(a)}<div class="effect">{assetEffectText(a)}</div>{/if}
             {#if m}
-              <div class="milestone">
+              <div class="milestone" title="At {m.next} owned: production multiplier rises from ×{m.cur.toFixed(2)} to ×{m.nextMult.toFixed(2)}">
                 <div class="milestone-text">
-                  <span>×{m.cur.toFixed(2)} · next ×{m.nextMult.toFixed(2)} at {m.next}</span>
-                  <span class="milestone-count num">{owned}/{m.next}</span>
+                  <span class="milestone-now">★ ×{m.cur.toFixed(2)} now</span>
+                  <span class="milestone-next">next ×{m.nextMult.toFixed(2)} at {m.next}</span>
                 </div>
                 <div class="milestone-bar">
                   <div class="milestone-fill" style="--fill: {m.progress * 100}%"></div>
+                </div>
+                <div class="milestone-text">
+                  <span class="milestone-next">{m.next - owned} more to unlock</span>
+                  <span class="milestone-count num">{owned}/{m.next}</span>
                 </div>
               </div>
             {/if}
@@ -762,8 +780,9 @@
               <button
                 class="post-platform"
                 class:ready
+                class:firing={isFiring(meta.id)}
                 disabled={!ready}
-                onclick={() => postPlatform(game, meta.id)}
+                onclick={() => postWithPulse(meta.id)}
                 title="Post on {meta.name}. Full burst at 100% charge. Overflow converts to engagement at 10%."
               >
                 {#if ready}
@@ -1213,6 +1232,25 @@
   .res-credibility        { color: var(--res-credibility); }
   .res-narrativeDominance { color: var(--res-narrativeDominance); }
   .res-syntheticReality   { color: var(--res-syntheticReality); }
+
+  /* UX-15: currency dot — small colored circle paired with the label,
+     so currency identity is multi-modal (not color alone). */
+  .res-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.4em;
+    vertical-align: middle;
+    box-shadow: 0 0 4px currentColor;
+  }
+  .res-dot.res-attention          { background: var(--res-attention); color: var(--res-attention); }
+  .res-dot.res-engagement         { background: var(--res-engagement); color: var(--res-engagement); }
+  .res-dot.res-followers          { background: var(--res-followers); color: var(--res-followers); }
+  .res-dot.res-credibility        { background: var(--res-credibility); color: var(--res-credibility); }
+  .res-dot.res-narrativeDominance { background: var(--res-narrativeDominance); color: var(--res-narrativeDominance); }
+  .res-dot.res-syntheticReality   { background: var(--res-syntheticReality); color: var(--res-syntheticReality); }
+  .res-dot.cure-dot               { background: var(--bad); color: var(--bad); }
   .rmeter.res-attention          .rfill { background: var(--res-attention); }
   .rmeter.res-engagement         .rfill { background: var(--res-engagement); }
   .rmeter.res-followers          .rfill { background: var(--res-followers); }
@@ -1555,30 +1593,52 @@
     font-variant-numeric: tabular-nums;
     font-weight: 500;
   }
-  /* UX-9: per-asset milestone progress (Cookie-Clicker "milk" pattern). */
+  /* UX-9: per-asset milestone progress (AdVenture Capitalist style).
+     Beefy 8px meter with gold gradient + glow at fill edge. Persistent
+     reminder of the upcoming bonus. */
   .milestone {
-    margin-top: 0.2rem;
+    margin-top: 0.35rem;
     display: grid;
-    gap: 0.15rem;
+    gap: 0.3rem;
+    padding: 0.4rem 0.5rem;
+    background: color-mix(in oklab, hsl(45 90% 50%) 5%, transparent);
+    border: 1px solid color-mix(in oklab, hsl(45 90% 50%) 22%, transparent);
+    border-radius: 5px;
   }
   .milestone-text {
     display: flex;
     justify-content: space-between;
-    font-size: 0.68rem;
-    color: var(--muted);
+    align-items: baseline;
+    font-size: 0.72rem;
     font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .milestone-now {
+    font-weight: 700;
+    color: hsl(45 90% 45%);
+  }
+  .milestone-next {
+    color: var(--muted);
+  }
+  .milestone-count {
+    font-weight: 600;
+    color: hsl(45 90% 45%);
   }
   .milestone-bar {
-    height: 3px;
-    background: color-mix(in oklab, var(--ink) 8%, transparent);
-    border-radius: 2px;
+    height: 8px;
+    background: color-mix(in oklab, var(--ink) 10%, transparent);
+    border-radius: 5px;
     overflow: hidden;
+    box-shadow: inset 0 1px 2px color-mix(in oklab, var(--ink) 16%, transparent);
+    position: relative;
   }
   .milestone-fill {
     height: 100%;
     width: var(--fill, 0%);
-    background: color-mix(in oklab, var(--ok) 80%, var(--accent));
-    transition: width 200ms;
+    background: linear-gradient(90deg, hsl(45 85% 48%), hsl(38 95% 55%));
+    box-shadow: 0 0 10px color-mix(in oklab, hsl(45 90% 55%) 60%, transparent);
+    transition: width 300ms ease-out;
+    border-radius: 4px;
   }
   .afford-fill {
     position: absolute;
@@ -1737,6 +1797,18 @@
   .post-platform.ready:active {
     transform: scale(0.96);
     transition: transform 60ms;
+  }
+  /* UX-2: brief scale pulse on POST fire so the click feels confirmed. */
+  .post-platform.firing {
+    animation: post-pulse 200ms ease-out;
+  }
+  @keyframes post-pulse {
+    0%   { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in oklab, var(--ok) 60%, transparent); }
+    40%  { transform: scale(1.08); box-shadow: 0 0 0 6px color-mix(in oklab, var(--ok) 30%, transparent); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .post-platform.firing { animation: none; }
   }
   .plt-locked-body {
     display: grid;
