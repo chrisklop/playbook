@@ -19,7 +19,7 @@ Audit pass against [00-principles.md](./00-principles.md). Findings are diagnost
 | 7 — Native JS Number throughout | High (timed) | 🔴 Open (deferred to v0.2 / pre-AI-Sat) |
 | 8 — Legacy multiplier cap reached too soon | Critical | 🟢 Addressed (push 2) |
 | 9 — Legacy applied to all resources blanket-style | Low | 🔴 Open |
-| 10 — Unbounded multiplier stacks | High | 🔴 Open |
+| 10 — Unbounded multiplier stacks | High | 🟢 Addressed (push 4) |
 | 11 — Auto-Poster bonus unbounded | Medium | 🔴 Open |
 | 12 — Phase gates inconsistent with production scales | Medium | 🔴 Open |
 | 13 — DEPICT per-level mult differential lacks rationale | Medium | 🟡 Addressed via redistribution in push 1 |

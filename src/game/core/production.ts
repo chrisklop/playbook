@@ -18,61 +18,100 @@ function emptyResourceMap(fill = 0): Record<ResourceId, number> {
   return Object.fromEntries(RESOURCE_IDS.map((id) => [id, fill])) as Record<ResourceId, number>;
 }
 
-export function computeDepictMultipliers(state: GameState): Record<ResourceId, number> {
-  const mult = emptyResourceMap(1);
+/**
+ * Per-resource multiplier composition (audit Finding 10).
+ * Tracks every source for inspection + a sane cap.
+ */
+export interface MultiplierBreakdown {
+  total: number;
+  sources: Array<{ name: string; factor: number }>;
+}
+
+// Soft cap per resource — late-game balance valve. Above this, additional
+// multipliers compress (logarithmically) instead of compounding linearly.
+// Picked so a fully-stacked late-game build sits around 200-400×; anything
+// beyond that is luxury.
+const STACK_SOFT_CAP = 500;
+
+function applySoftCap(total: number, cap = STACK_SOFT_CAP): number {
+  if (total <= cap) return total;
+  // Past the cap, additional growth is compressed: total → cap + log(over).
+  const over = total - cap;
+  return cap + Math.log10(1 + over) * 50;
+}
+
+export function computeMultiplierBreakdown(state: GameState): Record<ResourceId, MultiplierBreakdown> {
+  const out: Record<string, MultiplierBreakdown> = {};
+  for (const r of RESOURCE_IDS) out[r] = { total: 1, sources: [] };
+
+  const apply = (r: ResourceId, name: string, factor: number) => {
+    if (factor === 1) return;
+    out[r].total *= factor;
+    out[r].sources.push({ name, factor });
+  };
+
+  // DEPICT upgrade multipliers.
   for (const u of UPGRADES) {
     const level = state.upgrades[u.id] ?? 0;
     if (level <= 0) continue;
     for (const [res, perLevel] of Object.entries(u.multiplier)) {
-      const r = res as ResourceId;
-      mult[r] *= 1 + (perLevel as number) * level;
+      apply(res as ResourceId, `${u.name} ×${level}`, 1 + (perLevel as number) * level);
     }
   }
-  // Project-flag bumps.
-  if (state.flags['firstViralMoment']) {
-    mult.attention *= 2;
-  }
-  if (state.flags['cpcNetwork']) {
-    mult.engagement *= 1.5;
-  }
-  // DEPICT synergy bumps.
-  if (state.flags['syn:wedge-content'])      { mult.engagement *= 1.25; mult.attention *= 1.10; }
-  if (state.flags['syn:fake-whistleblower']) { mult.credibility *= 1.30; mult.engagement *= 1.15; }
-  if (state.flags['syn:mob-surge'])          { mult.followers *= 1.40; mult.attention *= 1.15; }
-  if (state.flags['syn:moral-panic'])        { mult.engagement *= 1.30; }
-  if (state.flags['syn:tribal-trojan'])      { mult.followers *= 1.50; mult.engagement *= 1.20; }
-  // Flood the Zone / Reverse-Smear apply to heat/cure, not production.
 
-  // Patron buffs.
+  // Project flags.
+  if (state.flags['firstViralMoment']) apply('attention', 'First Viral Moment', 2);
+  if (state.flags['cpcNetwork'])       apply('engagement', 'CPC Network', 1.5);
+
+  // Synergies.
+  if (state.flags['syn:wedge-content'])      { apply('engagement', 'Wedge Content', 1.25); apply('attention', 'Wedge Content', 1.10); }
+  if (state.flags['syn:fake-whistleblower']) { apply('credibility', 'Fake Whistleblower', 1.30); apply('engagement', 'Fake Whistleblower', 1.15); }
+  if (state.flags['syn:mob-surge'])          { apply('followers', 'Mob Surge', 1.40); apply('attention', 'Mob Surge', 1.15); }
+  if (state.flags['syn:moral-panic'])        { apply('engagement', 'Moral Panic', 1.30); }
+  if (state.flags['syn:tribal-trojan'])      { apply('followers', 'Tribal Trojan', 1.50); apply('engagement', 'Tribal Trojan', 1.20); }
+
+  // Patrons.
   for (const p of PATRONS) {
     if (!state.flags[p.id]) continue;
     for (const [res, amt] of Object.entries(p.buffs)) {
-      mult[res as ResourceId] *= 1 + (amt as number);
+      apply(res as ResourceId, p.name, 1 + (amt as number));
     }
   }
 
-  // Achievement buffs (additive over base 1).
+  // Achievement buffs.
   const achBuffs = totalAchievementBuffs(state);
   for (const [r, amt] of Object.entries(achBuffs)) {
-    mult[r as ResourceId] *= 1 + amt;
+    apply(r as ResourceId, 'Achievements', 1 + amt);
   }
 
-  // Legacy (prestige) multiplier — applies to all production.
+  // Legacy (prestige) — applies to all resources.
   const legacy = loadLegacy();
   const legacyMult = legacyMultiplier(legacy.points);
   if (legacyMult > 1) {
-    for (const r of RESOURCE_IDS) {
-      mult[r] *= legacyMult;
-    }
+    for (const r of RESOURCE_IDS) apply(r, `Legacy ×${legacy.points}`, legacyMult);
   }
 
-  // Mebro reveal — production collapses to 10% during the reveal stub.
+  // Mebro reveal collapse.
   if (state.reveal.active) {
-    for (const r of RESOURCE_IDS) {
-      mult[r] *= 0.1;
+    for (const r of RESOURCE_IDS) apply(r, 'Mebro Reveal', 0.1);
+  }
+
+  // Soft cap.
+  for (const r of RESOURCE_IDS) {
+    const capped = applySoftCap(out[r].total);
+    if (capped !== out[r].total) {
+      out[r].sources.push({ name: '[soft-capped]', factor: capped / out[r].total });
+      out[r].total = capped;
     }
   }
 
+  return out as Record<ResourceId, MultiplierBreakdown>;
+}
+
+export function computeDepictMultipliers(state: GameState): Record<ResourceId, number> {
+  const breakdown = computeMultiplierBreakdown(state);
+  const mult = emptyResourceMap(1);
+  for (const r of RESOURCE_IDS) mult[r] = breakdown[r].total;
   return mult;
 }
 
