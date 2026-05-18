@@ -8,8 +8,12 @@ import { PLATFORM_META } from '../../lib/platforms';
 import { clamp } from './math';
 import { ASSETS } from './catalog';
 
-const HEAT_DECAY_PER_S = 0.005;
-const HEAT_PER_BOT_PER_S = 0.0008;
+// Tuned so ~100 bots can live on a single platform without constant overheating.
+// Equilibrium: HEAT_PER_BOT × bots × (1 - mod*0.5) == HEAT_DECAY × (0.5 + mod) × floodMult
+// For X (mod 0.3): 100 bots equilibrium at heat ~0.5 (warning zone but not blocked).
+// At 200 bots heat climbs but caps at 1.0; player must spread to more platforms.
+const HEAT_DECAY_PER_S = 0.012;
+const HEAT_PER_BOT_PER_S = 0.0001;
 const REACH_DECAY_PER_S = 0.02;
 
 /** Dominant DEPICT technique = highest-level upgrade tree. */
@@ -79,7 +83,6 @@ export function tickPlatforms(state: GameState, dt: number): void {
   for (const id of PLATFORM_IDS) {
     const p = state.platforms[id];
     if (!p.unlocked) continue;
-    if (p.burned) continue;
 
     const meta = PLATFORM_META.find((m) => m.id === id);
     if (!meta) continue;
@@ -92,18 +95,11 @@ export function tickPlatforms(state: GameState, dt: number): void {
 
     // Heat: bot-asset count contributes, decays with platform moderation.
     // Flood the Zone synergy boosts heat decay rate ×1.4 platform-wide.
+    // Heat ALWAYS decays — even at cap. No more binary burn / random lockout.
+    // Instead, posts get yield-penalized as heat climbs (see posting.ts).
     const heatGain = botsPerPlatform * HEAT_PER_BOT_PER_S * (1 - meta.moderation * 0.5) * dt;
     const floodMult = state.flags['syn:flood-the-zone'] ? 1.4 : 1.0;
     const heatDecay = HEAT_DECAY_PER_S * (0.5 + meta.moderation) * floodMult * dt;
     p.heat = clamp(p.heat + heatGain - heatDecay, 0, 1);
-
-    // Ban triggers — high heat may burn the platform for a cooldown.
-    if (p.heat >= 0.85 && Math.random() < (p.heat - 0.85) / 15) {
-      p.burned = true;
-      p.burnedUntil = state.lastTick + 90_000; // 90s lockout
-      p.heat = 0.4;
-      p.reach *= 0.5;
-      state.log.unshift(`Platform burned: ${meta.name} suspends a wave of your accounts.`);
-    }
   }
 }

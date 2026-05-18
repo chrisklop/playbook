@@ -118,4 +118,4 @@ export interface GameState {
   lastEventAt: number;
 }
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;

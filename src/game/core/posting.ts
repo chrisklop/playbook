@@ -11,8 +11,12 @@ import { treeTotalLevel } from './catalog';
 import { clamp } from './math';
 
 const BASE_CHARGE_TIME_S = 5;
-const HEAT_PER_POST = 0.015;
+const HEAT_PER_POST = 0.008;
 const POST_BASE_YIELD_MULT = 5;
+// Heat → yield penalty curve: yield × (1 - heat × HEAT_YIELD_PENALTY).
+// At heat=0  → 100% yield, at heat=0.5 → 70%, at heat=1.0 → 40%.
+// Posting at high heat is allowed but discouraged — strategic decision.
+const HEAT_YIELD_PENALTY = 0.6;
 
 export function chargeTimeSeconds(state: GameState): number {
   // Sum DEPICT levels across all trees; each 5 levels = 5% reduction.
@@ -48,7 +52,10 @@ export function postYield(state: GameState, platformId: PlatformId): number {
   const bots = botAssetCount(state);
   // Auto-poster reduces efficiency slightly so manual is still rewarded.
   const autoBonus = 1 + 0.1 * (state.assets.autoPoster ?? 0);
-  return Math.max(1, bots * amp * POST_BASE_YIELD_MULT * autoBonus);
+  // Heat penalty: hot platforms produce less per post.
+  const p = state.platforms[platformId];
+  const heatPenalty = 1 - (p?.heat ?? 0) * HEAT_YIELD_PENALTY;
+  return Math.max(1, bots * amp * POST_BASE_YIELD_MULT * autoBonus * heatPenalty);
 }
 
 // Manual posts may fire early — yield scales with chargeProgress.
