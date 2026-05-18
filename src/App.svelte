@@ -290,6 +290,7 @@
       delete firingPlatforms[platformId];
       firingPlatforms = { ...firingPlatforms };
     }, 200);
+    pulseResource(game.resources.attention >= game.caps.attention ? 'engagement' : 'attention');
   }
   function isFiring(platformId: string): boolean {
     return !!firingPlatforms[platformId];
@@ -319,16 +320,52 @@
     game.lastSave > 0 ? Math.max(0, Math.floor((nowTick - game.lastSave) / 1000)) : 0,
   );
 
-  // Rotating ticker
+  // Rotating ticker — paused on click. (UX-10)
   let factIndex = $state(0);
+  let tickerPaused = $state(false);
   onMount(() => {
     factIndex = Math.floor(Math.random() * FACTS.length);
     const handle = setInterval(() => {
+      if (tickerPaused) return;
       factIndex = (factIndex + 1) % FACTS.length;
     }, 25_000);
     return () => clearInterval(handle);
   });
   const currentFact = $derived(FACTS[factIndex]);
+  function tickerClick() {
+    if (tickerPaused) {
+      // already paused → advance to next on click
+      factIndex = (factIndex + 1) % FACTS.length;
+    } else {
+      tickerPaused = true;
+    }
+  }
+  function tickerDblClick() { tickerPaused = false; } // resume on double-click
+
+  // UX-2: per-resource pulse on big events. Triggered from POST/freestyle
+  // clicks and from event activations. .rvalue animates a scale-pop.
+  // Background tick gains do NOT pulse (would be noisy).
+  // Audio (UX-5): deliberately silent. Idle games run in background tabs
+  // and surprise audio is intrusive. Revisit if/when a settings panel ships.
+  let resourcePulseAt = $state<Record<string, number>>({});
+  function pulseResource(id: string) {
+    resourcePulseAt[id] = Date.now();
+    resourcePulseAt = { ...resourcePulseAt };
+  }
+  function isPulsing(id: string): boolean {
+    return (nowTick - (resourcePulseAt[id] ?? 0)) < 350;
+  }
+  // Pulse the event's target resource each time a new event starts.
+  let lastEventId = $state<string | null>(null);
+  $effect(() => {
+    const ev = game.event;
+    if (ev && ev.id !== lastEventId) {
+      pulseResource(ev.resourceId);
+      lastEventId = ev.id;
+    } else if (!ev) {
+      lastEventId = null;
+    }
+  });
 
   function affordabilityRatio(cost: number, resource: string): number {
     const have = game.resources[resource as keyof typeof game.resources] ?? 0;
@@ -506,12 +543,12 @@
         {#if cap > 0 || val > 0}
           {@const bd = multBreakdown[r]}
           {@const spendable = spendableCount(id)}
-          <div class="rmeter res-{id}">
+          <div class="rmeter res-{id}" class:pulsing={isPulsing(id)}>
             <div class="rlabel">
               <span class="res-dot res-{id}"></span>{label}
               {#if spendable > 0}<span class="spendable-badge" title="{spendable} thing{spendable === 1 ? '' : 's'} you can buy right now with {id}">{spendable}</span>{/if}
             </div>
-            <div class="rvalue num">{fmt(val)}<span class="cap"> / {fmt(cap)}</span></div>
+            <div class="rvalue num" class:pulsing={isPulsing(id)}>{fmt(val)}<span class="cap"> / {fmt(cap)}</span></div>
             <button
               type="button"
               class="rrate"
@@ -583,10 +620,19 @@
 
   <!-- TICKER -->
   {#if showTicker}
-    <div class="ticker">
+    <div
+      class="ticker"
+      class:paused={tickerPaused}
+      onclick={tickerClick}
+      ondblclick={tickerDblClick}
+      role="button"
+      tabindex="0"
+      title={tickerPaused ? 'paused · click to step · double-click to resume rotation' : 'click to pause · auto-rotates every 25s'}
+    >
       <span class="tick-fact">
         {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
       </span>
+      {#if tickerPaused}<span class="tick-paused">⏸</span>{/if}
     </div>
   {/if}
 
@@ -966,7 +1012,7 @@
               </button>
               <button
                 class="post-platform freestyle"
-                onclick={() => { freestylePost(game, meta.id); firingPlatforms[meta.id + ':f'] = Date.now(); setTimeout(() => { delete firingPlatforms[meta.id + ':f']; firingPlatforms = { ...firingPlatforms }; }, 200); }}
+                onclick={() => { freestylePost(game, meta.id); firingPlatforms[meta.id + ':f'] = Date.now(); setTimeout(() => { delete firingPlatforms[meta.id + ':f']; firingPlatforms = { ...firingPlatforms }; }, 200); pulseResource(attCapped ? 'engagement' : 'attention'); }}
                 class:firing={isFiring(meta.id + ':f')}
                 title="Freestyle — fire anytime, ignores charge. {Math.round(fy)} attention right now. Heat cost scales: +{Math.round(4 * (1 + p.heat))}% per click. Spam carefully."
               >
@@ -1191,14 +1237,28 @@
           <button class="ghost" onclick={() => (showPlatformsHelp = false)}>close</button>
         </div>
         <p class="depict-modal-intro">
-          Each unlocked platform charges a <strong>POST bar</strong>. When it fills, click POST (or let the auto-poster fire) to convert your bots and DEPICT mastery into a burst of attention. Each platform amplifies different DEPICT techniques.
+          Platforms are how you <strong>convert bots into attention</strong>. Without posting, your bots passively produce a trickle. Posting <strong>multiplies that trickle into bursts</strong> — typically 4-8× faster total attention income while you're active.
         </p>
+        <div class="depict-help-section">
+          <strong>What POST actually does</strong>
+          <p>Each POST fires an instant burst:</p>
+          <p style="font-family: ui-monospace, monospace; font-size: 0.8rem; padding: 0.5rem; background: color-mix(in oklab, var(--ink) 5%, transparent); border-radius: 4px;">
+            yield = <strong>bots</strong> × <strong>platform_amp</strong> × 5 × auto_bonus × heat_penalty
+          </p>
+          <ul>
+            <li><strong>bots</strong> — count of all bot-kind assets you own (sock puppets, doppelganger clusters, spamouflage nodes).</li>
+            <li><strong>platform_amp</strong> — that platform's multiplier for your dominant DEPICT technique (X amps Trolling ×1.7, YouTube amps Conspiracy ×1.7, etc).</li>
+            <li><strong>auto_bonus</strong> — +10% per Auto-Poster owned.</li>
+            <li><strong>heat_penalty</strong> — drops yield as heat climbs (0% heat = 100% yield; 100% heat = 40% yield).</li>
+          </ul>
+          <p>The burst fills <strong>attention</strong>. If attention is capped, 10% of the overflow rolls into engagement so the post is never wasted.</p>
+        </div>
         <div class="depict-help-section">
           <strong>The three meters</strong>
           <ul>
-            <li><strong>Heat</strong> — your current platform-risk level. Rises with bot count and posts; falls over time. <span class="res-engagement">Higher heat = lower post yield.</span></li>
-            <li><strong>Charge</strong> — fills over time. POST fires at 100% for full yield.</li>
-            <li><strong>Rate</strong> — your throttle. Slide it down to slow posting AND slow heat gain from your bots. Slide it up to push for max output.</li>
+            <li><strong>Heat</strong> — your platform-risk level. Rises with bot count + each post; falls naturally. <em>Higher heat = lower post yield AND a forced ban at 100%.</em></li>
+            <li><strong>Charge</strong> — fills over time (5s base, reduced by DEPICT levels). POST fires at 100% for full yield.</li>
+            <li><strong>Rate</strong> — your throttle. Slide it down to slow posting AND slow heat gain from bots. The dial that keeps you out of the ban zone.</li>
           </ul>
         </div>
         <div class="depict-help-section">
@@ -1912,6 +1972,30 @@
     overflow: hidden;
     height: 26px;
     position: relative;
+    cursor: pointer;
+    user-select: none;
+  }
+  .ticker:hover { background: color-mix(in oklab, var(--ink) 6%, var(--paper-2)); }
+  .ticker.paused { background: color-mix(in oklab, var(--accent) 6%, var(--paper-2)); }
+  .tick-paused {
+    position: absolute;
+    right: 0.6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    color: var(--accent);
+    pointer-events: none;
+  }
+
+  /* UX-2: resource value pulse on big events (POST fire, event trigger). */
+  .rvalue.pulsing { animation: rvalue-pop 350ms ease-out 1; }
+  @keyframes rvalue-pop {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.18); filter: brightness(1.3); }
+    100% { transform: scale(1); }
+  }
+  .rmeter.pulsing .res-dot {
+    box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 40%, transparent);
   }
   .tick-fact {
     display: block;
