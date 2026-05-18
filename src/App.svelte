@@ -404,8 +404,9 @@
     const tier = Math.floor(Math.log2(count / 25));
     const next = 25 * Math.pow(2, tier + 1);
     const nextMult = 1 + Math.log2(next / 25);
-    const prevThreshold = 25 * Math.pow(2, tier);
-    const progress = (count - prevThreshold) / (next - prevThreshold);
+    // Bar fill = count / next so it matches the "N/next" label intuitively
+    // (a player at 70 with target 100 reads as 70%, not 40%).
+    const progress = count / next;
     return { cur, next, nextMult, progress };
   }
 
