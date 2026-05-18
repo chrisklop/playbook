@@ -15,7 +15,7 @@
     PATRONS, activatePatron, isPatronVisible,
     isPatronTeased, canActivatePatron,
   } from './game/core/patrons';
-  import { computeRates } from './game/core/production';
+  import { computeRates, computeMultiplierBreakdown } from './game/core/production';
   import { postPlatform, postYield, chargeTimeSeconds } from './game/core/posting';
   import { affordableCount } from './game/core/math';
   import { DEPICT_IDS, PHASE_ORDER } from './game/types';
@@ -79,6 +79,11 @@
   }
 
   const rates = $derived(computeRates(game));
+  const multBreakdown = $derived(computeMultiplierBreakdown(game));
+  let openBreakdown = $state<string | null>(null);  // which resource's breakdown is showing
+  function toggleBreakdown(id: string) {
+    openBreakdown = openBreakdown === id ? null : id;
+  }
 
   // Stickiness: once revealed or teased, never hidden again — even if the
   // player spends down past the threshold. Read sticky flags set by tick.
@@ -323,12 +328,35 @@
         {@const rate = rates[r]}
         {@const eta = etaToCap(val, cap, rate)}
         {#if cap > 0 || val > 0}
+          {@const bd = multBreakdown[r]}
           <div class="rmeter res-{id}">
             <div class="rlabel">{label}</div>
             <div class="rvalue num">{fmt(val)}<span class="cap"> / {fmt(cap)}</span></div>
-            <div class="rrate" class:positive={rate > 0}>{fmtRate(rate)}</div>
+            <button
+              type="button"
+              class="rrate"
+              class:positive={rate > 0}
+              class:has-breakdown={bd.sources.length > 0}
+              onclick={() => toggleBreakdown(id)}
+              title={bd.sources.length > 0 ? 'click for multiplier breakdown' : ''}
+            >{fmtRate(rate)}{#if bd.sources.length > 0} <span class="mult-hint">×{bd.total.toFixed(2)}</span>{/if}</button>
             {#if eta}<div class="reta">{eta}</div>{/if}
             <div class="rfill" style="--fill: {cap > 0 ? Math.min(100, (val / cap) * 100) : 0}%"></div>
+            {#if openBreakdown === id && bd.sources.length > 0}
+              <div class="breakdown-popover">
+                <div class="breakdown-head">
+                  {label} multiplier: <strong>×{bd.total.toFixed(2)}</strong>
+                </div>
+                <div class="breakdown-list">
+                  {#each bd.sources as src (src.name)}
+                    <div class="breakdown-row">
+                      <span class="breakdown-name">{src.name}</span>
+                      <span class="breakdown-factor num">×{src.factor.toFixed(2)}</span>
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {/if}
           </div>
         {/if}
       {/each}
@@ -841,8 +869,60 @@
   .rlabel { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
   .rvalue { font-size: 0.95rem; font-weight: 600; }
   .rvalue .cap { color: var(--muted); font-weight: 400; }
-  .rrate { font-size: 0.7rem; color: var(--muted); }
+  .rrate {
+    appearance: none;
+    font: inherit;
+    font-size: 0.7rem;
+    color: var(--muted);
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: default;
+    text-align: left;
+  }
   .rrate.positive { color: var(--ok); }
+  .rrate.has-breakdown {
+    cursor: pointer;
+    border-bottom: 1px dotted color-mix(in oklab, currentColor 40%, transparent);
+  }
+  .rrate.has-breakdown:hover { color: var(--ink); }
+  .mult-hint {
+    margin-left: 0.3em;
+    opacity: 0.7;
+    font-weight: 600;
+  }
+  .breakdown-popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.5rem 0.6rem;
+    box-shadow: 0 6px 18px color-mix(in oklab, var(--ink) 14%, transparent);
+    z-index: 30;
+    font-size: 0.74rem;
+  }
+  .breakdown-head {
+    color: var(--muted);
+    padding-bottom: 0.3rem;
+    margin-bottom: 0.3rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .breakdown-list {
+    display: grid;
+    gap: 0.1rem;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .breakdown-name { color: var(--ink); }
+  .breakdown-factor { color: var(--ok); font-weight: 600; }
   .reta { font-size: 0.65rem; color: var(--muted); font-style: italic; }
   .num { font-variant-numeric: tabular-nums; }
 
