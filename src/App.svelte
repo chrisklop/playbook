@@ -1955,8 +1955,10 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 0.45rem;
-    align-items: start;
+    align-items: stretch;
   }
+  /* Cards stretch to match their row's tallest sibling so rows line up. */
+  .cards > .card { align-content: start; }
 
   /* ── GENERIC CARD ──────────────────────────────────────────────────── */
   .card {
