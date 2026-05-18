@@ -13,7 +13,7 @@ Audit pass against [00-principles.md](./00-principles.md). Findings are diagnost
 | 1 — Asset growth rates below 1.07–1.15 band | Critical | 🟢 Addressed (push 1) |
 | 2 — Tier-2 growth 1.16 above band | Medium | 🟢 Addressed (push 1) |
 | 3 — Six DEPICT trees stack on attention | Critical | 🟢 Addressed (push 1) |
-| 4 — No generator-overtake / milestone math | High | 🔴 Open |
+| 4 — No generator-overtake / milestone math | High | 🟢 Addressed (push 3) |
 | 5 — Paradigm cap growth tight against new cost growth | Medium | 🟢 Addressed (push 1) |
 | 6 — Prestige formula yields too many points | Critical | 🟢 Addressed (push 2) |
 | 7 — Native JS Number throughout | High (timed) | 🔴 Open (deferred to v0.2 / pre-AI-Sat) |

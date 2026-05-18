@@ -112,6 +112,29 @@ export function computeCaps(state: GameState): Record<ResourceId, number> {
   return caps;
 }
 
+/**
+ * Per-asset milestone multiplier (audit Finding 4 — Pecorella Part II
+ * "Cookie Clicker milk" pattern). Each doubling of owned-count past 25
+ * adds +1.0 to the asset's own production multiplier:
+ *
+ *   count <  25:  ×1.0
+ *   count =  25:  ×1.0  (log2(1) + 1 = 1)
+ *   count =  50:  ×2.0
+ *   count = 100:  ×3.0
+ *   count = 200:  ×4.0
+ *   count = 400:  ×5.0
+ *   count = 800:  ×6.0
+ *   count = 1600: ×7.0
+ *
+ * Keeps older tiers relevant: a 1000-puppet stack stays meaningfully
+ * productive even after higher-tier assets unlock. Per-asset, NOT
+ * per-resource — buying lots of sock puppets boosts only sock puppets.
+ */
+export function assetMilestoneMultiplier(count: number): number {
+  if (count < 25) return 1;
+  return 1 + Math.log2(count / 25);
+}
+
 export function computeRates(state: GameState): Record<ResourceId, number> {
   const rates = emptyResourceMap(0);
   const buff =
@@ -123,9 +146,10 @@ export function computeRates(state: GameState): Record<ResourceId, number> {
   for (const asset of ASSETS) {
     const count = state.assets[asset.id] ?? 0;
     if (count <= 0) continue;
+    const milestone = assetMilestoneMultiplier(count);
     for (const [res, perTickPerUnit] of Object.entries(asset.produces)) {
       const r = res as ResourceId;
-      rates[r] += (perTickPerUnit as number) * count;
+      rates[r] += (perTickPerUnit as number) * count * milestone;
     }
   }
 
