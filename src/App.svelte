@@ -541,10 +541,18 @@
         {/if}
       {/each}
       {#if showCureMeter}
-        <div class="rmeter cure">
+        <div
+          class="rmeter cure"
+          class:reveal-active={game.reveal.active}
+          title={
+            game.reveal.active
+              ? 'CURE 80%+ · The counter-narrative wins. Mebro fact-checks are landing on your content; reach is dropping fast. Time to ★ Prestige and start a smarter run.'
+              : 'Cure (counter-narrative pressure) — rises with total platform heat. Fact-checkers, watchdogs, investigative pieces, defamation suits, and platform policy changes all push it up. At 80% the Mebro reveal triggers: your network gets fact-checked into oblivion. Discrediting upgrades suppress cure growth (up to −80%). Use it as a clock: how much can you build before the truth catches up?'
+          }
+        >
           <div class="rlabel"><span class="res-dot cure-dot"></span>Cure</div>
           <div class="rvalue num">{(game.cure * 100).toFixed(2)}<span class="cap">%</span></div>
-          <div class="rrate"></div>
+          <div class="rrate">{game.reveal.active ? 'REVEAL' : ''}</div>
           <div class="rfill cure-fill" style="--fill: {game.cure * 100}%"></div>
         </div>
       {/if}
@@ -579,6 +587,16 @@
       <span class="tick-fact">
         {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
       </span>
+    </div>
+  {/if}
+
+  {#if game.reveal.active}
+    <div class="reveal-banner" title="Mebro reveal triggered at 80% cure. Until the full third-act sequence ships in v0.2, you'll see fact-check annotations conceptually — push to peak and Prestige to bank legacy points and start a smarter run.">
+      <span class="reveal-icon">⚠</span>
+      <div class="reveal-text">
+        <strong>THE PLAYBOOK IS UP</strong> — Mebro fact-checks are landing on your content. The counter-narrative wins; reach is collapsing.
+        <span class="reveal-hint">★ Prestige (top-right) to bank legacy points and start a smarter run.</span>
+      </div>
     </div>
   {/if}
 
@@ -1409,6 +1427,50 @@
     transition: width 200ms;
   }
   .rmeter .cure-fill { background: var(--bad); }
+  .rmeter.cure.reveal-active {
+    animation: cure-reveal-pulse 1.4s ease-in-out infinite;
+  }
+  .rmeter.cure.reveal-active .rrate {
+    color: var(--bad);
+    font-weight: 700;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+  }
+  @keyframes cure-reveal-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--bad) 60%, transparent); }
+    50%      { box-shadow: 0 0 0 4px color-mix(in oklab, var(--bad) 0%, transparent); }
+  }
+
+  /* Mebro reveal banner — only shown when state.reveal.active = true
+     (fires automatically at cure >= 80%). Persistent, prominent, with
+     a "what now" hint pointing the player at Prestige. */
+  .reveal-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin: 0 0.7rem 0.5rem;
+    padding: 0.55rem 0.85rem;
+    background: linear-gradient(90deg,
+      color-mix(in oklab, var(--bad) 20%, var(--paper-2)),
+      color-mix(in oklab, var(--bad) 8%, var(--paper-2)));
+    border: 1px solid var(--bad);
+    border-radius: 6px;
+    color: var(--bad);
+    animation: cure-reveal-pulse 1.6s ease-in-out infinite;
+  }
+  .reveal-icon { font-size: 1.2rem; }
+  .reveal-text {
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: var(--ink);
+  }
+  .reveal-text strong { color: var(--bad); margin-right: 0.4rem; letter-spacing: 0.05em; }
+  .reveal-hint {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 0.15rem;
+  }
   .rlabel {
     font-size: 0.65rem;
     color: var(--muted);
