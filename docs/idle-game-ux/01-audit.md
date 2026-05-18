@@ -10,10 +10,10 @@ Audit against [00-principles.md](./00-principles.md). Diagnostic — no code cha
 
 | Finding | Severity | Status |
 |---|---|---|
-| UX-1 — Missing distinct hover/active button states | Medium | 🔴 |
+| UX-1 — Missing distinct hover/active button states | Medium | 🟢 Addressed |
 | UX-2 — No animation on POST click or resource increment | Medium | 🔴 |
 | UX-3 — Card density mid-late game has no internal hierarchy | High | 🔴 |
-| UX-4 — Disabled buttons don't say WHY (no error-recognition text) | High | 🔴 |
+| UX-4 — Disabled buttons don't say WHY (no error-recognition text) | High | 🟢 Addressed |
 | UX-5 — No audio feedback layer | Low | 🔴 (defer; may stay) |
 | UX-6 — Precedent text border-left could read as false affordance | Low | 🔴 |
 | UX-7 — Achievement progress not visible | Medium | 🔴 |

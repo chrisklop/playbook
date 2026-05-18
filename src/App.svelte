@@ -224,6 +224,11 @@
     if (cost <= 0) return 1;
     return Math.min(1, have / cost);
   }
+  function shortfall(cost: number, resource: string): string | null {
+    const have = game.resources[resource as keyof typeof game.resources] ?? 0;
+    if (have >= cost) return null;
+    return `need ${fmt(cost - have)} more ${resource}`;
+  }
 
   function depictLetter(t: string): string {
     return t[0].toUpperCase();
@@ -405,6 +410,7 @@
           {@const affordable = n > 0 && canBuyAsset(game, a.id, n)}
           {@const ratio = affordabilityRatio(cost, a.costResource)}
           {@const pre = getPrecedent(a.id, a.precedents)}
+          {@const sf = !affordable && n > 0 ? shortfall(cost, a.costResource) : null}
           <button class="card asset" disabled={!affordable} onclick={() => doBuyAsset(a.id)} title={pre ?? ''}>
             <div class="card-head">
               <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
@@ -424,6 +430,7 @@
               <span class="buy-n">+{n}</span>
               <span class="cost num res-{a.costResource}">{fmt(cost)} {a.costResource}</span>
             </div>
+            {#if sf}<div class="shortfall">{sf}</div>{/if}
             <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
           </button>
         {/each}
@@ -449,6 +456,7 @@
             {@const [res, amt] = Object.entries(p.cost)[0]}
             {@const ratio = affordabilityRatio(amt as number, res)}
             {@const ppre = getPrecedent(p.id, p.precedents)}
+            {@const psf = !affordable ? shortfall(amt as number, res) : null}
             <button class="card project" disabled={!affordable} onclick={() => completeProject(game, p.id)} title={ppre ?? ''}>
               <div class="card-head">
                 <span class="name">{p.name}</span>
@@ -466,6 +474,7 @@
                 <span class="buy-n">one-shot</span>
                 <span class="cost num res-{res}">{fmt(amt as number)} {res}</span>
               </div>
+              {#if psf}<div class="shortfall">{psf}</div>{/if}
               <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
             </button>
           {/each}
@@ -682,6 +691,7 @@
                 {@const affordable = !maxed && n > 0 && canBuyUpgrade(game, u.id, n)}
                 {@const ratio = affordabilityRatio(cost, u.costResource)}
                 {@const upre = getPrecedent(u.id, u.precedents)}
+                {@const usf = !maxed && !affordable && n > 0 ? shortfall(cost, u.costResource) : null}
                 <button class="node" disabled={!affordable || maxed} onclick={() => doBuyUpgrade(u.id)} title={upre ?? ''}>
                   <div class="node-head">
                     <span class="node-name">{u.name}</span>
@@ -701,6 +711,7 @@
                     {#if !maxed}<span class="buy-n">+{n}</span>{/if}
                     <span class="node-cost num res-{u.costResource}">{maxed ? 'maxed' : `${fmt(cost)} ${u.costResource}`}</span>
                   </div>
+                  {#if usf}<div class="shortfall">{usf}</div>{/if}
                   <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
                 </button>
               {/each}
@@ -921,6 +932,7 @@
   }
   .bulk-btn:last-child { border-right: none; }
   .bulk-btn:hover { color: var(--ink); background: color-mix(in oklab, var(--ink) 5%, transparent); }
+  .bulk-btn:active { transform: scale(0.97); transition: transform 60ms; }
   .bulk-btn.active { background: var(--accent); color: white; }
   .ghost {
     appearance: none;
@@ -934,6 +946,7 @@
     cursor: pointer;
   }
   .ghost:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); }
+  .ghost:active { transform: scale(0.97); transition: transform 60ms; }
   .ghost.prestige {
     color: hsl(45 90% 45%);
     border-color: hsl(45 90% 45%);
@@ -1103,9 +1116,22 @@
   }
   .card:hover:not(:disabled) {
     border-color: var(--accent);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
   }
-  .card:active:not(:disabled) { transform: translateY(1px); }
+  .card:active:not(:disabled) {
+    transform: scale(0.985);
+    transition: transform 60ms;
+  }
   .card:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  /* Shortfall hint shown on disabled buy buttons (UX-4). */
+  .shortfall {
+    font-size: 0.7rem;
+    color: var(--bad);
+    font-style: italic;
+    margin-top: 0.15rem;
+    text-align: right;
+  }
   .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
   .name { font-weight: 600; font-size: 0.9rem; }
   .kind { font-weight: 400; color: var(--muted); font-size: 0.75rem; }
@@ -1309,6 +1335,10 @@
   .post-platform.ready:hover {
     background: color-mix(in oklab, var(--ok) 30%, transparent);
   }
+  .post-platform.ready:active {
+    transform: scale(0.96);
+    transition: transform 60ms;
+  }
   .plt-locked-body {
     display: grid;
     place-items: center;
@@ -1366,7 +1396,11 @@
     gap: 0.15rem;
     overflow: hidden;
   }
-  .node:hover:not(:disabled) { border-color: var(--accent); }
+  .node:hover:not(:disabled) {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+  .node:active:not(:disabled) { transform: scale(0.985); transition: transform 60ms; }
   .node:disabled { opacity: 0.55; cursor: not-allowed; }
   .node-head {
     display: flex;
