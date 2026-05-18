@@ -30,12 +30,23 @@
   import { onMount } from 'svelte';
 
   type BulkMode = 1 | 10 | 100 | 'max';
+  // bulkMode + tileBulkMode is the Assets-only state. DEPICT nodes have
+  // their own independent state so the Assets top-bar bulk button can't
+  // disable upgrade tiles by inflating their counts past what's affordable.
   let bulkMode = $state<BulkMode>(1);
-  // Per-tile overrides. Falls back to global bulkMode when not set.
-  // Clicking the top bulk bar acts as "select all" — clears overrides.
   let tileBulkMode = $state<Record<string, BulkMode>>({});
-  function tileMode(id: string): BulkMode {
+  const UPGRADE_DEFAULT_BULK: BulkMode = 1;
+  function assetTileMode(id: string): BulkMode {
     return tileBulkMode[id] ?? bulkMode;
+  }
+  function upgradeTileMode(_id: string): BulkMode {
+    return UPGRADE_DEFAULT_BULK; // DEPICT trees: always ×1 (no UI yet)
+  }
+  function tileMode(id: string): BulkMode {
+    // Generic — used by render code. Routes to the right state by id.
+    return UPGRADES.some((u) => u.id === id)
+      ? upgradeTileMode(id)
+      : assetTileMode(id);
   }
   function setGlobalBulk(mode: BulkMode) {
     bulkMode = mode;
