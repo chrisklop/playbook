@@ -751,7 +751,6 @@
     <section class="col left">
       <div class="section-head">
         <h2>Assets</h2>
-        <button class="ghost depict-help-btn" onclick={() => (showAssetsHelp = true)} title="What are assets?">?</button>
         {#if showBulkBuy}
           <div class="bulk" role="group" aria-label="bulk-buy quantity">
             {#each [1, 10, 100, 'max'] as mode (mode)}
@@ -764,6 +763,7 @@
             {/each}
           </div>
         {/if}
+        <button class="ghost depict-help-btn" onclick={() => (showAssetsHelp = true)} title="What are assets?">?</button>
       </div>
       <div class="cards">
         {#each visibleAssets as a (a.id)}

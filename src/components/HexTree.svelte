@@ -14,8 +14,6 @@
   }
   let { tree, label, letter, target }: Props = $props();
 
-  let expanded = $state(true);
-
   // Nodes in this tree, in catalog order.
   const nodes = $derived(UPGRADES.filter((u) => u.tree === tree));
 
@@ -40,6 +38,18 @@
   function isLocked(node: typeof UPGRADES[number]): boolean {
     return node.tier === 2 && !tier2Unlocked;
   }
+
+  // Tree-level affordability cue: true if any non-locked, non-maxed node
+  // in this tree is currently affordable. Drives a pulse on the tree
+  // header and on each affordable hex.
+  const hasAffordable = $derived(
+    nodes.some((n) => {
+      if (isLocked(n)) return false;
+      const lvl = game.upgrades[n.id] ?? 0;
+      if (lvl >= n.maxLevel) return false;
+      return canBuyUpgrade(game, n.id, 1);
+    }),
+  );
 
   function handleHexClick(nodeId: string, event: MouseEvent) {
     event.preventDefault();
@@ -76,21 +86,18 @@
   }
 </script>
 
-<div class="hex-tree tree-{tree}" class:collapsed={!expanded}>
-  <button
-    class="hex-tree-head"
-    onclick={() => (expanded = !expanded)}
-    title={expanded ? `Collapse ${label}` : `Expand ${label}`}
-  >
-    <span class="hex-tree-tag">{letter}</span>
+<div class="hex-tree tree-{tree}" class:has-affordable={hasAffordable}>
+  <div class="hex-tree-head">
+    <span class="hex-tree-tag">
+      {letter}
+      {#if hasAffordable}<span class="hex-tree-affordable-dot" aria-label="affordable upgrade available"></span>{/if}
+    </span>
     <span class="hex-tree-name">{label}</span>
     {#if target}<span class="hex-tree-target res-{target}">→ {target}</span>{/if}
     <span class="hex-tree-progress num">{totalLevel}/{totalMax}</span>
-    <span class="hex-tree-caret">{expanded ? '▼' : '▶'}</span>
-  </button>
+  </div>
 
-  {#if expanded}
-    <div class="hex-tree-body">
+  <div class="hex-tree-body">
       <svg
         class="hex-tree-lines"
         viewBox="0 0 100 30"
@@ -140,7 +147,6 @@
         {/each}
       </div>
     </div>
-  {/if}
 </div>
 
 <style>
@@ -165,21 +171,13 @@
   .hex-tree.tree-trolling      { --tree-tint: hsl(60 70% 45%); }
 
   .hex-tree-head {
-    appearance: none;
-    font: inherit;
-    color: inherit;
-    background: transparent;
-    border: none;
-    text-align: left;
-    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0;
     width: 100%;
   }
-  .hex-tree-head:hover { color: var(--ink); }
   .hex-tree-tag {
+    position: relative;
     display: inline-block;
     width: 1.4rem; height: 1.4rem;
     line-height: 1.4rem;
@@ -190,10 +188,32 @@
     border-radius: 4px;
     font-size: 0.75rem;
   }
+  /* Affordable dot on the tree-letter chip — small pulsing accent so the
+     eye picks up "this tree has something you can buy right now". */
+  .hex-tree-affordable-dot {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 6px var(--ok);
+    animation: hex-tree-dot-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes hex-tree-dot-pulse {
+    0%, 100% { transform: scale(1);    opacity: 1; }
+    50%      { transform: scale(0.7);  opacity: 0.6; }
+  }
+  /* When the tree has at least one affordable node, give the whole card
+     a subtle accent border so it stands out against the others. */
+  .hex-tree.has-affordable {
+    border-color: color-mix(in oklab, var(--ok) 35%, var(--line));
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--ok) 15%, transparent);
+  }
   .hex-tree-name { font-weight: 700; font-size: 0.78rem; }
   .hex-tree-target { font-size: 0.62rem; opacity: 0.75; }
   .hex-tree-progress { margin-left: auto; font-size: 0.7rem; opacity: 0.7; font-variant-numeric: tabular-nums; }
-  .hex-tree-caret { font-size: 0.6rem; opacity: 0.55; }
 
   .hex-tree-body {
     position: relative;
@@ -258,8 +278,17 @@
     height: 100%;
     box-shadow: 0 0 8px hsl(140 80% 50% / 0.5);
   }
+  /* Strong affordable cue: hex shape gets a glowing ring + pulse so
+     the eye picks it out even at small sizes. */
   .hex-node.affordable .hex-shape {
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--tint) 50%, transparent);
+    box-shadow:
+      0 0 0 2px color-mix(in oklab, var(--tint) 70%, transparent),
+      0 0 10px color-mix(in oklab, var(--tint) 60%, transparent);
+    animation: hex-affordable-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes hex-affordable-pulse {
+    0%, 100% { filter: brightness(1); }
+    50%      { filter: brightness(1.25); }
   }
   .hex-node:not(.locked):not(.maxed):hover .hex-shape {
     transform: scale(1.06);
@@ -301,5 +330,4 @@
     font-size: 0.85rem;
     pointer-events: none;
   }
-  .hex-tree.collapsed .hex-tree-body { display: none; }
 </style>
