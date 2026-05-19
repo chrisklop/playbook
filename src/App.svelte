@@ -699,7 +699,7 @@
     </div>
   {/if}
 
-  <!-- COMBINED STATUS ROW — ticker (left) + event indicator (right) in one 36px band -->
+  <!-- COMBINED STATUS ROW — ticker (left) + event (mid) + next moves (right) in one row -->
   <div class="status-row">
     {#if showTicker}
       <div
@@ -737,15 +737,16 @@
         <span class="status-event-headline idle">no active headline — next event in 1–2 min</span>
       {/if}
     </div>
+
+    <!-- NEXT MOVES — placeholder, populated in Phase 3 -->
+    <div class="status-next" aria-label="next moves">
+      <span class="status-next-label">⚡ NEXT</span>
+      <span class="status-next-empty">no available moves — keep earning attention</span>
+    </div>
   </div>
 
   <!-- MAIN GRID -->
   <main class="grid">
-    <!-- NEXT MOVES STRIP — placeholder, populated in Phase 3 -->
-    <section class="next-moves" aria-label="next moves">
-      <div class="next-moves-empty">no available moves — keep earning attention</div>
-    </section>
-
     <!-- LEFT: Assets + Projects -->
     <section class="col left">
       <div class="section-head">
@@ -2010,11 +2011,15 @@
   }
 
   /* ── STATUS ROW (ticker + event in one 36px band) ──────────────────── */
+  /* Combined status row: ticker | event | next moves. Three sections side
+     by side at 44px tall — saves vertical space vs. stacking. Each section
+     truncates text via ellipsis; the row height is fixed regardless of
+     event active/idle or next-moves population. */
   .status-row {
     display: grid;
-    grid-template-columns: 1fr 1.5fr;
+    grid-template-columns: 1fr 1.4fr 1.6fr;
     gap: 0.6rem;
-    height: 36px;
+    height: 44px;
     background: color-mix(in oklab, var(--ink) 3%, var(--paper-2));
     border-bottom: 1px solid var(--line);
     align-items: center;
@@ -2088,6 +2093,33 @@
   }
   .status-event.has-event.negative .event-progress-fill { background: var(--bad); }
 
+  /* Right-hand section of the status row — Next Moves placeholder; will
+     be replaced by the ranked-recommendation chips in Phase 3. */
+  .status-next {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    height: 100%;
+    padding-left: 0.6rem;
+    border-left: 1px solid var(--line);
+  }
+  .status-next-label {
+    font-size: 0.62rem;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    flex-shrink: 0;
+  }
+  .status-next-empty {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   /* UX-2: resource value pulse on big events (POST fire, event trigger). */
   .rvalue.pulsing { animation: rvalue-pop 350ms ease-out 1; }
   @keyframes rvalue-pop {
@@ -2138,13 +2170,14 @@
        - Bottom row: DEPICT (fixed 400px) | Assets (fluid) | Platforms (fixed 380px)
        INVARIANT: side columns are HARD pixel tracks. No content can change their
        width. Toggles change inner content only. */
-    /* Assets on the left in the fixed 400px slot, DEPICT center fluid so
-       hex trees have room to breathe (per user feedback after Phase 2). */
-    grid-template-columns: 400px minmax(0, 1fr) 380px;
+    /* Per user feedback: status row (ticker+event+next moves) lives
+       above the grid. Top row of grid = wide assets (fluid) + platforms.
+       Bottom row = DEPICT trees full-width. */
+    grid-template-columns: minmax(0, 1fr) 380px;
     grid-template-rows: auto auto;
     grid-template-areas:
-      "next   next   next"
-      "assets depict platforms";
+      "assets platforms"
+      "depict depict";
     gap: 0.6rem;
     padding: 0.7rem;
     align-items: start;
@@ -2189,30 +2222,19 @@
     margin: 0;
     font-weight: 600;
   }
-  .next-moves {
-    grid-area: next;
-    height: 60px;
-    background: color-mix(in oklab, var(--accent) 5%, var(--paper-2));
-    border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--line));
-    border-radius: 8px;
-    padding: 0 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    overflow: hidden;
-  }
-  .next-moves-empty {
-    font-size: 0.8rem;
-    color: var(--muted);
-    font-style: italic;
-  }
-  /* Assets sit in the 400px left column now — single column of tiles
-     keeps each card readable instead of cramming 2 cols into 190px. */
+  /* Assets sit in the fluid wide column. Fixed 3-column grid at desktop;
+     drops to 2 then 1 at narrow widths. */
   .cards {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.4rem;
     align-items: stretch;
+  }
+  @media (max-width: 1400px) {
+    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 700px) {
+    .cards { grid-template-columns: 1fr; }
   }
   /* Cards stretch to match their row's tallest sibling so rows line up. */
   .cards > .card { align-content: start; }
@@ -2312,10 +2334,12 @@
     margin-top: 0.15rem;
     text-align: right;
   }
-  .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
-  .name { font-weight: 600; font-size: 0.9rem; }
-  .kind { font-weight: 400; color: var(--muted); font-size: 0.75rem; }
-  .owned { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.4rem; }
+  .name { font-weight: 600; font-size: 0.82rem; }
+  /* Kind tag is purely decorative and eats horizontal space. Hidden by
+     default; the title attribute already carries this info. */
+  .kind { display: none; }
+  .owned { color: var(--muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
   /* Blurb + precedent live in the browser tooltip only — never on the
      tile — so cards stay compact and the same shape regardless of hover. */
   .blurb { display: none !important; }
@@ -2332,14 +2356,14 @@
     font-variant-numeric: tabular-nums;
   }
   .syn-prereq .met { color: var(--ok); }
-  .card-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
-  .cost { font-weight: 600; font-size: 0.82rem; }
+  .card-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 0.4rem; }
+  .cost { font-weight: 600; font-size: 0.72rem; }
   .buy-n {
-    font-size: 0.78rem;
+    font-size: 0.65rem;
     color: var(--ink);
     font-variant-numeric: tabular-nums;
     font-weight: 700;
-    padding: 0.1rem 0.4rem;
+    padding: 0.05rem 0.3rem;
     background: color-mix(in oklab, var(--accent) 14%, transparent);
     border: 1px solid color-mix(in oklab, var(--accent) 35%, transparent);
     border-radius: 3px;
@@ -2355,7 +2379,7 @@
   .precedent,
   .precedent-counter { display: none !important; }
   .effect {
-    font-size: 0.72rem;
+    font-size: 0.66rem;
     color: var(--ok);
     font-variant-numeric: tabular-nums;
     font-weight: 500;
@@ -2761,17 +2785,16 @@
      pad to match a tall neighbor. */
   /* DEPICT now sits in a full-width row below assets/platforms, so it can
      flow 4-6 trees per row instead of the old 1-2 vertical stack. */
-  /* DEPICT trees now live in the FLUID center column (per user feedback).
-     3 cols × 2 rows fits all six trees at desktop widths — gives each
-     hex tree ~280-320px to render in. Drops to 2 cols at narrow widths. */
+  /* DEPICT trees now live in the FULL-WIDTH bottom row. Six trees fit
+     comfortably in 6 cols × 1 row at desktop; collapses to 3 then 2. */
   .trees {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.45rem;
     align-items: start;
   }
-  @media (max-width: 1400px) {
-    .trees { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 1700px) {
+    .trees { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
   @media (max-width: 1100px) {
     .trees { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -2904,7 +2927,6 @@
     .grid {
       grid-template-columns: 1fr;
       grid-template-areas:
-        "next"
         "assets"
         "platforms"
         "depict";
