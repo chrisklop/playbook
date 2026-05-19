@@ -2297,16 +2297,17 @@
      - RIGHT (platforms): subdued — passive dashboard / gauges */
   .grid {
     display: grid;
-    /* New layout: top row = Assets (wide) + Platforms; bottom row = DEPICT
-       trees spanning the full width so the trees can flow 4-6 columns
-       wide instead of stacking. Active gameplay (buy/post) above the
-       fold; research-tier DEPICT below, collapsible. */
-    grid-template-columns: 2fr minmax(340px, 1.1fr);
+    /* New layout per docs/superpowers/specs/2026-05-19-dashboard-redesign-design.md
+       - Top row: Next Moves strip (spans all 3 cols, fixed 60px)
+       - Bottom row: DEPICT (fixed 400px) | Assets (fluid) | Platforms (fixed 380px)
+       INVARIANT: side columns are HARD pixel tracks. No content can change their
+       width. Toggles change inner content only. */
+    grid-template-columns: 400px minmax(0, 1fr) 380px;
     grid-template-rows: auto auto;
     grid-template-areas:
-      "assets platforms"
-      "trees  trees";
-    gap: 0.7rem;
+      "next   next      next"
+      "depict assets    platforms";
+    gap: 0.6rem;
     padding: 0.7rem;
     align-items: start;
     align-content: start;
@@ -2322,7 +2323,7 @@
     padding: 0.45rem 0.55rem;
     border-radius: 8px;
   }
-  /* Grid-area placement (assets+platforms top row, trees full-width bottom). */
+  /* Grid-area placement (depict left, assets center, platforms right bottom row). */
   .col.left {
     grid-area: assets;
     background: color-mix(in oklab, hsl(25 60% 50%) 4%, var(--paper-2));
@@ -2337,7 +2338,7 @@
      you collapse/expand the drawer. Only the inner content swaps. Assets
      stays put; nothing reflows when you click anything. */
   .col.trees-col {
-    grid-area: trees;
+    grid-area: depict;
     background: color-mix(in oklab, hsl(220 70% 50%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(220 70% 50%) 25%, var(--line));
   }
@@ -3238,13 +3239,14 @@
   }
 
   /* ── RESPONSIVE COLLAPSE ───────────────────────────────────────────── */
-  @media (max-width: 900px) {
+  @media (max-width: 1100px) {
     .grid {
       grid-template-columns: 1fr;
       grid-template-areas:
+        "next"
         "assets"
         "platforms"
-        "trees";
+        "depict";
     }
   }
 </style>
