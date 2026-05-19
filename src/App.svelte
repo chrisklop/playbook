@@ -486,8 +486,6 @@
   // Collapsible DEPICT section — sits below assets/platforms now, fully
   // expandable in a single click when the player wants to invest.
   let treesExpanded = $state(true);
-  // Collapsible Platforms drawer — collapses to a thin status rail.
-  let platformsExpanded = $state(true);
 
   function upgradeEffectText(u: { multiplier: Record<string, number> }, lvl: number): string {
     const entries = Object.entries(u.multiplier);
@@ -1001,50 +999,13 @@
       {/if}
     </section>
 
-    <!-- RIGHT: Platforms — collapsible drawer with a status rail mode -->
+    <!-- RIGHT: Platforms — fixed-width column showing a single-column stack -->
     {#if showPlatformGrid}
-    <section class="col platforms-col" class:collapsed={!platformsExpanded}>
+    <section class="col platforms-col">
       <div class="section-head">
-        <button
-          class="ghost section-collapse"
-          onclick={() => (platformsExpanded = !platformsExpanded)}
-          title={platformsExpanded ? 'Collapse platforms to a rail' : 'Expand platforms drawer'}
-          aria-expanded={platformsExpanded}
-        >
-          <span class="caret">{platformsExpanded ? '▶' : '◀'}</span>
-          <span>Platforms</span>
-        </button>
+        <h2>Platforms</h2>
         <button class="ghost depict-help-btn" onclick={() => (showPlatformsHelp = true)} title="What are platforms?">?</button>
       </div>
-      {#if !platformsExpanded}
-        <!-- COLLAPSED RAIL: per-platform status chip. Click any chip
-             to expand the full drawer back open. -->
-        <div class="platforms-rail">
-          {#each PLATFORM_META as meta (meta.id)}
-            {@const p = game.platforms[meta.id]}
-            {#if p.unlocked}
-              {@const isBanned = p.burned && p.burnedUntil > game.lastTick}
-              {@const ready = p.chargeProgress >= 1}
-              {@const heatPct = Math.round(p.heat * 100)}
-              <button
-                class="rail-platform"
-                class:ready
-                class:burned={isBanned}
-                class:hot={p.heat >= 0.5 && p.heat < 0.75}
-                class:danger={p.heat >= 0.75 && !isBanned}
-                onclick={() => (platformsExpanded = true)}
-                title="{meta.name} · heat {heatPct}% · {isBanned ? `banned ${Math.ceil((p.burnedUntil - game.lastTick) / 1000)}s` : ready ? 'ready to POST' : `${Math.round(p.chargeProgress * 100)}% charged`} · click to expand"
-              >
-                <span class="rail-platform-name">{meta.name}</span>
-                <span class="rail-platform-mini">
-                  <span class="rail-charge-dot" class:ready></span>
-                  <span class="rail-heat-num num">{heatPct}<small>%</small></span>
-                </span>
-              </button>
-            {/if}
-          {/each}
-        </div>
-      {:else}
       <div class="platform-grid">
         {#each PLATFORM_META as meta (meta.id)}
           {@const p = game.platforms[meta.id]}
@@ -1152,7 +1113,6 @@
           {/if}
         {/each}
       </div>
-      {/if}
     </section>
     {/if}
 
@@ -2697,82 +2657,11 @@
   /* Platforms collapsed RAIL: thin vertical strip of status chips.
      Each chip shows platform name + heat % + charge-ready dot.
      Click any chip to expand the drawer back to the full grid. */
-  .platforms-rail {
-    display: grid;
-    gap: 0.3rem;
-    align-content: start;
-  }
-  .rail-platform {
-    appearance: none;
-    font: inherit;
-    color: inherit;
-    text-align: left;
-    padding: 0.3rem 0.4rem;
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    background: var(--paper-2);
-    cursor: pointer;
-    display: grid;
-    gap: 0.18rem;
-    transition: background 120ms, border-color 120ms;
-  }
-  .rail-platform:hover { border-color: var(--accent); }
-  .rail-platform-name {
-    font-weight: 700;
-    font-size: 0.72rem;
-    letter-spacing: -0.01em;
-  }
-  .rail-platform-mini {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.62rem;
-    color: var(--muted);
-  }
-  .rail-charge-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: hsl(0 0% 25%);
-    transition: background 200ms, box-shadow 200ms;
-  }
-  .rail-charge-dot.ready {
-    background: var(--ok);
-    box-shadow: 0 0 6px color-mix(in oklab, var(--ok) 70%, transparent);
-  }
-  .rail-heat-num { color: var(--muted); font-variant-numeric: tabular-nums; }
-  .rail-heat-num small { opacity: 0.6; font-size: 0.7em; }
-  /* State tints on the rail chip */
-  .rail-platform.hot {
-    border-color: color-mix(in oklab, var(--warn) 50%, var(--line));
-    background: color-mix(in oklab, var(--warn) 6%, var(--paper-2));
-  }
-  .rail-platform.hot .rail-heat-num { color: var(--warn); }
-  .rail-platform.danger {
-    border-color: var(--bad);
-    background: color-mix(in oklab, var(--bad) 12%, var(--paper-2));
-    animation: rail-danger 1.4s ease-in-out infinite;
-  }
-  .rail-platform.danger .rail-heat-num { color: var(--bad); font-weight: 700; }
-  @keyframes rail-danger {
-    0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--bad) 40%, transparent); }
-    50%      { box-shadow: 0 0 0 3px color-mix(in oklab, var(--bad) 0%, transparent); }
-  }
-  .rail-platform.burned {
-    border-color: var(--bad);
-    background: color-mix(in oklab, var(--bad) 18%, var(--paper-2));
-    opacity: 0.85;
-  }
-  .rail-platform.ready {
-    border-color: color-mix(in oklab, var(--ok) 50%, var(--line));
-  }
-
   /* ── PLATFORM GRID ─────────────────────────────────────────────────── */
   .platform-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 0.45rem;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
   }
   .platform-card {
     border: 1px solid var(--line);
