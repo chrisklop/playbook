@@ -28,6 +28,7 @@
     loadLegacy, computePrestigeGain, legacyMultiplier, performPrestige,
   } from './game/legacy';
   import { onMount } from 'svelte';
+  import HexTree from './components/HexTree.svelte';
 
   type BulkMode = 1 | 10 | 100 | 'max';
   // bulkMode + tileBulkMode is the Assets-only state. DEPICT nodes have
@@ -247,6 +248,15 @@
   // in canonical DEPICT_IDS order; nodes within a tree render in catalog
   // order. A tree only stops rendering once it's been visible/teased — once
   // shown it stays shown so buying upgrades doesn't shift other trees.
+  const TREE_META: Record<string, { label: string; letter: string; target: string }> = {
+    discrediting:  { label: 'Discrediting',  letter: 'D', target: 'attention' },
+    emotional:     { label: 'Emotional',     letter: 'E', target: 'attention' },
+    polarization:  { label: 'Polarization',  letter: 'P', target: 'attention' },
+    impersonation: { label: 'Impersonation', letter: 'I', target: 'credibility' },
+    conspiracy:    { label: 'Conspiracy',    letter: 'C', target: 'engagement' },
+    trolling:      { label: 'Trolling',      letter: 'T', target: 'attention' },
+  };
+
   const treesView = $derived(
     DEPICT_IDS.map((tree) => {
       const all = UPGRADES.filter((u) => u.tree === tree);
@@ -1121,75 +1131,14 @@
         <button class="ghost depict-help-btn" onclick={() => (showDepictHelp = true)} title="What is DEPICT?">?</button>
       </div>
       <div class="trees">
-        {#each treesView as t (t.tree)}
-          {@const target = treeTargetResource(t.tree)}
-          {@const t2 = tier2Progress(t.tree)}
-          <div class="tree tree-{t.tree}">
-            <div class="tree-head">
-              <span class="tree-tag">{depictLetter(t.tree)}</span>
-              <span class="tree-name">{t.tree}</span>
-              {#if target}<span class="tree-target res-{target}" title="this tree boosts {target}">→ {target}</span>{/if}
-              <span class="tree-progress num">{t.totalLevel}/{t.totalMax}</span>
-            </div>
-            <!-- Always-rendered slot so the tier2-progress hint appearing
-                 doesn't push nodes down. Empty when tier 2 is unlocked. -->
-            <div class="tier2-progress" class:tier2-unlocked={t2.unlocked} title={t2.unlocked ? 'Tier 2 unlocked' : `Tier 2 unlocks at ${t2.need} levels in this tree's tier-1 nodes`}>
-              {#if !t2.unlocked}
-                tier 2 unlocks at {t2.need} levels: <span class="num">{t2.current}/{t2.need}</span>
-              {:else}
-                tier 2 unlocked
-              {/if}
-            </div>
-            <div class="tree-nodes">
-              {#each t.visible as u (u.id)}
-                {@const lvl = game.upgrades[u.id] ?? 0}
-                {@const maxed = lvl >= u.maxLevel}
-                {@const rawN = upgradeBuyCount(u.id)}
-                {@const utmode = tileMode(u.id)}
-                {@const n = utmode === 'max' ? rawN : Math.max(1, rawN)}
-                {@const cost = upgradeCost(game, u.id, Math.max(1, n))}
-                {@const affordable = !maxed && n > 0 && canBuyUpgrade(game, u.id, n)}
-                {@const ratio = affordabilityRatio(cost, u.costResource)}
-                {@const upre = getPrecedent(u.id, u.precedents)}
-                {@const usf = !maxed && !affordable && n > 0 ? shortfall(cost, u.costResource) : null}
-                <button class="node cost-{u.costResource}" class:maxed class:fresh={lvl === 0} aria-disabled={!affordable || maxed} onclick={() => { if (!affordable || maxed) return; doBuyUpgrade(u.id); }} title={u.blurb + (upre ? '\n\n' + upre : '')} style="--level: {(lvl / u.maxLevel) * 100}%; --afford: {ratio * 100}%">
-                  {#if lvl === 0}<span class="fresh-badge">NEW</span>{/if}
-                  <div class="node-head">
-                    <span class="node-name">{u.name}</span>
-                    <span class="node-lvl num">{lvl}/{u.maxLevel}</span>
-                  </div>
-                  <div class="node-blurb">{u.blurb}</div>
-                  <div class="effect">{upgradeEffectText(u, lvl)}</div>
-                  {#if upre}
-                    <div class="precedent">
-                      {upre}
-                      {#if u.precedents && u.precedents.length > 1}
-                        <span class="precedent-counter">[{((precedentIndex[u.id] ?? 0) % u.precedents.length) + 1}/{u.precedents.length}]</span>
-                      {/if}
-                    </div>
-                  {/if}
-                  <div class="node-foot">
-                    {#if !maxed}<span class="buy-n">+{n}</span>{/if}
-                    <span class="node-cost num res-{u.costResource}">{maxed ? 'maxed' : `${fmt(cost)} ${u.costResource}`}</span>
-                  </div>
-                  {#if usf}<div class="shortfall">{usf}</div>{/if}
-                  <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
-                </button>
-              {/each}
-              {#each t.teased as u (u.id)}
-                <div class="node teased cost-{u.costResource}" title={u.teaseHint ?? ''}>
-                  <div class="node-head">
-                    <span class="node-name">???</span>
-                    <span class="node-lvl num">locked</span>
-                  </div>
-                  <div class="node-blurb">{u.teaseHint ?? 'A technique coming.'}</div>
-                  <div class="node-foot">
-                    <span class="node-cost num res-{u.costResource}">{fmt(u.baseCost)} {u.costResource}</span>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          </div>
+        {#each Object.keys(TREE_META) as treeId (treeId)}
+          {@const meta = TREE_META[treeId]}
+          <HexTree
+            tree={treeId as 'discrediting' | 'emotional' | 'polarization' | 'impersonation' | 'conspiracy' | 'trolling'}
+            label={meta.label}
+            letter={meta.letter}
+            target={meta.target}
+          />
         {/each}
       </div>
     </section>
@@ -2306,14 +2255,12 @@
     transition: transform 60ms;
   }
   .card:disabled,
-  .card[aria-disabled="true"],
-  .node[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+  .card[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
   /* aria-disabled cards still receive hover events, so the browser title
      tooltip fires reliably even when the tile is unaffordable. Firefox
      suppresses mouse events on truly-disabled buttons; aria-disabled fixes
      that without giving up the visual treatment. */
-  .card[aria-disabled="true"]:hover,
-  .node[aria-disabled="true"]:hover { background: var(--paper-2); }
+  .card[aria-disabled="true"]:hover { background: var(--paper-2); }
 
   /* CONCEPT A — Background-as-state.
      Every purchasable card/node carries a CSS variable --tint (its cost
@@ -2323,24 +2270,20 @@
      bar needed. For DEPICT nodes, --level (X/maxLevel) drives a second
      fill layer so the player can see how built-up a node is.
      Hover deepens the tint; affordable cards glow softly. */
-  .card.cost-attention,  .node.cost-attention          { --tint: var(--res-attention); }
-  .card.cost-engagement, .node.cost-engagement         { --tint: var(--res-engagement); }
-  .card.cost-followers,  .node.cost-followers          { --tint: var(--res-followers); }
-  .card.cost-credibility,.node.cost-credibility        { --tint: var(--res-credibility); }
-  .card.cost-narrativeDominance,
-  .node.cost-narrativeDominance                        { --tint: var(--res-narrativeDominance); }
-  .card.cost-syntheticReality,
-  .node.cost-syntheticReality                          { --tint: var(--res-syntheticReality); }
+  .card.cost-attention   { --tint: var(--res-attention); }
+  .card.cost-engagement  { --tint: var(--res-engagement); }
+  .card.cost-followers   { --tint: var(--res-followers); }
+  .card.cost-credibility { --tint: var(--res-credibility); }
+  .card.cost-narrativeDominance { --tint: var(--res-narrativeDominance); }
+  .card.cost-syntheticReality   { --tint: var(--res-syntheticReality); }
 
-  .card[class*="cost-"],
-  .node[class*="cost-"] {
+  .card[class*="cost-"] {
     background: var(--paper-2);
     border-left: 2px solid color-mix(in oklab, var(--tint) 55%, var(--line));
   }
   /* Affordability/level fill — left-anchored gradient that grows as
      --afford (or --level) rises. ::before sits below the card content. */
-  .card[class*="cost-"]::before,
-  .node[class*="cost-"]::before {
+  .card[class*="cost-"]::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -2352,28 +2295,7 @@
     pointer-events: none;
     z-index: 0;
   }
-  /* DEPICT nodes also paint a level layer (subtler) so you can see
-     X/maxLevel progress at a glance even on un-affordable nodes. */
-  .node[class*="cost-"]::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg,
-      color-mix(in oklab, var(--tint) 14%, transparent),
-      color-mix(in oklab, var(--tint) 4%, transparent));
-    width: var(--level, 0%);
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.7;
-  }
-  .node.maxed::after {
-    background: linear-gradient(90deg,
-      color-mix(in oklab, var(--ok) 22%, transparent),
-      color-mix(in oklab, var(--ok) 6%, transparent));
-    width: 100%;
-  }
-  .card[class*="cost-"] > *,
-  .node[class*="cost-"] > * {
+  .card[class*="cost-"] > * {
     position: relative;
     z-index: 1;
   }
@@ -2384,8 +2306,7 @@
       0 0 14px color-mix(in oklab, var(--tint) 15%, transparent);
     border-color: color-mix(in oklab, var(--tint) 50%, var(--line));
   }
-  .card[class*="cost-"]:hover:not([aria-disabled="true"]):not(:disabled)::before,
-  .node[class*="cost-"]:hover:not([aria-disabled="true"]):not(:disabled)::before {
+  .card[class*="cost-"]:hover:not([aria-disabled="true"]):not(:disabled)::before {
     background: linear-gradient(90deg,
       color-mix(in oklab, var(--tint) 34%, transparent),
       color-mix(in oklab, var(--tint) 14%, transparent));
@@ -2405,7 +2326,7 @@
   .owned { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
   /* Blurb + precedent live in the browser tooltip only — never on the
      tile — so cards stay compact and the same shape regardless of hover. */
-  .blurb, .node-blurb { display: none !important; }
+  .blurb { display: none !important; }
 
   /* Synergy tree-prereq line — tells the player exactly which DEPICT
      trees still need levels, separate from the resource cost row. */
@@ -2432,16 +2353,6 @@
     border-radius: 3px;
   }
   .card:disabled .buy-n { opacity: 0.5; }
-  /* DEPICT nodes are graded research items, not inventory — the +N is
-     just disambiguation when bulk-buying. Subtle, not a headline. */
-  .node .buy-n {
-    background: transparent;
-    border: none;
-    padding: 0;
-    color: var(--muted);
-    font-weight: 600;
-    font-size: 0.7rem;
-  }
   /* UX-6: precedent — was a colored stripe that read as a clickable link.
      Now a muted quote-style block: subtle italic muted text with a thin
      muted border. Hidden by default to keep cards compact; appears on
@@ -2536,8 +2447,7 @@
   }
   /* Soft accent-color ring on fresh tiles so even un-affordable ones
      are visually distinct from already-owned tiles. */
-  .card.fresh,
-  .node.fresh {
+  .card.fresh {
     border-color: color-mix(in oklab, var(--tint, var(--accent)) 55%, var(--line));
     animation: fresh-ring 2.4s ease-in-out infinite;
   }
@@ -2571,18 +2481,18 @@
 
   /* Teased placeholders — show ??? + cost + hint so the player has an
      anticipation hook before the real card appears. */
-  .card.teased, .node.teased {
+  .card.teased {
     border-style: dashed;
     background: transparent;
     cursor: default;
     opacity: 0.65;
   }
-  .card.teased .name, .node.teased .node-name {
+  .card.teased .name {
     letter-spacing: 0.3em;
     color: var(--muted);
   }
-  .card.teased:hover, .node.teased:hover { border-color: var(--line); }
-  .card.teased .blurb, .node.teased .node-blurb {
+  .card.teased:hover { border-color: var(--line); }
+  .card.teased .blurb {
     font-style: italic;
   }
 
@@ -2870,59 +2780,6 @@
   @media (max-width: 1100px) {
     .trees { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
-  .tree {
-    border: 1px solid var(--line);
-    border-radius: 5px;
-    background: var(--paper-2);
-    padding: 0.35rem 0.45rem;
-    display: grid;
-    gap: 0.3rem;
-  }
-  .tree-head {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 0.5rem;
-    align-items: center;
-  }
-  .tree-tag {
-    width: 1.4em; height: 1.4em; line-height: 1.4em;
-    text-align: center;
-    font-weight: 700; font-size: 0.78rem;
-    border-radius: 3px;
-    color: white;
-  }
-  .tree-discrediting  .tree-tag { background: hsl(0 60% 45%); }
-  .tree-emotional     .tree-tag { background: hsl(20 75% 50%); }
-  .tree-polarization  .tree-tag { background: hsl(280 55% 50%); }
-  .tree-impersonation .tree-tag { background: hsl(160 50% 40%); }
-  .tree-conspiracy    .tree-tag { background: hsl(220 60% 45%); }
-  .tree-trolling      .tree-tag { background: hsl(60 70% 40%); color: hsl(220 18% 12%); }
-  .tree-name { font-size: 0.85rem; text-transform: capitalize; }
-  .tree-progress { font-size: 0.7rem; color: var(--muted); }
-  .tree-head { grid-template-columns: auto 1fr auto auto !important; gap: 0.4rem; }
-  .tree-target {
-    font-size: 0.66rem;
-    font-weight: 600;
-    text-transform: lowercase;
-    letter-spacing: 0.02em;
-  }
-  .tier2-progress {
-    font-size: 0.68rem;
-    color: var(--muted);
-    padding: 0.2rem 0.4rem;
-    background: color-mix(in oklab, var(--accent) 6%, transparent);
-    border-radius: 3px;
-    border: 1px dashed color-mix(in oklab, var(--accent) 25%, transparent);
-    margin-bottom: 0.2rem;
-    min-height: calc(0.68rem * 1.2 + 0.4rem + 2px);
-    line-height: 1.2;
-  }
-  .tier2-progress.tier2-unlocked {
-    color: var(--ok);
-    border-style: solid;
-    border-color: color-mix(in oklab, var(--ok) 35%, transparent);
-    background: color-mix(in oklab, var(--ok) 5%, transparent);
-  }
   .depict-help-btn {
     width: 1.8em;
     height: 1.8em;
@@ -2964,6 +2821,15 @@
     font-size: 0.85rem;
     line-height: 1.4;
   }
+  /* .tree-tag base styles — used by DEPICT help modal letter badges */
+  .tree-tag {
+    display: inline-block;
+    width: 1.4em; height: 1.4em; line-height: 1.4em;
+    text-align: center;
+    font-weight: 700; font-size: 0.78rem;
+    border-radius: 3px;
+    color: white;
+  }
   .depict-tech-row .tree-tag {
     width: 1.6em; height: 1.6em; line-height: 1.6em;
     font-size: 0.85rem;
@@ -2991,55 +2857,6 @@
   .depict-help-section ul { margin: 0.3rem 0 0 1.1rem; padding: 0; }
   .depict-help-section li { margin-bottom: 0.3rem; }
   .depict-help-section p { margin: 0; }
-  .tree-nodes { display: grid; gap: 0.4rem; }
-  .node {
-    position: relative;
-    appearance: none;
-    text-align: left;
-    background: var(--paper);
-    color: inherit;
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    padding: 0.35rem 0.55rem;
-    font: inherit;
-    cursor: pointer;
-    display: grid;
-    gap: 0.12rem;
-    overflow: hidden;
-  }
-  .node:hover:not(:disabled) {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent);
-  }
-  .node:active:not(:disabled) { transform: scale(0.985); transition: transform 60ms; }
-  .node:disabled { opacity: 0.55; cursor: not-allowed; }
-  .node-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 0.4rem;
-  }
-  .node-name { font-weight: 600; font-size: 0.82rem; }
-  .node-lvl { font-size: 0.7rem; color: var(--muted); }
-  .node-blurb {
-    font-size: 0.68rem;
-    color: var(--muted);
-    line-height: 1.25;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .node-foot { display: flex; justify-content: space-between; align-items: baseline; gap: 0.4rem; }
-  .node-cost { font-size: 0.74rem; font-weight: 600; }
-  .tree-locked {
-    padding: 0.5rem;
-    text-align: center;
-    color: var(--muted);
-    opacity: 0.5;
-    font-size: 0.85rem;
-  }
-
   /* ── LOG ───────────────────────────────────────────────────────────── */
   /* Log: fixed-height strip pinned to the bottom. Newest entry at top of
      the strip, accented. Scroll for history. Never reflows other content. */
