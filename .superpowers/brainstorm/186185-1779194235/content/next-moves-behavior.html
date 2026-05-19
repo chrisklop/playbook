@@ -1,0 +1,139 @@
+<h2>How should the "Next Moves" strip behave?</h2>
+<p class="subtitle">This is the centerpiece of Option C — the part that tells you what to do. Three behavior models below. Click one.</p>
+
+<div class="options">
+
+  <div class="option" data-choice="status-chips" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Status chips — auto-discovered, click to act</h3>
+      <p>A row of 3-6 chips populated by simple rules: "POST ready on X" when charge ≥100%, "Buy Sock Puppet ×N" when affordable, "DEPICT: Heart of Texas affordable", "Synergy: Wedge Content prereqs met". Click a chip → it executes the action (POST fires, asset bought, drawer opens). No ranking, just whatever's actionable right now.</p>
+      <div class="mockup" style="margin-top: 0.7rem">
+        <div class="mockup-body" style="background: hsl(220 12% 14%); padding: 12px; border-radius: 6px; font-family: ui-sans-serif">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
+            <strong style="font-size: 11px; color: hsl(45 90% 70%); letter-spacing: 0.1em">⚡ NEXT MOVES</strong>
+            <span style="font-size: 10px; opacity: 0.5">— 4 actionable right now</span>
+          </div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap">
+            <button style="appearance: none; background: hsl(140 60% 25%); color: hsl(140 60% 88%); border: 1px solid hsl(140 60% 45%); padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer">⚡ POST on X · +312 att</button>
+            <button style="appearance: none; background: hsl(25 60% 22%); color: hsl(25 60% 88%); border: 1px solid hsl(25 60% 42%); padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer">Buy Sock Puppet ×50 · 5K att</button>
+            <button style="appearance: none; background: hsl(220 40% 25%); color: hsl(220 60% 85%); border: 1px solid hsl(220 60% 50%); padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer">DEPICT: Heart of Texas Cell · 21K att</button>
+            <button style="appearance: none; background: hsl(280 40% 25%); color: hsl(280 60% 85%); border: 1px solid hsl(280 50% 50%); padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer">Synergy: Wedge Content · 50K eng</button>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 0.8rem; opacity: 0.8; margin-top: 0.6rem"><strong>Pro:</strong> dead simple, no judgment required, just "what's possible right now." One click to act. <strong>Con:</strong> doesn't recommend strategy — chip for "buy Sock Puppet" appears even when buying paradigm projects is the bigger win.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="ranked" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Ranked recommendations — actual strategy hints</h3>
+      <p>Top 3 chips, ranked by impact heuristic (e.g. "this purchase has best $/sec ratio" or "this unlocks a synergy" or "this is closest to a milestone bonus"). Color-coded by impact tier (gold/silver/bronze). The recommendations explain themselves on hover ("Hundred Hands milestone in 47 puppets, +5% all att").</p>
+      <div class="mockup" style="margin-top: 0.7rem">
+        <div class="mockup-body" style="background: hsl(220 12% 14%); padding: 12px; border-radius: 6px; font-family: ui-sans-serif">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
+            <strong style="font-size: 11px; color: hsl(45 90% 70%); letter-spacing: 0.1em">⚡ NEXT MOVES</strong>
+            <span style="font-size: 10px; opacity: 0.5">— ranked by impact</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+            <button style="appearance: none; background: linear-gradient(180deg, hsl(45 80% 30%), hsl(45 80% 20%)); color: hsl(45 90% 90%); border: 1px solid hsl(45 90% 60%); padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 0 12px hsl(45 90% 50% / 0.3)">
+              <span style="opacity: 0.7; margin-right: 4px">★</span>Wedge Content synergy unlocks +24% engagement
+            </button>
+            <button style="appearance: none; background: hsl(220 30% 22%); color: hsl(220 50% 85%); border: 1px solid hsl(220 40% 50%); padding: 6px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer">
+              <span style="opacity: 0.6; margin-right: 4px">2</span>Heart of Texas Cell · +1.2% att/lvl
+            </button>
+            <button style="appearance: none; background: hsl(25 30% 22%); color: hsl(25 50% 85%); border: 1px solid hsl(25 40% 50%); padding: 6px 12px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer">
+              <span style="opacity: 0.6; margin-right: 4px">3</span>Sock Puppet ×50 · milestone in 47
+            </button>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 0.8rem; opacity: 0.8; margin-top: 0.6rem"><strong>Pro:</strong> solves "no direction" — actually <em>tells you</em> what's strategically best. <strong>Con:</strong> the heuristic has to be right, otherwise it lies. Requires writing the ranking logic (genuine design + tuning work).</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="goal-tracker" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Goal tracker — progress toward the next milestone</h3>
+      <p>Instead of "do this now" chips, shows 1-3 progress bars toward the next meaningful unlock: "Synergy: Wedge Content — 38K/50K engagement", "Tier 2 in Polarization — 7/10 levels", "Mebro reveal — 80% cure". Less "what to click" and more "what you're working toward."</p>
+      <div class="mockup" style="margin-top: 0.7rem">
+        <div class="mockup-body" style="background: hsl(220 12% 14%); padding: 12px; border-radius: 6px; font-family: ui-sans-serif">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px">
+            <strong style="font-size: 11px; color: hsl(45 90% 70%); letter-spacing: 0.1em">🎯 CURRENT GOALS</strong>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px">
+            <div>
+              <div style="font-size: 11px; font-weight: 600">Wedge Content synergy</div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; font-size: 10px; opacity: 0.7; margin-top: 2px">
+                <span>38K / 50K eng</span>
+                <span>76%</span>
+              </div>
+              <div style="height: 4px; background: hsl(220 12% 22%); border-radius: 2px; margin-top: 4px; overflow: hidden">
+                <div style="width: 76%; height: 100%; background: hsl(200 70% 50%)"></div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 600">Polarization Tier 2</div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; font-size: 10px; opacity: 0.7; margin-top: 2px">
+                <span>7 / 10 levels</span>
+                <span>70%</span>
+              </div>
+              <div style="height: 4px; background: hsl(220 12% 22%); border-radius: 2px; margin-top: 4px; overflow: hidden">
+                <div style="width: 70%; height: 100%; background: hsl(280 55% 55%)"></div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 11px; font-weight: 600">Mebro reveal</div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; font-size: 10px; opacity: 0.7; margin-top: 2px">
+                <span>18% / 80% cure</span>
+                <span>23%</span>
+              </div>
+              <div style="height: 4px; background: hsl(220 12% 22%); border-radius: 2px; margin-top: 4px; overflow: hidden">
+                <div style="width: 23%; height: 100%; background: hsl(0 80% 55%)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 0.8rem; opacity: 0.8; margin-top: 0.6rem"><strong>Pro:</strong> gives the game a sense of <em>progression</em> — there's always a "next thing." Doesn't require strategic judgment, just enumeration. <strong>Con:</strong> less actionable in the moment; you still have to figure out which asset to buy to make those bars move.</p>
+    </div>
+  </div>
+
+  <div class="option" data-choice="hybrid" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Hybrid — Goal tracker (left) + actionable chips (right)</h3>
+      <p>Combines B and C. Left half shows 1-2 goals with progress bars (the "what you're working toward"). Right half shows 2-3 click-to-act chips (the "what's possible right now"). Tells you both the strategic direction and the immediate action.</p>
+      <div class="mockup" style="margin-top: 0.7rem">
+        <div class="mockup-body" style="background: hsl(220 12% 14%); padding: 12px; border-radius: 6px; font-family: ui-sans-serif">
+          <div style="display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; align-items: center">
+            <div>
+              <div style="font-size: 9px; opacity: 0.5; letter-spacing: 0.1em; margin-bottom: 6px">🎯 NEXT UNLOCK</div>
+              <div style="font-size: 11px; font-weight: 600">Wedge Content synergy</div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; font-size: 10px; opacity: 0.7; margin-top: 2px">
+                <span>38K / 50K engagement</span>
+                <span>76%</span>
+              </div>
+              <div style="height: 4px; background: hsl(220 12% 22%); border-radius: 2px; margin-top: 4px; overflow: hidden">
+                <div style="width: 76%; height: 100%; background: linear-gradient(90deg, hsl(200 70% 40%), hsl(200 80% 55%))"></div>
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 9px; opacity: 0.5; letter-spacing: 0.1em; margin-bottom: 6px">⚡ ACT NOW</div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap">
+                <button style="appearance: none; background: hsl(140 60% 22%); color: hsl(140 60% 90%); border: 1px solid hsl(140 60% 45%); padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer">POST X · +312</button>
+                <button style="appearance: none; background: hsl(25 60% 22%); color: hsl(25 60% 88%); border: 1px solid hsl(25 60% 42%); padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer">Sock Puppet ×50</button>
+                <button style="appearance: none; background: hsl(220 40% 25%); color: hsl(220 60% 85%); border: 1px solid hsl(220 60% 50%); padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer">Heart of Texas Cell</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size: 0.8rem; opacity: 0.8; margin-top: 0.6rem"><strong>Pro:</strong> both strategic direction AND immediate action available. Best of both worlds. <strong>Con:</strong> a touch more visual content in the strip; need to choose what goes in each half.</p>
+    </div>
+  </div>
+
+</div>
