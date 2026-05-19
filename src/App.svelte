@@ -738,6 +738,11 @@
 
   <!-- MAIN GRID -->
   <main class="grid">
+    <!-- NEXT MOVES STRIP — placeholder, populated in Phase 3 -->
+    <section class="next-moves" aria-label="next moves">
+      <div class="next-moves-empty">no available moves — keep earning attention</div>
+    </section>
+
     <!-- LEFT: Assets + Projects -->
     <section class="col left">
       <div class="section-head">
@@ -2354,6 +2359,23 @@
     color: var(--muted);
     margin: 0;
     font-weight: 600;
+  }
+  .next-moves {
+    grid-area: next;
+    height: 60px;
+    background: color-mix(in oklab, var(--accent) 5%, var(--paper-2));
+    border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--line));
+    border-radius: 8px;
+    padding: 0 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    overflow: hidden;
+  }
+  .next-moves-empty {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-style: italic;
   }
   .cards {
     display: grid;
