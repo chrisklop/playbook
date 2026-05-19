@@ -7,6 +7,8 @@ import { RESOURCE_IDS } from '../types';
 import { totalAchievementBuffs } from './achievements';
 import { loadLegacy, legacyMultiplier } from '../legacy';
 import { PATRONS } from './patrons';
+import { PLATFORM_META } from '../../lib/platforms';
+import { chargeTimeSeconds, postYield } from './posting';
 
 export interface ProductionSnapshot {
   rates: Record<ResourceId, number>;       // net /sec
@@ -202,6 +204,33 @@ export function computeRates(state: GameState): Record<ResourceId, number> {
       m *= state.event.mult;
     }
     rates[r] *= m;
+  }
+
+  // POST overflow contribution. The auto-poster fires posts on every
+  // unlocked platform on its own clock; that income is bursty and
+  // therefore invisible to a simple change-tracker, especially when
+  // attention is clamped at cap (the gains are real, the value just
+  // doesn't move). Model it explicitly here so the rate display
+  // reflects ACTUAL production, not just observed value deltas.
+  const autoOn = (state.assets.autoPoster ?? 0) >= 1;
+  if (autoOn) {
+    const chargeTime = chargeTimeSeconds(state);
+    const attCapped = state.resources.attention >= state.caps.attention && state.caps.attention > 0;
+    for (const meta of PLATFORM_META) {
+      const p = state.platforms[meta.id];
+      if (!p?.unlocked) continue;
+      if (p.burned && p.burnedUntil > state.lastTick) continue;
+      const postRate = p.postRate ?? 1;
+      if (postRate <= 0) continue;
+      const postsPerSec = postRate / chargeTime;
+      const yieldPerPost = postYield(state, meta.id);
+      if (attCapped) {
+        // Whole yield overflows; 10% lands in engagement.
+        rates.engagement += yieldPerPost * 0.1 * postsPerSec;
+      } else {
+        rates.attention += yieldPerPost * postsPerSec;
+      }
+    }
   }
 
   return rates;
