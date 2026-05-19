@@ -595,7 +595,7 @@
         {#if cap > 0 || val > 0}
           {@const bd = multBreakdown[r]}
           {@const spendable = spendableCount(id)}
-          <div class="rmeter res-{id}" class:pulsing={isPulsing(id)}>
+          <div class="rmeter res-{id}" class:pulsing={isPulsing(id)} style="--fill: {cap > 0 ? Math.min(100, (val / cap) * 100) : 0}%">
             <div class="rlabel">
               <span class="res-dot res-{id}"></span>{label}
               {#if spendable > 0}<span class="spendable-badge" title="{spendable} thing{spendable === 1 ? '' : 's'} you can buy right now with {id}">{spendable}</span>{/if}
@@ -637,6 +637,7 @@
         <div
           class="rmeter cure"
           class:reveal-active={game.reveal.active}
+          style="--fill: {game.cure * 100}%"
           title={
             game.reveal.active
               ? 'CURE 80%+ · The counter-narrative wins. Mebro fact-checks are landing on your content; reach is dropping fast. Time to ★ Prestige and start a smarter run.'
@@ -1016,8 +1017,9 @@
                   <button
                     class="post-platform"
                     class:ready
+                    class:charging={!ready && !isBanned}
                     class:firing={isFiring(meta.id)}
-                    disabled={!ready || isBanned}
+                    disabled={isBanned}
                     onclick={() => postWithPulse(meta.id)}
                     title="POST — fires at 100% charge for full yield. Low heat (+0.8%)."
                   >
@@ -1530,7 +1532,11 @@
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 0.6rem;
   }
+  /* CONCEPT A applied to topbar meters: the meter body fills from the
+     left with its resource color at width=--fill (current/cap ratio).
+     The old thin 2px bar at the bottom is gone. */
   .rmeter {
+    --tint: var(--accent);
     position: relative;
     padding: 0.35rem 0.55rem;
     border: 1px solid var(--line);
@@ -1539,16 +1545,23 @@
     overflow: hidden;
     display: grid;
     grid-template-rows: auto auto auto;
+    border-left: 2px solid color-mix(in oklab, var(--tint) 55%, var(--line));
   }
-  .rmeter .rfill {
+  .rmeter::before {
+    content: '';
     position: absolute;
-    inset: auto 0 0 0;
-    height: 2px;
-    background: var(--accent);
+    inset: 0;
+    background: linear-gradient(90deg,
+      color-mix(in oklab, var(--tint) 22%, transparent),
+      color-mix(in oklab, var(--tint) 6%, transparent));
     width: var(--fill, 0%);
-    transition: width 200ms;
+    transition: width 240ms ease-out;
+    pointer-events: none;
+    z-index: 0;
   }
-  .rmeter .cure-fill { background: var(--bad); }
+  .rmeter > * { position: relative; z-index: 1; }
+  /* Legacy .rfill thin strip — superseded by the body fill above. */
+  .rmeter .rfill, .rmeter .cure-fill { display: none; }
   .rmeter.cure.reveal-active {
     animation: cure-reveal-pulse 1.4s ease-in-out infinite;
   }
@@ -1909,12 +1922,13 @@
   .res-dot.res-narrativeDominance { background: var(--res-narrativeDominance); color: var(--res-narrativeDominance); }
   .res-dot.res-syntheticReality   { background: var(--res-syntheticReality); color: var(--res-syntheticReality); }
   .res-dot.cure-dot               { background: var(--bad); color: var(--bad); }
-  .rmeter.res-attention          .rfill { background: var(--res-attention); }
-  .rmeter.res-engagement         .rfill { background: var(--res-engagement); }
-  .rmeter.res-followers          .rfill { background: var(--res-followers); }
-  .rmeter.res-credibility        .rfill { background: var(--res-credibility); }
-  .rmeter.res-narrativeDominance .rfill { background: var(--res-narrativeDominance); }
-  .rmeter.res-syntheticReality   .rfill { background: var(--res-syntheticReality); }
+  .rmeter.res-attention           { --tint: var(--res-attention); }
+  .rmeter.res-engagement          { --tint: var(--res-engagement); }
+  .rmeter.res-followers           { --tint: var(--res-followers); }
+  .rmeter.res-credibility         { --tint: var(--res-credibility); }
+  .rmeter.res-narrativeDominance  { --tint: var(--res-narrativeDominance); }
+  .rmeter.res-syntheticReality    { --tint: var(--res-syntheticReality); }
+  .rmeter.cure                    { --tint: var(--bad); }
   .rmeter.res-attention          .rvalue { color: var(--res-attention); }
   .rmeter.res-engagement         .rvalue { color: var(--res-engagement); }
   .rmeter.res-followers          .rvalue { color: var(--res-followers); }
@@ -2509,7 +2523,12 @@
     gap: 0.25rem;
     min-height: 0;
     font-size: 0.78rem;
+    /* Hand cursor on body matches the other tiles (which are <button>s).
+       The buttons inside override with their own cursor styles. */
+    cursor: pointer;
   }
+  .platform-card.locked { cursor: default; }
+  .platform-card.banned { cursor: default; }
   .platform-card.locked {
     background: transparent;
     border-color: var(--line);
