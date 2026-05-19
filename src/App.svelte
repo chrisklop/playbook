@@ -75,8 +75,33 @@
   const POST_COOLDOWN_MS = 3000;
   let lastPostClick = $state(0);
   let nowTick = $state(Date.now());
+  // Observed delta-rate per resource. Captures POST overflow, event bursts,
+  // and any income source computeRates() doesn't model (which is per-second
+  // production only). Smoothed exponentially so individual spikes don't
+  // jitter the display.
+  let observedRate = $state<Record<string, number>>({});
+  let lastObserved = $state<{ values: Record<string, number>; t: number }>(
+    { values: {}, t: Date.now() },
+  );
   onMount(() => {
-    const handle = setInterval(() => { nowTick = Date.now(); }, 250);
+    const handle = setInterval(() => {
+      const now = Date.now();
+      const dt = Math.max(0.001, (now - lastObserved.t) / 1000);
+      const nextValues: Record<string, number> = {};
+      const nextObserved: Record<string, number> = { ...observedRate };
+      for (const r of Object.keys(game.resources)) {
+        const cur = (game.resources as Record<string, number>)[r] ?? 0;
+        nextValues[r] = cur;
+        const prev = lastObserved.values[r] ?? cur;
+        const delta = (cur - prev) / dt; // positive = gaining
+        // Exponential smoothing (α = 0.18 → ~3-4s effective window).
+        const prevRate = observedRate[r] ?? 0;
+        nextObserved[r] = prevRate * 0.82 + delta * 0.18;
+      }
+      observedRate = nextObserved;
+      lastObserved = { values: nextValues, t: now };
+      nowTick = now;
+    }, 250);
     return () => clearInterval(handle);
   });
   const postCooldown = $derived(Math.max(0, lastPostClick + POST_COOLDOWN_MS - nowTick));
@@ -554,7 +579,9 @@
         {@const r = id as keyof typeof game.resources}
         {@const val = game.resources[r]}
         {@const cap = game.caps[r]}
-        {@const rate = rates[r]}
+        {@const computedRate = rates[r]}
+        {@const obsRate = observedRate[id] ?? 0}
+        {@const rate = Math.max(computedRate, obsRate)}
         {@const eta = etaToCap(val, cap, rate)}
         {#if cap > 0 || val > 0}
           {@const bd = multBreakdown[r]}
