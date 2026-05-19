@@ -2170,14 +2170,14 @@
        - Bottom row: DEPICT (fixed 400px) | Assets (fluid) | Platforms (fixed 380px)
        INVARIANT: side columns are HARD pixel tracks. No content can change their
        width. Toggles change inner content only. */
-    /* Per user feedback: status row (ticker+event+next moves) lives
-       above the grid. Top row of grid = wide assets (fluid) + platforms.
-       Bottom row = DEPICT trees full-width. */
+    /* Platforms column spans BOTH rows on the right (380px fixed).
+       Assets on top-left, DEPICT below it. Trees do NOT extend under
+       the platforms column. */
     grid-template-columns: minmax(0, 1fr) 380px;
     grid-template-rows: auto auto;
     grid-template-areas:
       "assets platforms"
-      "depict depict";
+      "depict platforms";
     gap: 0.6rem;
     padding: 0.7rem;
     align-items: start;
@@ -2222,22 +2222,29 @@
     margin: 0;
     font-weight: 600;
   }
-  /* Assets sit in the fluid wide column. Fixed 3-column grid at desktop;
-     drops to 2 then 1 at narrow widths. */
+  /* Asset tiles use CSS multi-column for masonry packing — each tile
+     is content-height; no row-stretching means no empty middle on
+     short tiles next to tall ones with a milestone meter. Reading
+     order flows column-by-column (top-to-bottom within col 1, then
+     col 2, etc.), which matches catalog order well enough.
+     break-inside: avoid keeps a tile from splitting between columns. */
   .cards {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.4rem;
-    align-items: stretch;
+    column-count: 3;
+    column-gap: 0.4rem;
+  }
+  .cards > .card {
+    break-inside: avoid;
+    margin-bottom: 0.4rem;
+    width: 100%;
+    display: block;
   }
   @media (max-width: 1400px) {
-    .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cards { column-count: 2; }
   }
   @media (max-width: 700px) {
-    .cards { grid-template-columns: 1fr; }
+    .cards { column-count: 1; }
   }
-  /* Cards stretch to match their row's tallest sibling so rows line up. */
-  .cards > .card { align-content: start; }
+  /* (CSS columns now handles tile layout — no align-content needed.) */
 
   /* ── GENERIC CARD ──────────────────────────────────────────────────── */
   .card {
