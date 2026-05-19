@@ -154,7 +154,7 @@ Each of the six DEPICT trees becomes a hex talent tree.
 
 - **Root header**: tree letter chip (in tree color), name, total levels, `→ target-resource`, collapse caret. Clickable to collapse just that tree.
 - **Hex node**: ~52 × 52 px `clip-path` hexagon. Fills from base (low level) to bright/saturated by `level / maxLevel`. Level text displayed inside (`11/30`). Cost-resource colors the inner ring. Below: short label, truncated to one line.
-- **Connecting lines**: thin SVG paths from root center down to each child. Lit (tint color) when path is active (parent prereqs satisfied); dim when child is locked.
+- **Connecting lines**: thin SVG paths from root center down to each child. Tier-1 lines are always lit (no prereq); tier-2 lines are lit only when that tree's tier-1 total levels ≥ 10 (the tier-2 unlock condition); otherwise dim.
 - **Locked tier-2**: lock glyph overlay, opacity 0.4, tooltip explains the prereq.
 - **Maxed node**: green saturated fill + brief glow.
 
@@ -178,7 +178,7 @@ Each tree cell ≈ 195 × 110 px when expanded, ≈ 195 × 28 px when collapsed.
 
 - **Click hex** → `+1 level` if affordable. Silent and stable; no popup.
 - **Shift-click hex** → `+10` (or as many as affordable up to 10).
-- **Right-click hex** → `+max` affordable.
+- **Right-click hex** → `+max` affordable. Implementation must suppress the browser context menu (`event.preventDefault()` in the handler).
 - **Hover hex** → browser-native `title=` tooltip: full node name, per-level effect, current effect (now +16.5 %), next-level cost.
 - **Click root caret** → collapses or expands that tree's hex pair.
 
