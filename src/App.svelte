@@ -2793,12 +2793,14 @@
   /* DEPICT now sits in a full-width row below assets/platforms, so it can
      flow 4-6 trees per row instead of the old 1-2 vertical stack. */
   /* DEPICT trees now live in the FULL-WIDTH bottom row. Six trees fit
-     comfortably in 6 cols × 1 row at desktop; collapses to 3 then 2. */
+     comfortably in 6 cols × 1 row at desktop; collapses to 3 then 2.
+     align-items: stretch ensures all tiles in the row are the same
+     height, regardless of which ones have the affordable highlight. */
   .trees {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.45rem;
-    align-items: start;
+    align-items: stretch;
   }
   @media (max-width: 1700px) {
     .trees { grid-template-columns: repeat(3, minmax(0, 1fr)); }
