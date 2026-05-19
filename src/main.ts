@@ -1,12 +1,16 @@
 import { mount } from 'svelte';
 import './app.css';
 import App from './App.svelte';
+import TileMockup from './TileMockup.svelte';
 import { startLoop } from './game/loop';
 
-const app = mount(App, {
-  target: document.getElementById('app')!,
-});
+const mockup = new URLSearchParams(window.location.search).get('mockup');
 
-startLoop();
+const target = document.getElementById('app')!;
+const app = mockup === 'tiles'
+  ? mount(TileMockup, { target })
+  : mount(App, { target });
+
+if (mockup !== 'tiles') startLoop();
 
 export default app;
