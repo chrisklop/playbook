@@ -483,6 +483,9 @@
   let showDepictHelp = $state(false);
   let showAssetsHelp = $state(false);
   let showPlatformsHelp = $state(false);
+  // Collapsible DEPICT section — sits below assets/platforms now, fully
+  // expandable in a single click when the player wants to invest.
+  let treesExpanded = $state(true);
 
   function upgradeEffectText(u: { multiplier: Record<string, number> }, lvl: number): string {
     const entries = Object.entries(u.multiplier);
@@ -1102,13 +1105,28 @@
     </section>
     {/if}
 
-    <!-- CENTER: DEPICT trees — explicit grid-column 2 -->
+    <!-- BOTTOM ROW: DEPICT trees — full width, collapsible -->
     {#if showTrees}
-    <section class="col trees-col">
+    <section class="col trees-col" class:collapsed={!treesExpanded}>
       <div class="section-head">
-        <h2>DEPICT trees</h2>
+        <button
+          class="ghost section-collapse"
+          onclick={() => (treesExpanded = !treesExpanded)}
+          title={treesExpanded ? 'Collapse DEPICT trees' : 'Expand DEPICT trees'}
+          aria-expanded={treesExpanded}
+        >
+          <span class="caret">{treesExpanded ? '▼' : '▶'}</span>
+          <span>DEPICT trees</span>
+        </button>
+        {#each treesView as t (t.tree)}
+          <span class="trees-pill" title="{t.tree} · {t.totalLevel}/{t.totalMax} levels">
+            <span class="trees-pill-tag tree-{t.tree}">{depictLetter(t.tree)}</span>
+            <span class="trees-pill-num num">{t.totalLevel}</span>
+          </span>
+        {/each}
         <button class="ghost depict-help-btn" onclick={() => (showDepictHelp = true)} title="What is DEPICT?">?</button>
       </div>
+      {#if treesExpanded}
       <div class="trees">
         {#each treesView as t (t.tree)}
           {@const target = treeTargetResource(t.tree)}
@@ -1180,6 +1198,7 @@
           </div>
         {/each}
       </div>
+      {/if}
     </section>
     {/if}
   </main>
@@ -1983,8 +2002,57 @@
     justify-content: space-between;
     align-items: center;
     gap: 0.6rem;
+    flex-wrap: wrap;
   }
   .section-head h2 { margin: 0; }
+  /* Collapse-toggle button on the DEPICT section header. */
+  .section-collapse {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    color: var(--muted);
+    border: none;
+    background: transparent;
+    padding: 0.15rem 0.3rem;
+    cursor: pointer;
+    border-radius: 3px;
+  }
+  .section-collapse:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); color: var(--ink); }
+  .section-collapse .caret { font-size: 0.6rem; opacity: 0.8; }
+  /* Tree summary pills shown alongside the collapse toggle so the player
+     sees per-tree progress at a glance even when DEPICT is collapsed. */
+  .trees-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.06rem 0.4rem 0.06rem 0.1rem;
+    background: color-mix(in oklab, var(--ink) 4%, transparent);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-size: 0.62rem;
+  }
+  .trees-pill-tag {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    line-height: 1rem;
+    text-align: center;
+    font-weight: 700;
+    border-radius: 50%;
+    font-size: 0.56rem;
+    color: white;
+  }
+  .trees-pill-tag.tree-discrediting  { background: hsl(0 60% 45%); }
+  .trees-pill-tag.tree-emotional     { background: hsl(20 75% 50%); }
+  .trees-pill-tag.tree-polarization  { background: hsl(280 55% 50%); }
+  .trees-pill-tag.tree-impersonation { background: hsl(160 50% 40%); }
+  .trees-pill-tag.tree-conspiracy    { background: hsl(220 60% 45%); }
+  .trees-pill-tag.tree-trolling      { background: hsl(60 70% 40%); color: hsl(220 18% 12%); }
+  .trees-pill-num { color: var(--muted); font-variant-numeric: tabular-nums; }
   .bulk {
     display: inline-flex;
     border: 1px solid var(--line);
@@ -2182,8 +2250,15 @@
      - RIGHT (platforms): subdued — passive dashboard / gauges */
   .grid {
     display: grid;
-    /* Trees | Assets (wide) | Platforms */
-    grid-template-columns: minmax(380px, 520px) 1fr minmax(340px, 480px);
+    /* New layout: top row = Assets (wide) + Platforms; bottom row = DEPICT
+       trees spanning the full width so the trees can flow 4-6 columns
+       wide instead of stacking. Active gameplay (buy/post) above the
+       fold; research-tier DEPICT below, collapsible. */
+    grid-template-columns: 2fr minmax(340px, 1.1fr);
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "assets platforms"
+      "trees  trees";
     gap: 0.7rem;
     padding: 0.7rem;
     align-items: start;
@@ -2200,26 +2275,25 @@
     padding: 0.45rem 0.55rem;
     border-radius: 8px;
   }
-  /* Explicit column AND row placement so the browser doesn't create
-     new rows when items appear in non-DOM order. All three columns live
-     in row 1; their grid-column slot is fixed regardless of DOM order. */
-  .col.trees-col {
-    grid-row: 1;
-    grid-column: 1;
-    background: color-mix(in oklab, hsl(220 70% 50%) 4%, var(--paper-2));
-    border: 1px solid color-mix(in oklab, hsl(220 70% 50%) 25%, var(--line));
-  }
+  /* Grid-area placement (assets+platforms top row, trees full-width bottom). */
   .col.left {
-    grid-row: 1;
-    grid-column: 2;
+    grid-area: assets;
     background: color-mix(in oklab, hsl(25 60% 50%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(25 60% 50%) 25%, var(--line));
   }
   .col.platforms-col {
-    grid-row: 1;
-    grid-column: 3;
+    grid-area: platforms;
     background: color-mix(in oklab, hsl(165 40% 45%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(165 40% 45%) 25%, var(--line));
+  }
+  .col.trees-col {
+    grid-area: trees;
+    background: color-mix(in oklab, hsl(220 70% 50%) 4%, var(--paper-2));
+    border: 1px solid color-mix(in oklab, hsl(220 70% 50%) 25%, var(--line));
+  }
+  /* Collapsed trees row: just shows the header strip with summary pills. */
+  .col.trees-col.collapsed {
+    padding: 0.3rem 0.55rem;
   }
   .col:empty { display: none; }
   .col h2 {
@@ -2776,9 +2850,11 @@
      auto-fit + minmax(220px,...) gracefully collapses to one column on
      narrow screens. align-items: start so a short tree (few nodes) doesn't
      pad to match a tall neighbor. */
+  /* DEPICT now sits in a full-width row below assets/platforms, so it can
+     flow 4-6 trees per row instead of the old 1-2 vertical stack. */
   .trees {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 0.45rem;
     align-items: start;
   }
@@ -2999,13 +3075,13 @@
   }
 
   /* ── RESPONSIVE COLLAPSE ───────────────────────────────────────────── */
-  @media (max-width: 1100px) {
-    .grid { grid-template-columns: 1fr 1fr; }
-    .col.right { grid-column: 1 / -1; }
-  }
-  @media (max-width: 720px) {
-    .topbar { grid-template-columns: 1fr; }
-    .grid { grid-template-columns: 1fr; padding: 0.6rem; }
-    .col.left, .col.center, .col.right { grid-column: auto; }
+  @media (max-width: 900px) {
+    .grid {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "assets"
+        "platforms"
+        "trees";
+    }
   }
 </style>
