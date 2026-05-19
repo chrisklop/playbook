@@ -37,11 +37,19 @@ export function fmt(n: number): string {
 }
 
 export function fmtRate(n: number): string {
-  // Always show the per-second rate, even when zero. Empty string was
-  // confusing: players saw their value climbing (from POST overflow,
-  // events, etc.) but no rate displayed and assumed the meter was broken.
-  if (Math.abs(n) < 0.0005) return '+0/s';
-  return (n >= 0 ? '+' : '') + fmt(n) + '/s';
+  // Always show some signal of per-second income. Previously rates below
+  // 0.0005/s rounded silently to "+0/s" — but bursty POST-overflow income
+  // averages out to genuinely tiny per-second numbers (a few engagement
+  // per minute can be < 0.05/s) and players read +0/s as "broken meter".
+  // Three tiers: truly flat → +0/s, sub-millisecond → +<0.001/s so the
+  // direction is clear, and 0.001–0.01 → three decimals so the value
+  // shows. From 0.01 up, fmt() already handles it gracefully.
+  const abs = Math.abs(n);
+  if (abs < 1e-6) return '+0/s';
+  const sign = n >= 0 ? '+' : '-';
+  if (abs < 0.001) return sign + '<0.001/s';
+  if (abs < 0.01)  return sign + abs.toFixed(3) + '/s';
+  return sign + fmt(abs) + '/s';
 }
 
 export function fmtDuration(seconds: number): string {

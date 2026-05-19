@@ -2183,7 +2183,7 @@
   .grid {
     display: grid;
     /* Trees | Assets (wide) | Platforms */
-    grid-template-columns: minmax(280px, 360px) 1fr minmax(340px, 480px);
+    grid-template-columns: minmax(380px, 520px) 1fr minmax(340px, 480px);
     gap: 0.7rem;
     padding: 0.7rem;
     align-items: start;
@@ -2771,14 +2771,24 @@
   }
 
   /* ── DEPICT TREES ──────────────────────────────────────────────────── */
-  .trees { display: grid; gap: 0.5rem; }
+  /* 2-column tree grid — six trees stacked single-file fell off the page,
+     so they flow in two columns when the trees-column is wide enough.
+     auto-fit + minmax(220px,...) gracefully collapses to one column on
+     narrow screens. align-items: start so a short tree (few nodes) doesn't
+     pad to match a tall neighbor. */
+  .trees {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.45rem;
+    align-items: start;
+  }
   .tree {
     border: 1px solid var(--line);
     border-radius: 5px;
     background: var(--paper-2);
-    padding: 0.5rem 0.6rem;
+    padding: 0.35rem 0.45rem;
     display: grid;
-    gap: 0.4rem;
+    gap: 0.3rem;
   }
   .tree-head {
     display: grid;
