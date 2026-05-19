@@ -758,7 +758,7 @@
           {@const sf = !affordable && n > 0 ? shortfall(cost, a.costResource) : null}
           {@const owned = game.assets[a.id] ?? 0}
           {@const m = owned > 0 && Object.keys(a.produces).length > 0 ? milestoneInfo(owned) : null}
-          <button class="card asset cost-{a.costResource}" aria-disabled={!affordable} onclick={() => { if (!affordable) return; doBuyAsset(a.id); }} title={a.blurb + (pre ? '\n\n' + pre : '')}>
+          <button class="card asset cost-{a.costResource}" aria-disabled={!affordable} onclick={() => { if (!affordable) return; doBuyAsset(a.id); }} title={a.blurb + (pre ? '\n\n' + pre : '')} style="--afford: {ratio * 100}%">
             <div class="card-head">
               <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
               <span class="owned">×{owned}</span>
@@ -828,7 +828,7 @@
             {@const ratio = affordabilityRatio(amt as number, res)}
             {@const ppre = getPrecedent(p.id, p.precedents)}
             {@const psf = !affordable ? shortfall(amt as number, res) : null}
-            <button class="card project cost-{res}" aria-disabled={!affordable} onclick={() => { if (!affordable) return; completeProject(game, p.id); }} title={p.blurb + (ppre ? '\n\n' + ppre : '')}>
+            <button class="card project cost-{res}" aria-disabled={!affordable} onclick={() => { if (!affordable) return; completeProject(game, p.id); }} title={p.blurb + (ppre ? '\n\n' + ppre : '')} style="--afford: {ratio * 100}%">
               <div class="card-head">
                 <span class="name">{p.name}</span>
               </div>
@@ -875,11 +875,13 @@
             {@const lvlB = treeTotalLevel(game, sn.trees[1])}
             {@const treeMissing = lvlA < sn.threshold || lvlB < sn.threshold}
             {@const resMissing = (game.resources[res as keyof typeof game.resources] as number) < (amt as number)}
+            {@const synRatio = (game.resources[res as keyof typeof game.resources] as number) / (amt as number)}
             <button
               class="card synergy cost-{res}"
               aria-disabled={!affordable}
               onclick={() => { if (!affordable) return; activateSynergy(game, sn.id); }}
               title={sn.blurb + (sn.precedent ? '\n\n' + sn.precedent : '')}
+              style="--afford: {Math.min(100, synRatio * 100)}%"
             >
               <div class="card-head">
                 <span class="name">{sn.name}</span>
@@ -942,11 +944,13 @@
             {@const [res, amt] = Object.entries(pa.cost)[0]}
             {@const affordable = canActivatePatron(game, pa)}
             {@const ppre = getPrecedent(pa.id, pa.precedents)}
+            {@const paRatio = (game.resources[res as keyof typeof game.resources] as number) / (amt as number)}
             <button
               class="card patron cost-{res}"
               aria-disabled={!affordable}
               onclick={() => { if (!affordable) return; activatePatron(game, pa.id); rotatePrecedent(pa.id, pa.precedents); }}
               title={pa.blurb + (ppre ? '\n\n' + ppre : '')}
+              style="--afford: {Math.min(100, paRatio * 100)}%"
             >
               <div class="card-head">
                 <span class="name">{pa.name}</span>
@@ -1002,23 +1006,52 @@
             </div>
             <div class="plt-audience">{meta.audience}</div>
             {#if unlocked}
-              <div class="plt-meter">
-                <div class="meter-row">
-                  <span class="meter-label">heat</span>
-                  <div class="meter-bar">
-                    <div class="meter-fill heat" class:critical={p.heat >= 0.75} style="--fill: {p.heat * 100}%"></div>
-                  </div>
-                  <span class="meter-num num" class:hot={p.heat > 0.7}>{(p.heat * 100).toFixed(0)}%</span>
+              {@const y = postYield(game, meta.id)}
+              {@const fy = freestyleYield(game, meta.id)}
+              {@const ready = p.chargeProgress >= 1}
+              {@const attCapped = game.resources.attention >= game.caps.attention}
+              {@const isBanned = p.burned && p.burnedUntil > game.lastTick}
+              <div class="plt-row">
+                <div class="plt-buttons">
+                  <button
+                    class="post-platform"
+                    class:ready
+                    class:firing={isFiring(meta.id)}
+                    disabled={!ready || isBanned}
+                    onclick={() => postWithPulse(meta.id)}
+                    title="POST — fires at 100% charge for full yield. Low heat (+0.8%)."
+                  >
+                    <span class="post-fill" style="--fill: {p.chargeProgress * 100}%"></span>
+                    <span class="post-label">
+                      {#if attCapped}POST · +{fmt(y * 0.1)} eng
+                      {:else}POST · +{fmt(y)} att
+                      {/if}
+                    </span>
+                  </button>
+                  <button
+                    class="post-platform freestyle"
+                    disabled={isBanned}
+                    onclick={() => { freestylePost(game, meta.id); firingPlatforms[meta.id + ':f'] = Date.now(); setTimeout(() => { delete firingPlatforms[meta.id + ':f']; firingPlatforms = { ...firingPlatforms }; }, 200); pulseResource(attCapped ? 'engagement' : 'attention'); }}
+                    class:firing={isFiring(meta.id + ':f')}
+                    title="PUSH IT — freestyle anytime. {Math.round(fy)} att now. Heat cost +{Math.round(4 * (1 + p.heat))}% per click."
+                  >
+                    {#if attCapped}PUSH IT · +{fmt(fy * 0.1)} eng
+                    {:else}PUSH IT · +{fmt(fy)} att
+                    {/if}
+                  </button>
                 </div>
-                <div class="meter-row">
-                  <span class="meter-label">charge</span>
-                  <div class="meter-bar">
-                    <div class="meter-fill charge" style="--fill: {p.chargeProgress * 100}%"></div>
-                  </div>
-                  <span class="meter-num num">{p.chargeProgress >= 1 ? 'READY' : `${(p.chargeProgress * 100).toFixed(0)}%`}</span>
+                <!-- Vertical LED column: 8 segments from bottom up.
+                     Top 3 (critical) flash when lit. Fixed width so it
+                     never shifts the buttons. -->
+                <div class="plt-leds" aria-label="heat {(p.heat * 100).toFixed(0)}%">
+                  {#each Array(8) as _, i (i)}
+                    {@const lit = i >= 8 - Math.round(p.heat * 8)}
+                    {@const crit = lit && i >= 5}
+                    <span class="plt-led" class:on={lit} class:critical={crit}></span>
+                  {/each}
                 </div>
               </div>
-              <div class="rate-row" title="Auto-poster rate: throttles post frequency AND bot-heat. Lower the slider when overheating; raise it for max output.">
+              <div class="rate-row" title="Auto-poster rate: throttles post frequency AND bot-heat. Lower when overheating; raise for max output.">
                 <span class="rate-label">rate</span>
                 <input
                   class="rate-slider"
@@ -1031,15 +1064,16 @@
                 />
                 <span class="rate-num num">{Math.round((p.postRate ?? 1) * 100)}%</span>
               </div>
-              <!-- Reserved-height status slot: always rendered so buttons
-                   below don't shift when heat crosses a threshold. -->
+              <!-- Reserved-height status slot: always rendered, fixed
+                   height + ellipsis, so heat-threshold transitions never
+                   shift the buttons above it. -->
               <div class="plt-status"
-                class:burned={p.burned && p.burnedUntil > game.lastTick}
-                class:overheated={!(p.burned && p.burnedUntil > game.lastTick) && p.heat >= 0.75}
-                class:hot={!(p.burned && p.burnedUntil > game.lastTick) && p.heat >= 0.5 && p.heat < 0.75}
+                class:burned={isBanned}
+                class:overheated={!isBanned && p.heat >= 0.75}
+                class:hot={!isBanned && p.heat >= 0.5 && p.heat < 0.75}
               >
-                {#if p.burned && p.burnedUntil > game.lastTick}
-                  ⚠ BANNED · {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s
+                {#if isBanned}
+                  ⊘ BANNED · {Math.max(0, Math.ceil((p.burnedUntil - game.lastTick) / 1000))}s
                 {:else if p.heat >= 0.85}
                   ⚠ OVERHEATED · {Math.round((1 - p.heat * 0.6) * 100)}% yield
                 {:else if p.heat >= 0.75}
@@ -1050,36 +1084,6 @@
                   &nbsp;
                 {/if}
               </div>
-              {@const y = postYield(game, meta.id)}
-              {@const fy = freestyleYield(game, meta.id)}
-              {@const ready = p.chargeProgress >= 1}
-              {@const attCapped = game.resources.attention >= game.caps.attention}
-              <button
-                class="post-platform"
-                class:ready
-                class:firing={isFiring(meta.id)}
-                disabled={!ready}
-                onclick={() => postWithPulse(meta.id)}
-                title="Disciplined post — fires at 100% charge for full yield. Low heat (+0.8%)."
-              >
-                {#if attCapped}
-                  POST · +{fmt(y * 0.1)} eng
-                {:else}
-                  POST · +{fmt(y)} att
-                {/if}
-              </button>
-              <button
-                class="post-platform freestyle"
-                onclick={() => { freestylePost(game, meta.id); firingPlatforms[meta.id + ':f'] = Date.now(); setTimeout(() => { delete firingPlatforms[meta.id + ':f']; firingPlatforms = { ...firingPlatforms }; }, 200); pulseResource(attCapped ? 'engagement' : 'attention'); }}
-                class:firing={isFiring(meta.id + ':f')}
-                title="Freestyle — fire anytime, ignores charge. {Math.round(fy)} attention right now. Heat cost scales: +{Math.round(4 * (1 + p.heat))}% per click. Spam carefully."
-              >
-                {#if attCapped}
-                  PUSH IT · +{fmt(fy * 0.1)} eng
-                {:else}
-                  PUSH IT · +{fmt(fy)} att
-                {/if}
-              </button>
             {:else}
               <div class="plt-locked-body">
                 <span class="locked-glyph">·</span>
@@ -1131,7 +1135,7 @@
                 {@const ratio = affordabilityRatio(cost, u.costResource)}
                 {@const upre = getPrecedent(u.id, u.precedents)}
                 {@const usf = !maxed && !affordable && n > 0 ? shortfall(cost, u.costResource) : null}
-                <button class="node cost-{u.costResource}" aria-disabled={!affordable || maxed} onclick={() => { if (!affordable || maxed) return; doBuyUpgrade(u.id); }} title={u.blurb + (upre ? '\n\n' + upre : '')}>
+                <button class="node cost-{u.costResource}" class:maxed aria-disabled={!affordable || maxed} onclick={() => { if (!affordable || maxed) return; doBuyUpgrade(u.id); }} title={u.blurb + (upre ? '\n\n' + upre : '')} style="--level: {(lvl / u.maxLevel) * 100}%; --afford: {ratio * 100}%">
                   <div class="node-head">
                     <span class="node-name">{u.name}</span>
                     <span class="node-lvl num">{lvl}/{u.maxLevel}</span>
@@ -2254,74 +2258,80 @@
   .card[aria-disabled="true"]:hover,
   .node[aria-disabled="true"]:hover { background: var(--paper-2); }
 
-  /* Resource-cost tint — every purchasable tile bleeds the color of its
-     cost currency so the eye learns "yellow = drains attention", "blue =
-     drains engagement", etc. Subtle on idle, brighter on hover. */
-  .card.cost-attention,
-  .node.cost-attention {
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--res-attention) 11%, var(--paper-2)),
-      var(--paper-2));
-    border-left: 2px solid color-mix(in oklab, var(--res-attention) 55%, var(--line));
-  }
-  .card.cost-engagement,
-  .node.cost-engagement {
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--res-engagement) 11%, var(--paper-2)),
-      var(--paper-2));
-    border-left: 2px solid color-mix(in oklab, var(--res-engagement) 55%, var(--line));
-  }
-  .card.cost-followers,
-  .node.cost-followers {
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--res-followers) 11%, var(--paper-2)),
-      var(--paper-2));
-    border-left: 2px solid color-mix(in oklab, var(--res-followers) 55%, var(--line));
-  }
-  .card.cost-credibility,
-  .node.cost-credibility {
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--res-credibility) 11%, var(--paper-2)),
-      var(--paper-2));
-    border-left: 2px solid color-mix(in oklab, var(--res-credibility) 55%, var(--line));
-  }
+  /* CONCEPT A — Background-as-state.
+     Every purchasable card/node carries a CSS variable --tint (its cost
+     resource color) and --afford (0-100%, how close the player is to
+     affording it). The card body fills from the left with the tint at
+     that width, so the eye reads progress at a glance — no separate
+     bar needed. For DEPICT nodes, --level (X/maxLevel) drives a second
+     fill layer so the player can see how built-up a node is.
+     Hover deepens the tint; affordable cards glow softly. */
+  .card.cost-attention,  .node.cost-attention          { --tint: var(--res-attention); }
+  .card.cost-engagement, .node.cost-engagement         { --tint: var(--res-engagement); }
+  .card.cost-followers,  .node.cost-followers          { --tint: var(--res-followers); }
+  .card.cost-credibility,.node.cost-credibility        { --tint: var(--res-credibility); }
   .card.cost-narrativeDominance,
-  .node.cost-narrativeDominance {
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--res-narrativeDominance) 11%, var(--paper-2)),
-      var(--paper-2));
-    border-left: 2px solid color-mix(in oklab, var(--res-narrativeDominance) 55%, var(--line));
-  }
+  .node.cost-narrativeDominance                        { --tint: var(--res-narrativeDominance); }
   .card.cost-syntheticReality,
-  .node.cost-syntheticReality {
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--res-syntheticReality) 11%, var(--paper-2)),
-      var(--paper-2));
-    border-left: 2px solid color-mix(in oklab, var(--res-syntheticReality) 55%, var(--line));
+  .node.cost-syntheticReality                          { --tint: var(--res-syntheticReality); }
+
+  .card[class*="cost-"],
+  .node[class*="cost-"] {
+    background: var(--paper-2);
+    border-left: 2px solid color-mix(in oklab, var(--tint) 55%, var(--line));
   }
-  .card.cost-attention:hover:not(:disabled),
-  .node.cost-attention:hover:not(:disabled) {
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--res-attention) 20%, var(--paper-2)),
-      var(--paper-2));
+  /* Affordability/level fill — left-anchored gradient that grows as
+     --afford (or --level) rises. ::before sits below the card content. */
+  .card[class*="cost-"]::before,
+  .node[class*="cost-"]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+      color-mix(in oklab, var(--tint) 22%, transparent),
+      color-mix(in oklab, var(--tint) 8%, transparent));
+    width: var(--afford, 0%);
+    transition: width 280ms ease-out;
+    pointer-events: none;
+    z-index: 0;
   }
-  .card.cost-engagement:hover:not(:disabled),
-  .node.cost-engagement:hover:not(:disabled) {
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--res-engagement) 20%, var(--paper-2)),
-      var(--paper-2));
+  /* DEPICT nodes also paint a level layer (subtler) so you can see
+     X/maxLevel progress at a glance even on un-affordable nodes. */
+  .node[class*="cost-"]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+      color-mix(in oklab, var(--tint) 14%, transparent),
+      color-mix(in oklab, var(--tint) 4%, transparent));
+    width: var(--level, 0%);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.7;
   }
-  .card.cost-followers:hover:not(:disabled),
-  .node.cost-followers:hover:not(:disabled) {
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--res-followers) 20%, var(--paper-2)),
-      var(--paper-2));
+  .node.maxed::after {
+    background: linear-gradient(90deg,
+      color-mix(in oklab, var(--ok) 22%, transparent),
+      color-mix(in oklab, var(--ok) 6%, transparent));
+    width: 100%;
   }
-  .card.cost-credibility:hover:not(:disabled),
-  .node.cost-credibility:hover:not(:disabled) {
-    background: linear-gradient(180deg,
-      color-mix(in oklab, var(--res-credibility) 20%, var(--paper-2)),
-      var(--paper-2));
+  .card[class*="cost-"] > *,
+  .node[class*="cost-"] > * {
+    position: relative;
+    z-index: 1;
+  }
+  /* Affordable card gets a soft tint-colored glow */
+  .card[class*="cost-"]:not([aria-disabled="true"]):not(:disabled) {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--tint) 28%, transparent),
+      0 0 14px color-mix(in oklab, var(--tint) 15%, transparent);
+    border-color: color-mix(in oklab, var(--tint) 50%, var(--line));
+  }
+  .card[class*="cost-"]:hover:not([aria-disabled="true"]):not(:disabled)::before,
+  .node[class*="cost-"]:hover:not([aria-disabled="true"]):not(:disabled)::before {
+    background: linear-gradient(90deg,
+      color-mix(in oklab, var(--tint) 34%, transparent),
+      color-mix(in oklab, var(--tint) 14%, transparent));
   }
 
   /* Shortfall hint shown on disabled buy buttons (UX-4). */
@@ -2438,18 +2448,15 @@
     transition: width 300ms ease-out;
     border-radius: 4px;
   }
-  .afford-fill {
-    position: absolute;
-    inset: auto 0 0 0;
-    height: 2px;
-    width: var(--fill, 0%);
-    background: var(--accent);
-    transition: width 200ms;
-  }
+  /* Old thin afford-fill at bottom — superseded by the Concept-A
+     full-card-body fill. Kept hidden in case any non-cost-tinted card
+     still emits the element. */
+  .afford-fill { display: none; }
   .project { border-style: dashed; }
   .synergy {
-    border: 1px solid var(--accent);
-    background: color-mix(in oklab, var(--accent) 6%, var(--paper-2));
+    /* Cost-tint fill handles the background now; synergies keep their
+       accent border but lose the conflicting flat background. */
+    border-color: var(--accent);
   }
   .synergy.teased {
     border: 1px dashed color-mix(in oklab, var(--accent) 50%, transparent);
@@ -2517,34 +2524,48 @@
   .plt-name { font-weight: 700; font-size: 0.82rem; letter-spacing: -0.01em; }
   .plt-lock { font-size: 0.62rem; color: var(--muted); text-transform: lowercase; }
   .plt-audience { font-size: 0.62rem; color: var(--muted); font-style: italic; line-height: 1.2; }
-  .plt-meter { display: grid; gap: 0.15rem; }
-  .meter-row {
+  /* CONCEPT B platform layout:
+     - .plt-row places buttons + vertical LED heat column side-by-side
+     - charge fills the POST button itself (no separate charge bar)
+     - heat is a vertical LED column; critical segments flash red */
+  .plt-row {
     display: grid;
-    grid-template-columns: 2.4rem 1fr 2.6rem;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.62rem;
+    grid-template-columns: 1fr auto;
+    gap: 0.35rem;
+    align-items: stretch;
   }
-  .meter-label { color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.52rem; }
-  .meter-num { text-align: right; color: var(--muted); }
-  .meter-bar {
-    height: 4px;
-    background: var(--line);
-    border-radius: 2px;
-    overflow: hidden;
+  .plt-buttons { display: grid; gap: 0.25rem; min-width: 0; }
+  .plt-leds {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 2px;
+    width: 9px;
+    padding: 1px;
+    background: hsl(0 0% 8%);
+    border: 1px solid var(--line);
+    border-radius: 3px;
   }
-  .meter-fill {
-    height: 100%;
-    width: var(--fill, 0%);
-    transition: width 200ms;
+  .plt-led {
+    flex: 1;
+    min-height: 4px;
+    background: hsl(0 0% 14%);
+    border-radius: 1px;
+    box-shadow: inset 0 0 1px hsl(0 0% 0%);
+    transition: background 140ms;
   }
-  .meter-fill.heat   { background: linear-gradient(90deg, var(--ok), var(--warn) 60%, var(--bad)); }
-  .meter-fill.heat.critical { animation: heat-pulse 1s ease-in-out infinite; }
+  .plt-led.on {
+    background: var(--warn);
+    box-shadow: 0 0 4px color-mix(in oklab, var(--warn) 60%, transparent);
+  }
+  .plt-led.critical {
+    background: var(--bad);
+    box-shadow: 0 0 6px color-mix(in oklab, var(--bad) 80%, transparent);
+    animation: heat-pulse 0.85s ease-in-out infinite;
+  }
   @keyframes heat-pulse {
     0%, 100% { filter: brightness(1); }
-    50% { filter: brightness(1.4); }
+    50% { filter: brightness(0.45); }
   }
-  .meter-num.hot { color: var(--bad); font-weight: 700; }
 
   /* DANGER tint: at 75%+ heat, whole platform card glows red. */
   .platform-card.hot {
@@ -2644,47 +2665,65 @@
   .post-platform {
     appearance: none;
     font: inherit;
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 0.25rem 0.5rem;
-    border: 1px solid var(--line);
-    background: transparent;
-    color: var(--muted);
-    border-radius: 3px;
-    cursor: not-allowed;
-    margin-top: 0.15rem;
-    transition: border-color 120ms, background 120ms, color 120ms;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.42rem 0.5rem;
+    border: 1px solid hsl(0 0% 30%);
+    border-top-color: hsl(0 0% 40%);
+    border-bottom-color: hsl(0 0% 8%);
+    background: linear-gradient(180deg, hsl(0 0% 20%), hsl(0 0% 13%));
+    color: hsl(0 0% 88%);
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    box-shadow: 0 1px 0 hsl(0 0% 0% / 0.4);
+    transition: filter 120ms;
+  }
+  .post-platform:disabled { opacity: 0.55; cursor: not-allowed; }
+  /* Charge fills the POST button itself — no separate charge bar */
+  .post-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--fill, 0%);
+    background: linear-gradient(90deg,
+      color-mix(in oklab, var(--warn) 30%, transparent),
+      color-mix(in oklab, var(--warn) 55%, transparent));
+    transition: width 200ms ease-out;
+  }
+  .post-label { position: relative; z-index: 1; }
+  .post-platform.ready .post-fill {
+    background: linear-gradient(90deg,
+      color-mix(in oklab, var(--ok) 35%, transparent),
+      color-mix(in oklab, var(--ok) 65%, transparent));
+    box-shadow: 0 0 12px color-mix(in oklab, var(--ok) 50%, transparent);
   }
   .post-platform.ready {
-    border-color: var(--ok);
-    background: color-mix(in oklab, var(--ok) 18%, transparent);
-    color: var(--ok);
-    cursor: pointer;
+    color: hsl(0 0% 98%);
+    border-color: color-mix(in oklab, var(--ok) 50%, hsl(0 0% 30%));
   }
   .post-platform.ready:hover {
-    background: color-mix(in oklab, var(--ok) 30%, transparent);
+    filter: brightness(1.15);
   }
   .post-platform.ready:active {
-    transform: scale(0.96);
-    transition: transform 60ms;
+    background: linear-gradient(180deg, hsl(0 0% 13%), hsl(0 0% 20%));
+    box-shadow: inset 0 1px 4px hsl(0 0% 0% / 0.6);
   }
-  /* Freestyle post — always-available active engagement button. Visually
-     distinct from the disciplined POST so the player knows they're paying
-     extra heat for the privilege. */
+  /* PUSH IT — freestyle button. Always available, tactile orange. */
   .post-platform.freestyle {
-    margin-top: 0.3rem;
+    margin: 0;
     border-color: hsl(20 75% 50%);
-    background: color-mix(in oklab, hsl(20 75% 50%) 12%, transparent);
-    color: hsl(20 80% 45%);
-    font-weight: 700;
-    cursor: pointer;
+    background: linear-gradient(180deg, hsl(20 60% 22%), hsl(15 70% 14%));
+    color: hsl(30 90% 80%);
   }
-  .post-platform.freestyle:hover {
-    background: color-mix(in oklab, hsl(20 75% 50%) 22%, transparent);
+  .post-platform.freestyle:hover:not(:disabled) {
+    filter: brightness(1.15);
   }
-  .post-platform.freestyle:active {
-    transform: scale(0.96);
-    transition: transform 60ms;
+  .post-platform.freestyle:active:not(:disabled) {
+    background: linear-gradient(180deg, hsl(15 70% 14%), hsl(20 60% 22%));
+    box-shadow: inset 0 1px 4px hsl(0 0% 0% / 0.6);
   }
   /* UX-2: brief scale pulse on POST fire so the click feels confirmed. */
   .post-platform.firing {
