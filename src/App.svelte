@@ -689,24 +689,6 @@
     </div>
   </header>
 
-  <!-- TICKER -->
-  {#if showTicker}
-    <div
-      class="ticker"
-      class:paused={tickerPaused}
-      onclick={tickerClick}
-      ondblclick={tickerDblClick}
-      role="button"
-      tabindex="0"
-      title={tickerPaused ? 'paused · click to step · double-click to resume rotation' : 'click to pause · auto-rotates every 25s'}
-    >
-      <span class="tick-fact">
-        {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
-      </span>
-      {#if tickerPaused}<span class="tick-paused">⏸</span>{/if}
-    </div>
-  {/if}
-
   {#if game.reveal.active}
     <div class="reveal-banner" title="Mebro reveal triggered at 80% cure. Until the full third-act sequence ships in v0.2, you'll see fact-check annotations conceptually — push to peak and Prestige to bank legacy points and start a smarter run.">
       <span class="reveal-icon">⚠</span>
@@ -717,28 +699,44 @@
     </div>
   {/if}
 
-  <!-- ACTIVE EVENT BANNER — always-reserved slot so its appearance
-       doesn't shove the rest of the page up/down. -->
-  <div class="event-band" class:has-event={!!activeEvent} class:negative={activeEvent && activeEvent.mult < 1}>
-    {#if activeEvent && activeEventDef}
-      <div class="event-row">
+  <!-- COMBINED STATUS ROW — ticker (left) + event indicator (right) in one 36px band -->
+  <div class="status-row">
+    {#if showTicker}
+      <div
+        class="status-ticker"
+        class:paused={tickerPaused}
+        onclick={tickerClick}
+        ondblclick={tickerDblClick}
+        role="button"
+        tabindex="0"
+        title={tickerPaused ? 'paused · click to step · double-click to resume rotation' : 'click to pause · auto-rotates every 25s'}
+      >
+        <span class="status-ticker-text">
+          {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
+        </span>
+        {#if tickerPaused}<span class="tick-paused">⏸</span>{/if}
+      </div>
+    {:else}
+      <div class="status-ticker"></div>
+    {/if}
+
+    <div class="status-event" class:has-event={!!activeEvent} class:negative={activeEvent && activeEvent.mult < 1}>
+      {#if activeEvent && activeEventDef}
         <span class="event-pulse">▶</span>
-        <span class="event-headline">{activeEventDef.headline}</span>
+        <span class="status-event-headline">{activeEventDef.headline}</span>
         <span class="event-effect">
           {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
           {activeEvent.resourceId}
         </span>
         <span class="event-countdown num">{eventSecsLeft}s</span>
-      </div>
-      <div class="event-progress">
-        <div class="event-progress-fill" style="--fill: {eventProgress * 100}%"></div>
-      </div>
-    {:else}
-      <div class="event-row idle">
+        <div class="event-progress">
+          <div class="event-progress-fill" style="--fill: {eventProgress * 100}%"></div>
+        </div>
+      {:else}
         <span class="event-pulse">○</span>
-        <span class="event-headline">no active headline — next event in 1–2 min</span>
-      </div>
-    {/if}
+        <span class="status-event-headline idle">no active headline — next event in 1–2 min</span>
+      {/if}
+    </div>
   </div>
 
   <!-- MAIN GRID -->
@@ -1473,7 +1471,7 @@
   /* Topbar / ticker / log are fixed-height bands; main flexes to fill so the
      log is always pinned to the bottom of the viewport regardless of which
      bands are present. */
-  .topbar, .ticker, .log { flex-shrink: 0; }
+  .topbar, .status-row, .log { flex-shrink: 0; }
   .grid { flex: 1 1 auto; }
 
   /* ── TOPBAR ─────────────────────────────────────────────────────────── */
@@ -2011,27 +2009,84 @@
     font-weight: 600;
   }
 
-  /* ── TICKER ────────────────────────────────────────────────────────── */
-  .ticker {
-    border-bottom: 1px solid var(--line);
+  /* ── STATUS ROW (ticker + event in one 36px band) ──────────────────── */
+  .status-row {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 0.6rem;
+    height: 36px;
     background: color-mix(in oklab, var(--ink) 3%, var(--paper-2));
-    overflow: hidden;
-    height: 26px;
-    position: relative;
+    border-bottom: 1px solid var(--line);
+    align-items: center;
+    padding: 0 0.85rem;
+    flex-shrink: 0;
+  }
+  .status-ticker {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
     cursor: pointer;
     user-select: none;
+    height: 100%;
   }
-  .ticker:hover { background: color-mix(in oklab, var(--ink) 6%, var(--paper-2)); }
-  .ticker.paused { background: color-mix(in oklab, var(--accent) 6%, var(--paper-2)); }
+  .status-ticker:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); }
+  .status-ticker.paused { background: color-mix(in oklab, var(--accent) 6%, transparent); }
+  .status-ticker-text {
+    font-size: 0.78rem;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+  .tick-source { opacity: 0.7; font-style: italic; }
   .tick-paused {
-    position: absolute;
-    right: 0.6rem;
-    top: 50%;
-    transform: translateY(-50%);
     font-size: 0.7rem;
     color: var(--accent);
     pointer-events: none;
+    flex-shrink: 0;
   }
+  .status-event {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    height: 100%;
+    font-size: 0.78rem;
+    padding-right: 0.4rem;
+  }
+  .status-event.has-event { color: var(--ok); }
+  .status-event.has-event.negative { color: var(--bad); }
+  .status-event-headline {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: inherit;
+  }
+  .status-event-headline.idle { color: var(--muted); font-style: italic; }
+  .status-event .event-effect { font-weight: 600; flex-shrink: 0; }
+  .status-event .event-countdown { color: var(--muted); flex-shrink: 0; }
+  .status-event .event-pulse { flex-shrink: 0; }
+  .status-event .event-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: hsl(0 0% 16%);
+  }
+  .status-event .event-progress-fill {
+    height: 100%;
+    width: var(--fill, 0%);
+    background: var(--ok);
+    transition: width 200ms;
+  }
+  .status-event.has-event.negative .event-progress-fill { background: var(--bad); }
 
   /* UX-2: resource value pulse on big events (POST fire, event trigger). */
   .rvalue.pulsing { animation: rvalue-pop 350ms ease-out 1; }
@@ -2043,82 +2098,16 @@
   .rmeter.pulsing .res-dot {
     box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 40%, transparent);
   }
-  .tick-fact {
-    display: block;
-    font-size: 0.78rem;
-    line-height: 26px;
-    color: var(--muted);
-    padding: 0 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: opacity 400ms;
-  }
-  .tick-source { opacity: 0.7; font-style: italic; }
 
-  /* Event banner — pulses between topbar and ticker. */
-  /* Event band: always present, fixed height, no layout shift. */
-  .event-band {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    padding: 0.5rem 1rem 0.4rem;
-    background: var(--paper-2);
-    border-bottom: 1px solid var(--line);
-    font-size: 0.85rem;
-    flex-shrink: 0;
-    min-height: 56px;
-    transition: background 200ms;
-  }
-  .event-band.has-event {
-    background: color-mix(in oklab, var(--ok) 12%, var(--paper-2));
-  }
-  .event-band.has-event.negative {
-    background: color-mix(in oklab, var(--bad) 14%, var(--paper-2));
-  }
-  .event-row.idle {
-    color: var(--muted);
-    font-style: italic;
-  }
-  .event-row.idle .event-pulse {
-    color: var(--muted);
-    opacity: 0.5;
-    animation: none;
-  }
-  .event-row {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
-    gap: 0.7rem;
-    align-items: center;
-  }
-  .event-progress {
-    height: 3px;
-    background: color-mix(in oklab, var(--ink) 8%, transparent);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .event-progress-fill {
-    height: 100%;
-    width: var(--fill, 0%);
-    background: var(--ok);
-    transition: width 200ms;
-  }
-  .event-band.has-event.negative .event-progress-fill { background: var(--bad); }
   .event-pulse {
     color: var(--ok);
     font-size: 0.7rem;
     animation: pulse 1.2s ease-in-out infinite;
   }
-  .event-band.has-event.negative .event-pulse { color: var(--bad); }
+  .status-event.has-event.negative .event-pulse { color: var(--bad); }
   @keyframes pulse {
     0%, 100% { opacity: 0.4; }
     50%      { opacity: 1; }
-  }
-  .event-headline {
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .event-effect {
     font-variant-numeric: tabular-nums;
@@ -2127,7 +2116,7 @@
     color: var(--ok);
     text-transform: lowercase;
   }
-  .event-band.has-event.negative .event-effect { color: var(--bad); }
+  .status-event.has-event.negative .event-effect { color: var(--bad); }
   .event-countdown {
     font-variant-numeric: tabular-nums;
     font-size: 0.75rem;
