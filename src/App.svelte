@@ -1055,8 +1055,13 @@
                      never shifts the buttons. -->
                 <div class="plt-leds" aria-label="heat {(p.heat * 100).toFixed(0)}%">
                   {#each Array(8) as _, i (i)}
-                    {@const lit = i >= 8 - Math.round(p.heat * 8)}
-                    {@const crit = lit && i >= 5}
+                    <!-- i=0 at top of the column (natural flow). Heat fills
+                         from the BOTTOM up like a thermometer: the bottom
+                         N segments light when litCount=N. Top 3 segments
+                         (i<3) are critical slots and flash red when lit. -->
+                    {@const litCount = Math.round(p.heat * 8)}
+                    {@const lit = i >= 8 - litCount}
+                    {@const crit = lit && i < 3}
                     <span class="plt-led" class:on={lit} class:critical={crit}></span>
                   {/each}
                 </div>
@@ -2672,7 +2677,10 @@
   .plt-buttons { display: grid; gap: 0.25rem; min-width: 0; }
   .plt-leds {
     display: flex;
-    flex-direction: column-reverse;
+    /* Natural top-to-bottom flow: i=0 sits at the top of the column,
+       i=7 at the bottom. The lit-calculation in the template puts the
+       bottom N segments on when litCount=N — thermometer-style fill. */
+    flex-direction: column;
     gap: 2px;
     width: 9px;
     padding: 1px;
