@@ -195,8 +195,14 @@
     ),
   );
 
+  // Filter out already-activated synergies even when the sticky reveal
+  // flag is set. Otherwise the card stays in the grid forever, gray and
+  // unclickable, because canActivateSynergy returns false post-activation.
   const visibleSynergies = $derived(
-    SYNERGIES.filter((sn) => isSynergyVisible(game, sn) || !!game.flags[`reveal:${sn.id}`]),
+    SYNERGIES.filter((sn) =>
+      !game.flags[sn.id] &&
+      (isSynergyVisible(game, sn) || !!game.flags[`reveal:${sn.id}`])
+    ),
   );
   const teasedSynergies = $derived(
     SYNERGIES.filter(
@@ -209,7 +215,10 @@
   const showSynergies = $derived(visibleSynergies.length > 0 || teasedSynergies.length > 0);
 
   const visiblePatrons = $derived(
-    PATRONS.filter((p) => isPatronVisible(game, p) || !!game.flags[`reveal:${p.id}`]),
+    PATRONS.filter((p) =>
+      !game.flags[p.id] &&
+      (isPatronVisible(game, p) || !!game.flags[`reveal:${p.id}`])
+    ),
   );
   const teasedPatrons = $derived(
     PATRONS.filter(
