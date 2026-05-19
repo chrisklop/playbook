@@ -766,7 +766,8 @@
           {@const sf = !affordable && n > 0 ? shortfall(cost, a.costResource) : null}
           {@const owned = game.assets[a.id] ?? 0}
           {@const m = owned > 0 && Object.keys(a.produces).length > 0 ? milestoneInfo(owned) : null}
-          <button class="card asset cost-{a.costResource}" aria-disabled={!affordable} onclick={() => { if (!affordable) return; doBuyAsset(a.id); }} title={a.blurb + (pre ? '\n\n' + pre : '')} style="--afford: {ratio * 100}%">
+          <button class="card asset cost-{a.costResource}" class:fresh={owned === 0} aria-disabled={!affordable} onclick={() => { if (!affordable) return; doBuyAsset(a.id); }} title={a.blurb + (pre ? '\n\n' + pre : '')} style="--afford: {ratio * 100}%">
+            {#if owned === 0}<span class="fresh-badge">NEW</span>{/if}
             <div class="card-head">
               <span class="name">{a.name} <span class="kind">[{a.kind}]</span></span>
               <span class="owned">×{owned}</span>
@@ -1159,7 +1160,8 @@
                 {@const ratio = affordabilityRatio(cost, u.costResource)}
                 {@const upre = getPrecedent(u.id, u.precedents)}
                 {@const usf = !maxed && !affordable && n > 0 ? shortfall(cost, u.costResource) : null}
-                <button class="node cost-{u.costResource}" class:maxed aria-disabled={!affordable || maxed} onclick={() => { if (!affordable || maxed) return; doBuyUpgrade(u.id); }} title={u.blurb + (upre ? '\n\n' + upre : '')} style="--level: {(lvl / u.maxLevel) * 100}%; --afford: {ratio * 100}%">
+                <button class="node cost-{u.costResource}" class:maxed class:fresh={lvl === 0} aria-disabled={!affordable || maxed} onclick={() => { if (!affordable || maxed) return; doBuyUpgrade(u.id); }} title={u.blurb + (upre ? '\n\n' + upre : '')} style="--level: {(lvl / u.maxLevel) * 100}%; --afford: {ratio * 100}%">
+                  {#if lvl === 0}<span class="fresh-badge">NEW</span>{/if}
                   <div class="node-head">
                     <span class="node-name">{u.name}</span>
                     <span class="node-lvl num">{lvl}/{u.maxLevel}</span>
@@ -2544,6 +2546,42 @@
      full-card-body fill. Kept hidden in case any non-cost-tinted card
      still emits the element. */
   .afford-fill { display: none; }
+
+  /* "NEW" badge for unbought assets / unleveled DEPICT nodes — anchors
+     to the top-right corner of the tile. The tile itself gets a soft
+     accent-color pulse so the eye catches new things at a glance. */
+  .fresh-badge {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    font-size: 0.5rem;
+    background: var(--tint, var(--accent));
+    color: white;
+    padding: 0.05rem 0.32rem;
+    border-radius: 999px;
+    letter-spacing: 0.1em;
+    font-weight: 800;
+    line-height: 1.2;
+    z-index: 2;
+    pointer-events: none;
+    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.5);
+    animation: fresh-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes fresh-pulse {
+    0%, 100% { opacity: 0.9;  transform: scale(1); }
+    50%      { opacity: 1;    transform: scale(1.08); }
+  }
+  /* Soft accent-color ring on fresh tiles so even un-affordable ones
+     are visually distinct from already-owned tiles. */
+  .card.fresh,
+  .node.fresh {
+    border-color: color-mix(in oklab, var(--tint, var(--accent)) 55%, var(--line));
+    animation: fresh-ring 2.4s ease-in-out infinite;
+  }
+  @keyframes fresh-ring {
+    0%, 100% { box-shadow: 0 0 0 0   color-mix(in oklab, var(--tint, var(--accent)) 40%, transparent); }
+    50%      { box-shadow: 0 0 0 4px color-mix(in oklab, var(--tint, var(--accent)) 0%, transparent); }
+  }
   .project { border-style: dashed; }
   .synergy {
     /* Cost-tint fill handles the background now; synergies keep their
