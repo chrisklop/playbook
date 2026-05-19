@@ -483,9 +483,6 @@
   let showDepictHelp = $state(false);
   let showAssetsHelp = $state(false);
   let showPlatformsHelp = $state(false);
-  // Collapsible DEPICT section — sits below assets/platforms now, fully
-  // expandable in a single click when the player wants to invest.
-  let treesExpanded = $state(true);
 
   function upgradeEffectText(u: { multiplier: Record<string, number> }, lvl: number): string {
     const entries = Object.entries(u.multiplier);
@@ -1116,28 +1113,13 @@
     </section>
     {/if}
 
-    <!-- BOTTOM ROW: DEPICT trees — full width, collapsible -->
+    <!-- BOTTOM ROW: DEPICT trees — full width -->
     {#if showTrees}
-    <section class="col trees-col" class:collapsed={!treesExpanded}>
+    <section class="col trees-col">
       <div class="section-head">
-        <button
-          class="ghost section-collapse"
-          onclick={() => (treesExpanded = !treesExpanded)}
-          title={treesExpanded ? 'Collapse DEPICT trees' : 'Expand DEPICT trees'}
-          aria-expanded={treesExpanded}
-        >
-          <span class="caret">{treesExpanded ? '▼' : '▶'}</span>
-          <span>DEPICT trees</span>
-        </button>
-        {#each treesView as t (t.tree)}
-          <span class="trees-pill" title="{t.tree} · {t.totalLevel}/{t.totalMax} levels">
-            <span class="trees-pill-tag tree-{t.tree}">{depictLetter(t.tree)}</span>
-            <span class="trees-pill-num num">{t.totalLevel}</span>
-          </span>
-        {/each}
+        <h2>DEPICT trees</h2>
         <button class="ghost depict-help-btn" onclick={() => (showDepictHelp = true)} title="What is DEPICT?">?</button>
       </div>
-      {#if treesExpanded}
       <div class="trees">
         {#each treesView as t (t.tree)}
           {@const target = treeTargetResource(t.tree)}
@@ -1210,7 +1192,6 @@
           </div>
         {/each}
       </div>
-      {/if}
     </section>
     {/if}
   </main>
@@ -2017,54 +1998,6 @@
     flex-wrap: wrap;
   }
   .section-head h2 { margin: 0; }
-  /* Collapse-toggle button on the DEPICT section header. */
-  .section-collapse {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 600;
-    color: var(--muted);
-    border: none;
-    background: transparent;
-    padding: 0.15rem 0.3rem;
-    cursor: pointer;
-    border-radius: 3px;
-  }
-  .section-collapse:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); color: var(--ink); }
-  .section-collapse .caret { font-size: 0.6rem; opacity: 0.8; }
-  /* Tree summary pills shown alongside the collapse toggle so the player
-     sees per-tree progress at a glance even when DEPICT is collapsed. */
-  .trees-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.06rem 0.4rem 0.06rem 0.1rem;
-    background: color-mix(in oklab, var(--ink) 4%, transparent);
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    font-size: 0.62rem;
-  }
-  .trees-pill-tag {
-    display: inline-block;
-    width: 1rem;
-    height: 1rem;
-    line-height: 1rem;
-    text-align: center;
-    font-weight: 700;
-    border-radius: 50%;
-    font-size: 0.56rem;
-    color: white;
-  }
-  .trees-pill-tag.tree-discrediting  { background: hsl(0 60% 45%); }
-  .trees-pill-tag.tree-emotional     { background: hsl(20 75% 50%); }
-  .trees-pill-tag.tree-polarization  { background: hsl(280 55% 50%); }
-  .trees-pill-tag.tree-impersonation { background: hsl(160 50% 40%); }
-  .trees-pill-tag.tree-conspiracy    { background: hsl(220 60% 45%); }
-  .trees-pill-tag.tree-trolling      { background: hsl(60 70% 40%); color: hsl(220 18% 12%); }
-  .trees-pill-num { color: var(--muted); font-variant-numeric: tabular-nums; }
   .bulk {
     display: inline-flex;
     border: 1px solid var(--line);
@@ -2306,10 +2239,6 @@
     grid-area: depict;
     background: color-mix(in oklab, hsl(220 70% 50%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(220 70% 50%) 25%, var(--line));
-  }
-  /* Collapsed trees row: just shows the header strip with summary pills. */
-  .col.trees-col.collapsed {
-    padding: 0.3rem 0.55rem;
   }
   .col:empty { display: none; }
   .col h2 {
