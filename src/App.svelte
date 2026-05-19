@@ -2138,11 +2138,13 @@
        - Bottom row: DEPICT (fixed 400px) | Assets (fluid) | Platforms (fixed 380px)
        INVARIANT: side columns are HARD pixel tracks. No content can change their
        width. Toggles change inner content only. */
+    /* Assets on the left in the fixed 400px slot, DEPICT center fluid so
+       hex trees have room to breathe (per user feedback after Phase 2). */
     grid-template-columns: 400px minmax(0, 1fr) 380px;
     grid-template-rows: auto auto;
     grid-template-areas:
-      "next   next      next"
-      "depict assets    platforms";
+      "next   next   next"
+      "assets depict platforms";
     gap: 0.6rem;
     padding: 0.7rem;
     align-items: start;
@@ -2204,14 +2206,13 @@
     color: var(--muted);
     font-style: italic;
   }
+  /* Assets sit in the 400px left column now — single column of tiles
+     keeps each card readable instead of cramming 2 cols into 190px. */
   .cards {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem;
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
     align-items: stretch;
-  }
-  @media (max-width: 1100px) {
-    .cards { grid-template-columns: 1fr; }
   }
   /* Cards stretch to match their row's tallest sibling so rows line up. */
   .cards > .card { align-content: start; }
@@ -2225,13 +2226,15 @@
     background: var(--paper-2);
     color: inherit;
     border: 1px solid var(--line);
-    border-radius: 6px;
-    padding: 0.4rem 0.55rem;
+    border-radius: 5px;
+    /* Compact padding — assets live in a narrow 400px column; tile
+       density beats interior whitespace. */
+    padding: 0.3rem 0.45rem;
     cursor: pointer;
     display: grid;
-    gap: 0.18rem;
+    gap: 0.12rem;
     overflow: hidden;
-    font-size: 0.85rem;
+    font-size: 0.78rem;
     transition: border-color 140ms, transform 80ms, box-shadow 160ms, background 140ms;
     box-shadow: 0 1px 2px color-mix(in oklab, var(--ink) 4%, transparent);
   }
@@ -2758,13 +2761,17 @@
      pad to match a tall neighbor. */
   /* DEPICT now sits in a full-width row below assets/platforms, so it can
      flow 4-6 trees per row instead of the old 1-2 vertical stack. */
-  /* DEPICT trees flow 2 cols x 3 rows inside the 400px DEPICT column.
-     Fixed count — never re-wraps when phase advances or trees reveal. */
+  /* DEPICT trees now live in the FLUID center column (per user feedback).
+     3 cols × 2 rows fits all six trees at desktop widths — gives each
+     hex tree ~280-320px to render in. Drops to 2 cols at narrow widths. */
   .trees {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.45rem;
     align-items: start;
+  }
+  @media (max-width: 1400px) {
+    .trees { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 1100px) {
     .trees { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -153,6 +153,9 @@
     display: grid;
     gap: 0.25rem;
     border-left: 3px solid var(--tree-tint);
+    /* Stop labels from overflowing into sibling tree cells. */
+    overflow: hidden;
+    min-width: 0;
   }
   .hex-tree.tree-discrediting  { --tree-tint: hsl(0 60% 50%); }
   .hex-tree.tree-emotional     { --tree-tint: hsl(20 75% 50%); }
@@ -194,19 +197,19 @@
 
   .hex-tree-body {
     position: relative;
-    padding-top: 30px;
+    padding-top: 22px;
   }
   .hex-tree-lines {
     position: absolute;
-    top: 4px; left: 0;
+    top: 2px; left: 0;
     width: 100%;
-    height: 28px;
+    height: 20px;
     pointer-events: none;
   }
   .hex-tree-nodes {
     display: grid;
-    grid-template-columns: repeat(var(--cols, 2), 1fr);
-    gap: 0.3rem;
+    grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr));
+    gap: 0.4rem;
     align-items: start;
   }
 
@@ -220,20 +223,23 @@
     padding: 0.2rem 0;
     display: grid;
     justify-items: center;
-    gap: 0.15rem;
+    gap: 0.1rem;
     position: relative;
+    min-width: 0;
+    overflow: hidden;
   }
   .hex-node:disabled { cursor: not-allowed; }
   .hex-node.locked { cursor: not-allowed; opacity: 0.55; }
 
   .hex-shape {
     --tint: var(--tree-tint);
-    width: 52px;
-    height: 52px;
+    width: 44px;
+    height: 44px;
     position: relative;
     display: block;
     background: hsl(0 0% 14%);
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    flex-shrink: 0;
   }
   .hex-fill {
     position: absolute;
@@ -263,29 +269,36 @@
     transform: scale(0.96);
   }
   .hex-level {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 700;
     color: hsl(0 0% 95%);
     font-variant-numeric: tabular-nums;
     position: absolute;
-    top: 18px;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
     text-shadow: 0 1px 2px hsl(0 0% 0% / 0.8);
     pointer-events: none;
   }
   .hex-label {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     color: var(--muted);
     text-align: center;
-    line-height: 1.2;
+    line-height: 1.15;
+    width: 100%;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    padding: 0 2px;
+    box-sizing: border-box;
   }
   .hex-lock {
     position: absolute;
-    top: 14px;
-    font-size: 1rem;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.85rem;
     pointer-events: none;
   }
   .hex-tree.collapsed .hex-tree-body { display: none; }
