@@ -2332,17 +2332,10 @@
     grid-area: platforms;
     background: color-mix(in oklab, hsl(165 40% 45%) 4%, var(--paper-2));
     border: 1px solid color-mix(in oklab, hsl(165 40% 45%) 25%, var(--line));
-    transition: max-width 200ms ease, padding 200ms ease;
   }
-  .col.platforms-col.collapsed {
-    max-width: 90px;
-    padding: 0.35rem 0.3rem;
-  }
-  /* When the platforms drawer is collapsed, give the assets column the
-     freed-up real estate. The grid template uses 1fr so it auto-expands. */
-  .grid:has(.platforms-col.collapsed) {
-    grid-template-columns: 1fr 90px;
-  }
+  /* DASHBOARD INVARIANT: the platforms column NEVER changes width when
+     you collapse/expand the drawer. Only the inner content swaps. Assets
+     stays put; nothing reflows when you click anything. */
   .col.trees-col {
     grid-area: trees;
     background: color-mix(in oklab, hsl(220 70% 50%) 4%, var(--paper-2));
