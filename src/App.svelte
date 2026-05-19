@@ -2268,9 +2268,12 @@
   }
   .cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.45rem;
     align-items: stretch;
+  }
+  @media (max-width: 1100px) {
+    .cards { grid-template-columns: 1fr; }
   }
   /* Cards stretch to match their row's tallest sibling so rows line up. */
   .cards > .card { align-content: start; }
@@ -2856,11 +2859,16 @@
      pad to match a tall neighbor. */
   /* DEPICT now sits in a full-width row below assets/platforms, so it can
      flow 4-6 trees per row instead of the old 1-2 vertical stack. */
+  /* DEPICT trees flow 2 cols x 3 rows inside the 400px DEPICT column.
+     Fixed count — never re-wraps when phase advances or trees reveal. */
   .trees {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.45rem;
     align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .trees { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   .tree {
     border: 1px solid var(--line);
