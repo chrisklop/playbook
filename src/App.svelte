@@ -743,23 +743,8 @@
         <div class="topbar-ticker"></div>
       {/if}
 
-      <div class="topbar-event" class:has-event={!!activeEvent} class:negative={activeEvent && activeEvent.mult < 1}>
-        {#if activeEvent && activeEventDef}
-          <span class="event-pulse">▶</span>
-          <span class="topbar-event-headline">{activeEventDef.headline}</span>
-          <span class="event-effect">
-            {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
-            {activeEvent.resourceId}
-          </span>
-          <span class="event-countdown num">{eventSecsLeft}s</span>
-          <div class="event-progress">
-            <div class="event-progress-fill" style="--fill: {eventProgress * 100}%"></div>
-          </div>
-        {:else}
-          <span class="event-pulse">○</span>
-          <span class="topbar-event-headline idle">no active headline — next event in 1–2 min</span>
-        {/if}
-      </div>
+      <!-- Event headline relocated to top of the platforms column —
+           see <section class="col platforms-col"> below. -->
 
       <div class="topbar-next" aria-label="next moves">
         <span class="topbar-next-label">⚡ NEXT</span>
@@ -1101,6 +1086,26 @@
     <!-- RIGHT: Platforms — fixed-width column showing a single-column stack -->
     {#if showPlatformGrid}
     <section class="col platforms-col">
+      <!-- Event headline lives here now (moved from topbar). Fixed-height
+           slot so platforms cards below never shift when an event starts
+           or ends. -->
+      <div class="platform-event" class:has-event={!!activeEvent} class:negative={activeEvent && activeEvent.mult < 1}>
+        {#if activeEvent && activeEventDef}
+          <span class="event-pulse">▶</span>
+          <span class="platform-event-headline">{activeEventDef.headline}</span>
+          <span class="event-effect">
+            {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
+            {activeEvent.resourceId}
+          </span>
+          <span class="event-countdown num">{eventSecsLeft}s</span>
+          <div class="event-progress">
+            <div class="event-progress-fill" style="--fill: {eventProgress * 100}%"></div>
+          </div>
+        {:else}
+          <span class="event-pulse">○</span>
+          <span class="platform-event-headline idle">no active headline — next event in 1–2 min</span>
+        {/if}
+      </div>
       <div class="section-head">
         <h2>Platforms</h2>
         <button class="ghost depict-help-btn" onclick={() => (showPlatformsHelp = true)} title="What are platforms?">?</button>
@@ -2172,9 +2177,11 @@
   /* Status content lives INSIDE the topbar now — ticker | event | next
      moves on one inline row, between the resources and the action
      buttons. Saves a full row of vertical real estate. */
+  /* Now 2-col: ticker | next moves. Event banner moved to top of
+     platforms column (user request — gives topbar room to breathe). */
   .topbar-status {
     display: grid;
-    grid-template-columns: 1fr 1.4fr 1.6fr;
+    grid-template-columns: 1fr 2fr;
     gap: 0.6rem;
     align-items: center;
     min-width: 0;
@@ -2249,6 +2256,52 @@
     transition: width 200ms;
   }
   .topbar-event.has-event.negative .event-progress-fill { background: var(--bad); }
+
+  /* Event banner at the top of the platforms column (moved from
+     topbar per user request). Same content + fixed-height slot so
+     platforms tiles below never shift when an event starts/ends. */
+  .platform-event {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    height: 32px;
+    padding: 0 0.55rem;
+    background: color-mix(in oklab, var(--ink) 3%, var(--paper-2));
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    font-size: 0.72rem;
+    overflow: hidden;
+  }
+  .platform-event.has-event { color: var(--ok); border-color: color-mix(in oklab, var(--ok) 40%, var(--line)); }
+  .platform-event.has-event.negative { color: var(--bad); border-color: color-mix(in oklab, var(--bad) 40%, var(--line)); }
+  .platform-event-headline {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: inherit;
+  }
+  .platform-event-headline.idle { color: var(--muted); font-style: italic; }
+  .platform-event .event-effect { font-weight: 600; flex-shrink: 0; }
+  .platform-event .event-countdown { color: var(--muted); flex-shrink: 0; }
+  .platform-event .event-pulse { flex-shrink: 0; }
+  .platform-event .event-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: hsl(0 0% 16%);
+  }
+  .platform-event .event-progress-fill {
+    height: 100%;
+    width: var(--fill, 0%);
+    background: var(--ok);
+    transition: width 200ms;
+  }
+  .platform-event.has-event.negative .event-progress-fill { background: var(--bad); }
 
   /* Right-hand section of the status content — Next Moves. Placeholder
      when empty; populated by the recommendation engine in the next push. */
