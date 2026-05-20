@@ -801,12 +801,22 @@
   </header>
 
   {#if game.reveal.active}
-    <div class="reveal-banner" title="Mebro reveal triggered at 80% cure. Until the full third-act sequence ships in v0.2, you'll see fact-check annotations conceptually — push to peak and Prestige to bank legacy points and start a smarter run.">
+    <div class="reveal-banner" title="Mebro reveal triggered at 80% cure. The Playbook's payload: the player should also visit the real fact-checking app Mebro at mebro.app — which is what 'cure' has represented this whole time.">
       <span class="reveal-icon">⚠</span>
       <div class="reveal-text">
         <strong>THE PLAYBOOK IS UP</strong> — Mebro fact-checks are landing on your content. The counter-narrative wins; reach is collapsing.
+        <span class="reveal-slogan">Trust me, bro? No — <strong>TRUST MEBRO.</strong></span>
         <span class="reveal-hint">★ Prestige (top-right) to bank legacy points and start a smarter run.</span>
       </div>
+      <a
+        class="reveal-cta"
+        href="https://www.mebro.app"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Mebro — the real fact-checking app"
+      >
+        Visit mebro.app →
+      </a>
     </div>
   {/if}
 
@@ -1676,12 +1686,44 @@
     color: var(--ink);
   }
   .reveal-text strong { color: var(--bad); margin-right: 0.4rem; letter-spacing: 0.05em; }
+  .reveal-slogan {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .reveal-slogan strong {
+    color: hsl(140 70% 55%);
+    margin-left: 0;
+    letter-spacing: 0.06em;
+  }
   .reveal-hint {
     display: block;
     font-size: 0.7rem;
     color: var(--muted);
     margin-top: 0.15rem;
   }
+  /* CTA button linking to the real Mebro fact-checking app — the
+     payload of this game's third act. Bright green so it's clearly
+     the action to take. */
+  .reveal-cta {
+    margin-left: auto;
+    flex-shrink: 0;
+    padding: 0.5rem 0.9rem;
+    background: linear-gradient(180deg, hsl(140 70% 38%), hsl(140 70% 28%));
+    color: white;
+    border: 1px solid hsl(140 80% 50%);
+    border-radius: 5px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: none;
+    box-shadow: 0 0 14px hsl(140 70% 50% / 0.4);
+    transition: filter 120ms, transform 80ms;
+    white-space: nowrap;
+  }
+  .reveal-cta:hover { filter: brightness(1.15); }
+  .reveal-cta:active { transform: scale(0.97); }
   .rlabel {
     font-size: 0.65rem;
     color: var(--muted);
