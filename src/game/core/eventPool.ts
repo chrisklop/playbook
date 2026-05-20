@@ -3,7 +3,12 @@
 // Politically balanced — examples span foreign-state, commercial-grift,
 // historical, platform-mechanic, and partisan-coded incidents.
 
-import type { GameState, ResourceId, DepictId } from '../types';
+import type { GameState, ResourceId, DepictId, PhaseId } from '../types';
+import { PHASE_ORDER } from '../types';
+
+function phaseAtLeast(s: GameState, minPhase: PhaseId): boolean {
+  return PHASE_ORDER.indexOf(s.phase) >= PHASE_ORDER.indexOf(minPhase);
+}
 
 export interface EventDef {
   id: string;
@@ -119,7 +124,7 @@ export const EVENT_POOL: EventDef[] = [
   {
     id: 'tucker-style-segment',
     weight: 4,
-    conditions: (s) => s.resources.attention >= 50_000,
+    conditions: (s) => s.resources.attention >= 50_000 && phaseAtLeast(s, 'cable'),
     headline: 'A Tucker-style late-night segment cites your framing without naming you.',
     precedent: 'Tucker Carlson\'s 2017–2023 Fox primetime show repeatedly platformed online claims with "just asking questions" framing. ($787.5M Dominion settlement against Fox, 2023.)',
     duration: 60,
@@ -218,7 +223,7 @@ export const EVENT_POOL: EventDef[] = [
   {
     id: 'rogan-mention',
     weight: 4,
-    conditions: (s) => s.phase !== 'grassroots',
+    conditions: (s) => phaseAtLeast(s, 'social'),
     headline: 'Your framing gets a passing mention on a top-3 podcast. Listenership floods in.',
     precedent: 'Joe Rogan amplification effects: 11M+ avg listeners per episode on Spotify, repeated documented amplification of fringe medical and political claims.',
     duration: 60,
@@ -285,7 +290,7 @@ export const EVENT_POOL: EventDef[] = [
   {
     id: 'tenet-indictment',
     weight: 3,
-    conditions: (s) => s.resources.attention >= 1_000_000,
+    conditions: (s) => s.resources.attention >= 1_000_000 && phaseAtLeast(s, 'influencer'),
     headline: 'A Tenet-Media-style indictment names two of your patrons. RT money trail public.',
     precedent: 'Tenet Media indictment (DOJ, Sept 2024): Nashville-based company received ~$10M from RT (Russia Today) to fund right-wing influencers Tim Pool, Dave Rubin, Benny Johnson, Lauren Southern. Founders Lauren Chen and Liam Donovan indicted; influencers claimed they were unwitting.',
     duration: 60,
@@ -307,7 +312,7 @@ export const EVENT_POOL: EventDef[] = [
   {
     id: 'manosphere-uptake',
     weight: 4,
-    conditions: (s) => s.resources.attention >= 50_000,
+    conditions: (s) => s.resources.attention >= 50_000 && phaseAtLeast(s, 'social'),
     headline: 'A "red-pill" manosphere podcaster cites your framing approvingly. The DMs are intense.',
     precedent: 'Andrew Tate (Romania: rape + human trafficking + organized crime charges, 2022–2024; CCDH "Hidden Hate" report 2022). Fresh & Fit (YouTube ban 2023 for hate speech). Documented funnel from "self-improvement" to misogynist radicalization (ISD 2023).',
     duration: 60,
