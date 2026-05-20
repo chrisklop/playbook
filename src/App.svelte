@@ -960,13 +960,20 @@
           {/each}
           {#each teasedSynergies as sn (sn.id)}
             {@const [res, amt] = Object.entries(sn.cost)[0]}
+            {@const tLvlA = treeTotalLevel(game, sn.trees[0])}
+            {@const tLvlB = treeTotalLevel(game, sn.trees[1])}
             <div class="card synergy teased cost-{res}">
               <div class="card-head">
                 <span class="name">??? + ???</span>
                 <span class="owned">locked</span>
               </div>
-              <div class="blurb">Push both {sn.trees[0]} and {sn.trees[1]} to tier {sn.threshold}.</div>
+              <div class="blurb">Unlocks when both DEPICT trees reach tier {sn.threshold}. The cost shown is what you'll pay AFTER it unlocks — having enough resources alone isn't enough.</div>
+              <div class="syn-prereq">
+                <span class:met={tLvlA >= sn.threshold}>{sn.trees[0]} {tLvlA}/{sn.threshold}</span>
+                <span class:met={tLvlB >= sn.threshold}>{sn.trees[1]} {tLvlB}/{sn.threshold}</span>
+              </div>
               <div class="card-foot">
+                <span class="buy-n">locked</span>
                 <span class="cost num res-{res}">{fmt(amt as number)} {res}</span>
               </div>
             </div>
