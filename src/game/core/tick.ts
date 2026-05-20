@@ -12,6 +12,7 @@ import { ASSETS, UPGRADES, PROJECTS } from './catalog';
 import { SYNERGIES, isSynergyVisible, isSynergyTeased } from './synergies';
 import { PATRONS, isPatronVisible, isPatronTeased } from './patrons';
 import { tickAchievements } from './achievements';
+import { tickDetection } from './mebro';
 
 const CURE_FROM_HEAT_PER_S = 0.0002;
 
@@ -112,6 +113,7 @@ export function tick(state: GameState, now: number): void {
   tickPlatforms(state, dt);
   tickPosting(state, dt);
   tickCure(state, dt);
+  tickDetection(state, dt);
   if (platformEra(state)) tickCureEvents(state);
   tickEvents(state);
   tickEventScheduler(state);
