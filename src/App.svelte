@@ -1721,13 +1721,16 @@
     gap: 0.7rem;
     margin: 0 0.7rem 0.5rem;
     padding: 0.55rem 0.85rem;
-    background: linear-gradient(90deg,
-      color-mix(in oklab, var(--bad) 20%, var(--paper-2)),
-      color-mix(in oklab, var(--bad) 8%, var(--paper-2)));
-    border: 1px solid var(--bad);
+    /* Toned down from a saturated red gradient + infinite pulse to a
+       muted paper background with a thin red accent stripe on the left.
+       It still reads as "important / hostile" but no longer drowns the
+       rest of the dashboard or visually demands attention while the
+       player is still trying to play. */
+    background: var(--paper-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--bad);
     border-radius: 6px;
-    color: var(--bad);
-    animation: cure-reveal-pulse 1.6s ease-in-out infinite;
+    color: var(--ink);
   }
   .reveal-icon { font-size: 1.2rem; }
   .reveal-text {

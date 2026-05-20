@@ -1369,9 +1369,12 @@ Write `src/components/MebroPanel.svelte`:
     flex-direction: column;
   }
   .mebro-panel.mainstream {
-    border-color: var(--bad);
-    box-shadow: 0 0 0 1px var(--bad), 0 0 18px color-mix(in oklab, var(--bad) 30%, transparent);
-    animation: mebro-mainstream-pulse 2s ease-in-out infinite;
+    /* Restrained mainstream state — left accent stripe, no glow, no
+       full-panel pulse. Matches the toned-down reveal banner. The
+       header text + scanline already signal hostility; we don't need
+       to drown the dashboard in red on top of that. */
+    border-color: var(--line);
+    border-left: 3px solid var(--bad);
   }
   .mebro-header {
     display: flex;
@@ -1465,10 +1468,7 @@ Write `src/components/MebroPanel.svelte`:
     0%, 100% { transform: translateX(-100%); }
     50%      { transform: translateX(100%); }
   }
-  @keyframes mebro-mainstream-pulse {
-    0%, 100% { box-shadow: 0 0 0 1px var(--bad), 0 0 14px color-mix(in oklab, var(--bad) 25%, transparent); }
-    50%      { box-shadow: 0 0 0 1px var(--bad), 0 0 28px color-mix(in oklab, var(--bad) 50%, transparent); }
-  }
+  /* Mainstream pulse keyframes removed — restrained palette doesn't need them. */
 </style>
 ```
 
