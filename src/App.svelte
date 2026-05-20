@@ -507,9 +507,34 @@
   }
 
   function assetEffectText(a: { produces: Record<string, number> }): string {
+    const info = assetEffectInfo(a as { id: string; produces: Record<string, number> });
+    return info?.text ?? '';
+  }
+  // Returns {text, resource} so the effect line can be COLORED by its
+  // target resource (yellow for attention, blue for engagement, etc).
+  // Handles both produces-based assets AND special cap-raising / utility
+  // assets whose effect lives outside the produces map.
+  function assetEffectInfo(a: { id: string; produces: Record<string, number> }):
+    { text: string; resource: string } | null {
+    const RES_ABBR: Record<string, string> = {
+      attention: 'attention', engagement: 'engagement',
+      followers: 'followers', credibility: 'credibility',
+      narrativeDominance: 'narrative dominance',
+      syntheticReality: 'synthetic reality',
+    };
     const entries = Object.entries(a.produces);
-    if (entries.length === 0) return '';
-    return entries.map(([res, rate]) => `+${rate} ${res}/s each`).join(' · ');
+    if (entries.length > 0) {
+      const [res, rate] = entries[0];
+      return { text: `+${rate} ${RES_ABBR[res] ?? res}/s each`, resource: res };
+    }
+    // Special-case assets that affect caps / multipliers rather than producing.
+    switch (a.id) {
+      case 'newsletter':   return { text: '+1500 engagement cap each',   resource: 'engagement' };
+      case 'outlet':       return { text: '+attention cap per outlet',   resource: 'attention' };
+      case 'audiencePod':  return { text: '+6000 followers cap each',    resource: 'followers' };
+      case 'autoPoster':   return { text: '+10% post yield each',        resource: 'attention' };
+      default: return null;
+    }
   }
 
   // UX-9: per-asset milestone indicator. Mirrors assetMilestoneMultiplier
@@ -784,7 +809,8 @@
               <span class="owned">×{owned}</span>
             </div>
             <div class="blurb">{a.blurb}</div>
-            {#if assetEffectText(a)}<div class="effect">{assetEffectText(a)}</div>{/if}
+            {@const aEffect = assetEffectInfo(a)}
+            {#if aEffect}<div class="effect res-{aEffect.resource}">{aEffect.text}</div>{/if}
             {#if m}
               <div class="milestone" title="At {m.next} owned: production multiplier rises from ×{m.cur.toFixed(2)} to ×{m.nextMult.toFixed(2)}. {m.next - owned} more to unlock.">
                 <div class="milestone-text">
@@ -2396,6 +2422,15 @@
     font-variant-numeric: tabular-nums;
     font-weight: 500;
   }
+  /* When the effect line carries a res-* class, use that resource's
+     color instead of the default green so the eye learns "blue =
+     engagement", "yellow = attention", etc. */
+  .effect.res-attention          { color: var(--res-attention); }
+  .effect.res-engagement         { color: var(--res-engagement); }
+  .effect.res-followers          { color: var(--res-followers); }
+  .effect.res-credibility        { color: var(--res-credibility); }
+  .effect.res-narrativeDominance { color: var(--res-narrativeDominance); }
+  .effect.res-syntheticReality   { color: var(--res-syntheticReality); }
   /* UX-9: per-asset milestone progress (AdVenture Capitalist style).
      Beefy 8px meter with gold gradient + glow at fill edge. Persistent
      reminder of the upcoming bonus. */

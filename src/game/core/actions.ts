@@ -31,8 +31,23 @@ export function buyAsset(state: GameState, id: string, count: number = 1): boole
   const a = assetById(id)!;
   state.resources[a.costResource] -= assetCost(state, id, count);
   state.assets[id] = (state.assets[id] ?? 0) + count;
-  pushLog(state, `Bought ${count}× ${a.name}.`);
+  const effect = assetEffectDescription(a);
+  pushLog(state, `Bought ${count}× ${a.name}${effect ? ` (${effect})` : ''}.`);
   return true;
+}
+
+function assetEffectDescription(a: { id: string; produces: Record<string, number> }): string {
+  const entries = Object.entries(a.produces);
+  if (entries.length > 0) {
+    return entries.map(([res, rate]) => `+${rate} ${res}/s each`).join(' · ');
+  }
+  switch (a.id) {
+    case 'newsletter':  return '+1500 engagement cap each';
+    case 'outlet':      return '+attention cap per outlet';
+    case 'audiencePod': return '+6000 followers cap each';
+    case 'autoPoster':  return '+10% post yield each';
+    default: return '';
+  }
 }
 
 // ─── DEPICT upgrades ───────────────────────────────────────────────────────
@@ -57,8 +72,19 @@ export function buyUpgrade(state: GameState, id: string, count: number = 1): boo
   const u = upgradeById(id)!;
   state.resources[u.costResource] -= upgradeCost(state, id, count);
   state.upgrades[id] = (state.upgrades[id] ?? 0) + count;
-  pushLog(state, `Researched ${u.name} tier ${state.upgrades[id]}.`);
+  pushLog(
+    state,
+    `Researched ${u.name} tier ${state.upgrades[id]} (${upgradeEffectDescription(u, state.upgrades[id])}).`,
+  );
   return true;
+}
+
+function upgradeEffectDescription(u: { multiplier: Record<string, number> }, lvl: number): string {
+  return Object.entries(u.multiplier).map(([res, per]) => {
+    const perPct = ((per as number) * 100).toFixed(1);
+    const totalPct = ((per as number) * lvl * 100).toFixed(1);
+    return `+${perPct}% ${res}/lvl, now +${totalPct}%`;
+  }).join(' · ');
 }
 
 // ─── Projects ──────────────────────────────────────────────────────────────
