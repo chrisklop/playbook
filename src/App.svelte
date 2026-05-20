@@ -493,6 +493,8 @@
   let showDepictHelp = $state(false);
   let showAssetsHelp = $state(false);
   let showPlatformsHelp = $state(false);
+  // Log drawer — closed by default. Click the header strip to toggle.
+  let logOpen = $state(false);
 
   function upgradeEffectText(u: { multiplier: Record<string, number> }, lvl: number): string {
     const entries = Object.entries(u.multiplier);
@@ -695,6 +697,53 @@
       <!-- per-platform POST buttons are on the platform cards now -->
       {#if false}<span></span>{/if}
     </div>
+    <!-- Status content — ticker + event + next moves, INLINE in the topbar
+         (previously a separate row below). Saves a whole row of vertical
+         real estate. -->
+    <div class="topbar-status">
+      {#if showTicker}
+        <div
+          class="topbar-ticker"
+          class:paused={tickerPaused}
+          onclick={tickerClick}
+          ondblclick={tickerDblClick}
+          role="button"
+          tabindex="0"
+          title={tickerPaused ? 'paused · click to step · double-click to resume rotation' : 'click to pause · auto-rotates every 25s'}
+        >
+          <span class="topbar-ticker-text">
+            {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
+          </span>
+          {#if tickerPaused}<span class="tick-paused">⏸</span>{/if}
+        </div>
+      {:else}
+        <div class="topbar-ticker"></div>
+      {/if}
+
+      <div class="topbar-event" class:has-event={!!activeEvent} class:negative={activeEvent && activeEvent.mult < 1}>
+        {#if activeEvent && activeEventDef}
+          <span class="event-pulse">▶</span>
+          <span class="topbar-event-headline">{activeEventDef.headline}</span>
+          <span class="event-effect">
+            {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
+            {activeEvent.resourceId}
+          </span>
+          <span class="event-countdown num">{eventSecsLeft}s</span>
+          <div class="event-progress">
+            <div class="event-progress-fill" style="--fill: {eventProgress * 100}%"></div>
+          </div>
+        {:else}
+          <span class="event-pulse">○</span>
+          <span class="topbar-event-headline idle">no active headline — next event in 1–2 min</span>
+        {/if}
+      </div>
+
+      <div class="topbar-next" aria-label="next moves">
+        <span class="topbar-next-label">⚡ NEXT</span>
+        <span class="topbar-next-empty">no available moves — keep earning attention</span>
+      </div>
+    </div>
+
     <div class="topbar-actions">
       {#if showBulkBuy && false /* moved to Assets section */}{/if}
       {#if legacy.points > 0 || prestigeGain > 0}
@@ -724,51 +773,7 @@
     </div>
   {/if}
 
-  <!-- COMBINED STATUS ROW — ticker (left) + event (mid) + next moves (right) in one row -->
-  <div class="status-row">
-    {#if showTicker}
-      <div
-        class="status-ticker"
-        class:paused={tickerPaused}
-        onclick={tickerClick}
-        ondblclick={tickerDblClick}
-        role="button"
-        tabindex="0"
-        title={tickerPaused ? 'paused · click to step · double-click to resume rotation' : 'click to pause · auto-rotates every 25s'}
-      >
-        <span class="status-ticker-text">
-          {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
-        </span>
-        {#if tickerPaused}<span class="tick-paused">⏸</span>{/if}
-      </div>
-    {:else}
-      <div class="status-ticker"></div>
-    {/if}
-
-    <div class="status-event" class:has-event={!!activeEvent} class:negative={activeEvent && activeEvent.mult < 1}>
-      {#if activeEvent && activeEventDef}
-        <span class="event-pulse">▶</span>
-        <span class="status-event-headline">{activeEventDef.headline}</span>
-        <span class="event-effect">
-          {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
-          {activeEvent.resourceId}
-        </span>
-        <span class="event-countdown num">{eventSecsLeft}s</span>
-        <div class="event-progress">
-          <div class="event-progress-fill" style="--fill: {eventProgress * 100}%"></div>
-        </div>
-      {:else}
-        <span class="event-pulse">○</span>
-        <span class="status-event-headline idle">no active headline — next event in 1–2 min</span>
-      {/if}
-    </div>
-
-    <!-- NEXT MOVES — placeholder, populated in Phase 3 -->
-    <div class="status-next" aria-label="next moves">
-      <span class="status-next-label">⚡ NEXT</span>
-      <span class="status-next-empty">no available moves — keep earning attention</span>
-    </div>
-  </div>
+  <!-- (status content moved inline into the topbar above) -->
 
   <!-- MAIN GRID -->
   <main class="grid">
@@ -911,8 +916,11 @@
         </div>
       {/if}
 
+      <!-- Synergies section always renders so its presence doesn't shift
+           the layout when synergies first become available. When nothing
+           is unlocked or teased, the section shows a muted placeholder. -->
+      <h2>Synergies</h2>
       {#if showSynergies}
-        <h2>Synergies</h2>
         <div class="cards">
           {#each visibleSynergies as sn (sn.id)}
             {@const [res, amt] = Object.entries(sn.cost)[0]}
@@ -978,6 +986,10 @@
               </div>
             </div>
           {/each}
+        </div>
+      {:else}
+        <div class="section-placeholder">
+          DEPICT synergies unlock when two trees reach matching tier thresholds. Keep investing.
         </div>
       {/if}
 
@@ -1183,15 +1195,24 @@
     {/if}
   </main>
 
-  <!-- LOG -->
+  <!-- LOG drawer: header strip is always visible (click to expand);
+       expanded content takes a fixed height with internal scroll. -->
   {#if showLog}
-    <footer class="log">
-      <h2>Log</h2>
-      <div class="log-lines">
-        {#each game.log as line, i (i)}
-          <div class="line">{line}</div>
-        {/each}
-      </div>
+    <footer class="log" class:open={logOpen}>
+      <button class="log-toggle" onclick={() => (logOpen = !logOpen)} aria-expanded={logOpen}>
+        <span class="log-caret">{logOpen ? '▼' : '▶'}</span>
+        <span class="log-title">Log</span>
+        {#if !logOpen && game.log.length > 0}
+          <span class="log-preview">{game.log[0]}</span>
+        {/if}
+      </button>
+      {#if logOpen}
+        <div class="log-lines">
+          {#each game.log as line, i (i)}
+            <div class="line">{line}</div>
+          {/each}
+        </div>
+      {/if}
     </footer>
   {/if}
 
@@ -1517,39 +1538,54 @@
   /* ── TOPBAR ─────────────────────────────────────────────────────────── */
   .topbar {
     display: grid;
-    grid-template-columns: 220px 1fr auto;
+    /* brand | compact resources | status content | actions */
+    grid-template-columns: auto auto 1fr auto;
     align-items: center;
-    gap: 1rem;
-    padding: 0.6rem 1rem;
+    gap: 0.7rem;
+    padding: 0.45rem 0.85rem;
     border-bottom: 1px solid var(--line);
     background: var(--paper-2);
     position: sticky;
     top: 0;
     z-index: 10;
   }
-  .brand { display: flex; flex-direction: column; gap: 0.1rem; }
-  .title { font-weight: 700; letter-spacing: -0.02em; font-size: 1.05rem; }
-  .phase { font-size: 0.75rem; color: var(--muted); text-transform: lowercase; }
+  .brand { display: flex; flex-direction: column; gap: 0.05rem; min-width: 0; }
+  .title { font-weight: 700; letter-spacing: -0.02em; font-size: 1rem; }
+  .phase { font-size: 0.68rem; color: var(--muted); text-transform: lowercase; }
+  /* Compact resources: each meter sizes to its content, sits in a row
+     next to the brand. ~30% narrower than the old auto-fit layout. */
   .resources {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.6rem;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
   }
   /* CONCEPT A applied to topbar meters: the meter body fills from the
      left with its resource color at width=--fill (current/cap ratio).
      The old thin 2px bar at the bottom is gone. */
+  /* Compact horizontal layout — dot · label · value · rate · breakdown
+     all on one line. Each meter sizes to its content with min-width to
+     prevent extreme squashing. Fits 3-6 meters in the topbar without
+     wasted space. */
   .rmeter {
     --tint: var(--accent);
     position: relative;
-    padding: 0.35rem 0.55rem;
+    padding: 0.25rem 0.5rem;
     border: 1px solid var(--line);
     border-radius: 4px;
     background: var(--paper);
     overflow: hidden;
-    display: grid;
-    grid-template-rows: auto auto auto;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
     border-left: 2px solid color-mix(in oklab, var(--tint) 55%, var(--line));
+    flex-shrink: 0;
+    min-width: 0;
   }
+  .rmeter .rlabel { font-size: 0.62rem; color: var(--muted); display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0; }
+  .rmeter .rvalue { font-size: 0.78rem; font-weight: 600; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .rmeter .rvalue .cap { color: var(--muted); font-weight: 400; }
+  .rmeter .rrate { font-size: 0.62rem; padding: 0; border: none; background: transparent; cursor: default; flex-shrink: 0; }
+  .rmeter .reta { display: none; } /* ETA hidden in compact topbar */
   .rmeter::before {
     content: '';
     position: absolute;
@@ -2054,18 +2090,18 @@
      by side at 44px tall — saves vertical space vs. stacking. Each section
      truncates text via ellipsis; the row height is fixed regardless of
      event active/idle or next-moves population. */
-  .status-row {
+  /* Status content lives INSIDE the topbar now — ticker | event | next
+     moves on one inline row, between the resources and the action
+     buttons. Saves a full row of vertical real estate. */
+  .topbar-status {
     display: grid;
     grid-template-columns: 1fr 1.4fr 1.6fr;
     gap: 0.6rem;
-    height: 44px;
-    background: color-mix(in oklab, var(--ink) 3%, var(--paper-2));
-    border-bottom: 1px solid var(--line);
     align-items: center;
-    padding: 0 0.85rem;
-    flex-shrink: 0;
+    min-width: 0;
+    height: 100%;
   }
-  .status-ticker {
+  .topbar-ticker {
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -2073,11 +2109,13 @@
     cursor: pointer;
     user-select: none;
     height: 100%;
+    padding: 0 0.4rem;
+    border-radius: 3px;
   }
-  .status-ticker:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); }
-  .status-ticker.paused { background: color-mix(in oklab, var(--accent) 6%, transparent); }
-  .status-ticker-text {
-    font-size: 0.78rem;
+  .topbar-ticker:hover { background: color-mix(in oklab, var(--ink) 5%, transparent); }
+  .topbar-ticker.paused { background: color-mix(in oklab, var(--accent) 6%, transparent); }
+  .topbar-ticker-text {
+    font-size: 0.72rem;
     color: var(--muted);
     white-space: nowrap;
     overflow: hidden;
@@ -2092,19 +2130,20 @@
     pointer-events: none;
     flex-shrink: 0;
   }
-  .status-event {
+  .topbar-event {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     min-width: 0;
     height: 100%;
-    font-size: 0.78rem;
-    padding-right: 0.4rem;
+    font-size: 0.72rem;
+    padding: 0 0.4rem;
+    border-left: 1px solid var(--line);
   }
-  .status-event.has-event { color: var(--ok); }
-  .status-event.has-event.negative { color: var(--bad); }
-  .status-event-headline {
+  .topbar-event.has-event { color: var(--ok); }
+  .topbar-event.has-event.negative { color: var(--bad); }
+  .topbar-event-headline {
     flex: 1;
     min-width: 0;
     white-space: nowrap;
@@ -2112,46 +2151,46 @@
     text-overflow: ellipsis;
     color: inherit;
   }
-  .status-event-headline.idle { color: var(--muted); font-style: italic; }
-  .status-event .event-effect { font-weight: 600; flex-shrink: 0; }
-  .status-event .event-countdown { color: var(--muted); flex-shrink: 0; }
-  .status-event .event-pulse { flex-shrink: 0; }
-  .status-event .event-progress {
+  .topbar-event-headline.idle { color: var(--muted); font-style: italic; }
+  .topbar-event .event-effect { font-weight: 600; flex-shrink: 0; }
+  .topbar-event .event-countdown { color: var(--muted); flex-shrink: 0; }
+  .topbar-event .event-pulse { flex-shrink: 0; }
+  .topbar-event .event-progress {
     position: absolute;
-    bottom: 0;
+    bottom: -2px;
     left: 0;
     right: 0;
     height: 2px;
     background: hsl(0 0% 16%);
   }
-  .status-event .event-progress-fill {
+  .topbar-event .event-progress-fill {
     height: 100%;
     width: var(--fill, 0%);
     background: var(--ok);
     transition: width 200ms;
   }
-  .status-event.has-event.negative .event-progress-fill { background: var(--bad); }
+  .topbar-event.has-event.negative .event-progress-fill { background: var(--bad); }
 
-  /* Right-hand section of the status row — Next Moves placeholder; will
-     be replaced by the ranked-recommendation chips in Phase 3. */
-  .status-next {
+  /* Right-hand section of the status content — Next Moves. Placeholder
+     when empty; populated by the recommendation engine in the next push. */
+  .topbar-next {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.45rem;
     min-width: 0;
     height: 100%;
-    padding-left: 0.6rem;
+    padding: 0 0.4rem;
     border-left: 1px solid var(--line);
   }
-  .status-next-label {
-    font-size: 0.62rem;
+  .topbar-next-label {
+    font-size: 0.6rem;
     color: var(--accent);
     font-weight: 700;
     letter-spacing: 0.1em;
     flex-shrink: 0;
   }
-  .status-next-empty {
-    font-size: 0.72rem;
+  .topbar-next-empty {
+    font-size: 0.7rem;
     color: var(--muted);
     font-style: italic;
     white-space: nowrap;
@@ -2370,6 +2409,25 @@
     background: linear-gradient(90deg,
       color-mix(in oklab, var(--tint) 34%, transparent),
       color-mix(in oklab, var(--tint) 14%, transparent));
+  }
+
+  /* Always-rendered placeholder for sections that may be empty in early
+     game (synergies, patrons, etc.). Reserves the slot height so the
+     layout never shifts when content first appears. */
+  .section-placeholder {
+    padding: 0.7rem 0.85rem;
+    background: color-mix(in oklab, var(--ink) 3%, var(--paper-2));
+    border: 1px dashed var(--line);
+    border-radius: 5px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-style: italic;
+    text-align: center;
+    line-height: 1.3;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Shortfall hint shown on disabled buy buttons (UX-4).
@@ -2967,30 +3025,58 @@
   /* ── LOG ───────────────────────────────────────────────────────────── */
   /* Log: fixed-height strip pinned to the bottom. Newest entry at top of
      the strip, accented. Scroll for history. Never reflows other content. */
+  /* Log is a click-to-expand drawer. Header strip is always visible
+     (~28px) so layout stays stable; expanding adds 180px of log lines
+     below it but doesn't shift anything above. */
   .log {
     border-top: 1px solid var(--line);
     background: var(--paper-2);
-    padding: 0.5rem 1rem 0.6rem;
-    height: 120px;
-    display: grid;
-    grid-template-rows: auto 1fr;
-    gap: 0.25rem;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
   }
-  .log h2 {
+  .log-toggle {
+    appearance: none;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    height: 28px;
+    min-width: 0;
+  }
+  .log-toggle:hover { background: color-mix(in oklab, var(--ink) 4%, transparent); }
+  .log-caret { font-size: 0.65rem; opacity: 0.6; flex-shrink: 0; }
+  .log-title {
     font-size: 0.6rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--muted);
-    margin: 0;
     font-weight: 600;
+    flex-shrink: 0;
+  }
+  .log-preview {
+    font-size: 0.72rem;
+    color: var(--muted);
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
   }
   .log-lines {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
-    padding-right: 0.5rem;
+    padding: 0.2rem 1rem 0.6rem;
+    max-height: 180px;
   }
   .log-lines::-webkit-scrollbar { width: 6px; }
   .log-lines::-webkit-scrollbar-thumb {
