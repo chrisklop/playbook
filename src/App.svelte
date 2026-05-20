@@ -1070,7 +1070,12 @@
         <div class="platform-event-line1">
           {#if activeEvent && activeEventDef}
             <span class="event-pulse">▶</span>
-            <span class="platform-event-headline">{activeEventDef.headline}</span>
+            <div class="marquee">
+              <div class="marquee-track">
+                <span class="marquee-item">{activeEventDef.headline}</span>
+                <span class="marquee-item" aria-hidden="true">{activeEventDef.headline}</span>
+              </div>
+            </div>
             <span class="event-effect">
               {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
               {activeEvent.resourceId}
@@ -1091,9 +1096,16 @@
           title={showTicker ? (tickerPaused ? 'paused · click to step · double-click to resume rotation' : 'click to pause · auto-rotates every 25s') : undefined}
         >
           {#if showTicker}
-            <span class="platform-event-ticker">
-              {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
-            </span>
+            <div class="marquee" class:paused={tickerPaused}>
+              <div class="marquee-track">
+                <span class="marquee-item">
+                  {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
+                </span>
+                <span class="marquee-item" aria-hidden="true">
+                  {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
+                </span>
+              </div>
+            </div>
             {#if tickerPaused}<span class="tick-paused">⏸</span>{/if}
           {:else}
             <span class="platform-event-ticker idle">&nbsp;</span>
@@ -2289,8 +2301,10 @@
     line-height: 1.15;
     cursor: pointer;
     border-radius: 3px;
-    padding: 1px 2px;
+    padding: 3px 2px 1px;
     margin: 0 -2px;
+    /* discreet divider between event line and ticker line */
+    border-top: 1px dashed color-mix(in oklab, var(--line) 80%, transparent);
   }
   .platform-event-line2:hover { background: color-mix(in oklab, var(--ink) 4%, transparent); }
   .platform-event-line2.paused { background: color-mix(in oklab, var(--accent) 6%, transparent); }
@@ -2311,6 +2325,34 @@
     text-overflow: ellipsis;
   }
   .platform-event-ticker .tick-source { color: color-mix(in oklab, var(--muted) 70%, transparent); font-style: italic; }
+
+  /* Marquee: duplicate content inside a track that slides -50% so
+     the loop is seamless. Pauses on hover and when .paused. Hidden
+     overflow on the container clips the off-screen portion. */
+  .platform-event .marquee {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .platform-event .marquee-track {
+    display: inline-flex;
+    gap: 3rem;
+    white-space: nowrap;
+    animation: marquee-scroll 28s linear infinite;
+    will-change: transform;
+  }
+  .platform-event-line2 .marquee-track { animation-duration: 40s; }
+  .platform-event .marquee:hover .marquee-track,
+  .platform-event .marquee.paused .marquee-track {
+    animation-play-state: paused;
+  }
+  .platform-event .marquee-item { display: inline-block; }
+  .platform-event .marquee-item .tick-source { color: color-mix(in oklab, var(--muted) 70%, transparent); font-style: italic; }
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(calc(-50% - 1.5rem)); }
+  }
   .platform-event .event-effect { font-weight: 600; flex-shrink: 0; }
   .platform-event .event-countdown { color: var(--muted); flex-shrink: 0; }
   .platform-event .event-pulse { flex-shrink: 0; }
