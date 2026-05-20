@@ -49,6 +49,7 @@ export function initialState(now: number = Date.now()): GameState {
   return {
     version: SAVE_VERSION,
     phase: 'grassroots',
+    acknowledgedPhase: 'grassroots',
     resources: { ...emptyResources(), attention: 100 } as GameState['resources'],
     caps: defaultCaps() as GameState['caps'],
     assets: { sockPuppet: 1 },

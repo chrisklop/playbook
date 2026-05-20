@@ -38,6 +38,7 @@ function migrate(raw: Partial<GameState>, now: number): GameState {
     ...base,
     ...raw,
     version: SAVE_VERSION,
+    acknowledgedPhase: raw.acknowledgedPhase ?? raw.phase ?? 'grassroots',
     resources: { ...base.resources, ...(raw.resources ?? {}) },
     caps: { ...base.caps, ...(raw.caps ?? {}) },
     assets: { ...base.assets, ...(raw.assets ?? {}) },

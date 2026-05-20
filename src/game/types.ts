@@ -105,6 +105,7 @@ export interface OfflineSummary {
 export interface GameState {
   version: number;
   phase: PhaseId;
+  acknowledgedPhase: PhaseId;
   resources: Record<ResourceId, number>;
   caps: Record<ResourceId, number>;
   assets: Record<string, number>;
@@ -127,4 +128,4 @@ export interface GameState {
   pendingOfflineSummary?: OfflineSummary | null;
 }
 
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 10;
