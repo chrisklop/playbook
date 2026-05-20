@@ -18,6 +18,7 @@
   } from './game/core/patrons';
   import { computeRates, computeMultiplierBreakdown } from './game/core/production';
   import { postPlatform, postYield, chargeTimeSeconds, freestylePost, freestyleYield } from './game/core/posting';
+  import { topRecommendations, type Recommendation } from './game/core/recommendations';
   import { affordableCount } from './game/core/math';
   import { DEPICT_IDS, PHASE_ORDER } from './game/types';
   import { PLATFORM_META } from './lib/platforms';
@@ -303,6 +304,28 @@
   // Active event banner derives. Use game.lastTick (reactive, updates every
   // tick) instead of Date.now() — Svelte 5 derived only re-runs on tracked
   // state changes; Date.now() isn't tracked so the countdown wouldn't move.
+  // Top-3 ranked Next Moves recommendations. Recomputed reactively when
+  // game state changes (purchases, heat, charge, cure). Pure function in
+  // src/game/core/recommendations.ts.
+  const recs = $derived(topRecommendations(game));
+
+  function executeRec(r: Recommendation) {
+    switch (r.type) {
+      case 'synergy':         activateSynergy(game, r.id); break;
+      case 'patron':          activatePatron(game, r.id); break;
+      case 'project':         completeProject(game, r.id); break;
+      case 'asset-milestone':
+      case 'asset-buy':       buyAsset(game, r.id, 1); break;
+      case 'depict-unlock':
+      case 'depict-buy':      buyUpgrade(game, r.id, 1); break;
+      case 'post-ready':      postPlatform(game, r.id as Parameters<typeof postPlatform>[1]); break;
+      case 'prestige':        openPrestige(); break;
+    }
+  }
+  function rankBadge(rank: number): string {
+    return rank === 0 ? '★' : String(rank + 1);
+  }
+
   const activeEvent = $derived(
     game.event && game.event.until > game.lastTick ? game.event : null,
   );
@@ -740,7 +763,21 @@
 
       <div class="topbar-next" aria-label="next moves">
         <span class="topbar-next-label">⚡ NEXT</span>
-        <span class="topbar-next-empty">no available moves — keep earning attention</span>
+        {#if recs.length === 0}
+          <span class="topbar-next-empty">no available moves — keep earning attention</span>
+        {:else}
+          {#each recs as r (r.id + r.type)}
+            <button
+              class="next-chip rank-{r.rank}"
+              onclick={() => executeRec(r)}
+              title={r.detail}
+            >
+              <span class="next-chip-rank">{rankBadge(r.rank)}</span>
+              <span class="next-chip-title">{r.title}</span>
+              {#if r.cost}<span class="next-chip-cost">{fmt(r.cost.amount)} {r.cost.resource}</span>{/if}
+            </button>
+          {/each}
+        {/if}
       </div>
     </div>
 
@@ -2196,6 +2233,53 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  /* Ranked recommendation chips: gold ★, silver 2, bronze 3.
+     Click executes the recommendation's action directly. */
+  .next-chip {
+    appearance: none;
+    font: inherit;
+    color: inherit;
+    background: hsl(0 0% 16%);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 0.68rem;
+    font-weight: 600;
+    transition: filter 120ms, transform 80ms;
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+  }
+  .next-chip:hover { filter: brightness(1.15); }
+  .next-chip:active { transform: scale(0.97); }
+  .next-chip-rank { font-weight: 800; opacity: 0.7; flex-shrink: 0; }
+  .next-chip-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 200px;
+  }
+  .next-chip-cost { color: var(--muted); font-weight: 500; font-size: 0.65rem; flex-shrink: 0; }
+  .next-chip.rank-0 {
+    background: linear-gradient(180deg, hsl(45 70% 28%), hsl(45 70% 18%));
+    border-color: hsl(45 90% 55%);
+    color: hsl(45 90% 90%);
+    font-size: 0.72rem;
+    box-shadow: 0 0 10px hsl(45 90% 55% / 0.3);
+  }
+  .next-chip.rank-0 .next-chip-rank { color: hsl(45 100% 70%); opacity: 1; }
+  .next-chip.rank-1 {
+    background: linear-gradient(180deg, hsl(220 12% 26%), hsl(220 12% 18%));
+    border-color: hsl(220 30% 60%);
+  }
+  .next-chip.rank-2 {
+    background: hsl(220 12% 18%);
+    color: var(--muted);
   }
 
   /* UX-2: resource value pulse on big events (POST fire, event trigger). */
