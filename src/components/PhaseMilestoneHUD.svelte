@@ -78,78 +78,92 @@
   }
 </script>
 
+<!--
+  Single-line phase HUD. Progress bar is the BACKGROUND FILL of the row
+  itself (left-anchored color stripe) so we don't burn a second row on a
+  separate bar. "Unlocks" text moved to a tooltip on the next-phase
+  label. Total height ~22px (was 32px+).
+-->
 <div class="phase-hud">
   {#if milestone}
     {@const pct = Math.min(100, (milestone.current / milestone.target) * 100)}
+    <div class="phase-fill" style="--fill: {pct}%"></div>
     <div class="phase-row">
-      <span class="phase-tag">PHASE: {milestone.label}</span>
+      <span class="phase-tag">{milestone.label}</span>
       <span class="phase-progress-text">
-        {fmt(milestone.current)} / {fmt(milestone.target)} {resourceWord(game.phase)}
-        <span class="phase-arrow">→</span>
-        <strong>{milestone.nextLabel}</strong>
+        {fmt(milestone.current)}/{fmt(milestone.target)} {resourceWord(game.phase)}
       </span>
-      <span class="phase-unlocks">{milestone.unlocks}</span>
+      <span class="phase-arrow">→</span>
+      <strong class="phase-next" title={milestone.unlocks}>{milestone.nextLabel}</strong>
+      <span class="phase-pct">{pct.toFixed(0)}%</span>
     </div>
-    <div class="phase-bar"><div class="phase-bar-fill" style="--fill: {pct}%"></div></div>
   {:else}
+    <div class="phase-fill complete" style="--fill: 100%"></div>
     <div class="phase-row">
-      <span class="phase-tag">PHASE: AI SATURATION</span>
+      <span class="phase-tag">AI SATURATION</span>
       <span class="phase-progress-text endgame">endgame — push for prestige</span>
     </div>
-    <div class="phase-bar"><div class="phase-bar-fill complete" style="--fill: 100%"></div></div>
   {/if}
 </div>
 
 <style>
   .phase-hud {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 5px 12px 6px;
-    background: color-mix(in oklab, var(--ink) 4%, var(--paper-2));
-    border-bottom: 1px solid var(--line);
-    font-size: 0.74rem;
-    min-height: 32px;
-  }
-  .phase-row {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 0.8rem;
-    flex-wrap: nowrap;
+    padding: 2px 12px;
+    background: color-mix(in oklab, var(--ink) 4%, var(--paper-2));
+    border-bottom: 1px solid var(--line);
+    font-size: 0.72rem;
+    height: 22px;
     overflow: hidden;
+  }
+  .phase-fill {
+    position: absolute;
+    inset: 0;
+    width: var(--fill, 0%);
+    background: linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--accent) 16%, transparent),
+      color-mix(in oklab, var(--ok) 14%, transparent)
+    );
+    transition: width 280ms ease-out;
+    pointer-events: none;
+  }
+  .phase-fill.complete {
+    background: color-mix(in oklab, var(--ok) 18%, transparent);
+  }
+  .phase-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    z-index: 1;
   }
   .phase-tag {
     font-weight: 700;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     color: var(--accent);
     flex-shrink: 0;
   }
   .phase-progress-text {
     flex-shrink: 0;
     font-variant-numeric: tabular-nums;
+    color: var(--ink);
   }
   .phase-progress-text.endgame { color: var(--muted); font-style: italic; }
-  .phase-arrow { color: var(--muted); margin: 0 0.3rem; }
-  .phase-progress-text strong { color: var(--ok); }
-  .phase-unlocks {
+  .phase-arrow { color: var(--muted); }
+  .phase-next {
+    color: var(--ok);
+    cursor: help;
+    letter-spacing: 0.04em;
+  }
+  .phase-pct {
+    margin-left: auto;
     color: var(--muted);
-    font-size: 0.7rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.68rem;
+    flex-shrink: 0;
   }
-  .phase-bar {
-    height: 4px;
-    background: hsl(0 0% 14%);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .phase-bar-fill {
-    height: 100%;
-    width: var(--fill, 0%);
-    background: linear-gradient(90deg, var(--accent), var(--ok));
-    transition: width 280ms ease-out;
-  }
-  .phase-bar-fill.complete { background: var(--ok); }
 </style>
