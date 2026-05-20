@@ -326,6 +326,18 @@
     return rank === 0 ? '★' : String(rank + 1);
   }
 
+  /** Short resource labels for cramped UI (event banner, etc). */
+  function resAbbr(id: string): string {
+    switch (id) {
+      case 'attention':          return 'att';
+      case 'engagement':         return 'eng';
+      case 'followers':          return 'foll';
+      case 'credibility':        return 'cred';
+      case 'narrativeDominance': return 'narr';
+      default: return id;
+    }
+  }
+
   const activeEvent = $derived(
     game.event && game.event.until > game.lastTick ? game.event : null,
   );
@@ -1078,7 +1090,7 @@
             </div>
             <span class="event-effect">
               {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
-              {activeEvent.resourceId}
+              {resAbbr(activeEvent.resourceId)}
             </span>
             <span class="event-countdown num">{eventSecsLeft}s</span>
           {:else}
