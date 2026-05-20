@@ -30,6 +30,7 @@
   } from './game/legacy';
   import { onMount } from 'svelte';
   import HexTree from './components/HexTree.svelte';
+  import PhaseMilestoneHUD from './components/PhaseMilestoneHUD.svelte';
 
   type BulkMode = 1 | 10 | 100 | 'max';
   // bulkMode + tileBulkMode is the Assets-only state. DEPICT nodes have
@@ -789,6 +790,8 @@
       <button class="ghost" onclick={reset}>reset</button>
     </div>
   </header>
+
+  <PhaseMilestoneHUD {game} />
 
   {#if game.reveal.active}
     <div class="reveal-banner" title="Mebro Index hit 80% — the fact-checking tool you've been watching climb just went mainstream. Visit the real Mebro app at mebro.app.">
