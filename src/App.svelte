@@ -2378,9 +2378,20 @@
      default; the title attribute already carries this info. */
   .kind { display: none; }
   .owned { color: var(--muted); font-size: 0.72rem; font-variant-numeric: tabular-nums; }
-  /* Blurb + precedent live in the browser tooltip only — never on the
-     tile — so cards stay compact and the same shape regardless of hover. */
-  .blurb { display: none !important; }
+  /* On dense ASSET tiles, blurb is decorative flavor — hidden, available
+     in the tooltip. On SYNERGY / PATRON / PROJECT tiles, the blurb
+     describes what the thing actually does, which is critical to the
+     player's decision — keep it visible. */
+  .card.asset .blurb { display: none !important; }
+  .card.synergy .blurb,
+  .card.patron .blurb,
+  .card.project .blurb {
+    font-size: 0.72rem;
+    color: var(--ink);
+    line-height: 1.3;
+    font-style: italic;
+    opacity: 0.88;
+  }
 
   /* Synergy tree-prereq line — tells the player exactly which DEPICT
      trees still need levels, separate from the resource cost row. */
