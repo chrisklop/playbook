@@ -942,7 +942,7 @@
            is unlocked or teased, the section shows a muted placeholder. -->
       <h2>Synergies</h2>
       {#if showSynergies}
-        <div class="cards">
+        <div class="synergy-row">
           {#each visibleSynergies as sn (sn.id)}
             {@const [res, amt] = Object.entries(sn.cost)[0]}
             {@const affordable = canActivateSynergy(game, sn)}
@@ -2583,6 +2583,40 @@
     .cards { column-count: 1; }
   }
   /* (CSS columns now handles tile layout — no align-content needed.) */
+
+  /* Synergies use their OWN layout, not .cards columns. They live in a
+     fixed-height horizontal row that never wraps. Cards 1-3 fill the
+     visible width; any additional cards scroll horizontally. This locks
+     the row to one card-row tall (~170px) regardless of how many
+     synergies become visible/teased — so DEPICT trees below never
+     shift when a synergy pops in or out mid-click. */
+  .synergy-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+    height: 170px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--ink) 25%, transparent) transparent;
+  }
+  .synergy-row::-webkit-scrollbar { height: 6px; }
+  .synergy-row::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--ink) 25%, transparent);
+    border-radius: 3px;
+  }
+  .synergy-row > .card {
+    flex: 0 0 calc((100% - 0.8rem) / 3);
+    height: 100%;
+    margin-bottom: 0;
+    overflow: hidden;
+  }
+  @media (max-width: 1400px) {
+    .synergy-row > .card { flex-basis: calc((100% - 0.4rem) / 2); }
+  }
+  @media (max-width: 700px) {
+    .synergy-row > .card { flex-basis: 100%; }
+  }
 
   /* ── GENERIC CARD ──────────────────────────────────────────────────── */
   .card {
