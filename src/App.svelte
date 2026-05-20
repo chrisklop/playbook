@@ -802,6 +802,7 @@
           {@const sf = !affordable && n > 0 ? shortfall(cost, a.costResource) : null}
           {@const owned = game.assets[a.id] ?? 0}
           {@const m = owned > 0 && Object.keys(a.produces).length > 0 ? milestoneInfo(owned) : null}
+          {@const aEffect = assetEffectInfo(a)}
           <button class="card asset cost-{a.costResource}" class:fresh={owned === 0} aria-disabled={!affordable} onclick={() => { if (!affordable) return; doBuyAsset(a.id); }} title={a.blurb + (pre ? '\n\n' + pre : '')} style="--afford: {ratio * 100}%">
             {#if owned === 0}<span class="fresh-badge">NEW</span>{/if}
             <div class="card-head">
@@ -809,7 +810,6 @@
               <span class="owned">×{owned}</span>
             </div>
             <div class="blurb">{a.blurb}</div>
-            {@const aEffect = assetEffectInfo(a)}
             {#if aEffect}<div class="effect res-{aEffect.resource}">{aEffect.text}</div>{/if}
             {#if m}
               <div class="milestone" title="At {m.next} owned: production multiplier rises from ×{m.cur.toFixed(2)} to ×{m.nextMult.toFixed(2)}. {m.next - owned} more to unlock.">
