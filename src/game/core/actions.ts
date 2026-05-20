@@ -132,7 +132,7 @@ export function checkPhaseTransitions(state: GameState): void {
       pushLog(state, '── Phase: BLOG ── You spin up a fake news site. Real ad money starts trickling in.');
     }
   } else if (state.phase === 'blog') {
-    if (state.resources.engagement >= 500_000) {
+    if (state.resources.engagement >= 150_000) {
       state.phase = 'social';
       state.flags['socialEraReached'] = true;
       unlockPlatforms(state, ['tiktok', 'youtube'], ['TikTok', 'YouTube']);
@@ -145,13 +145,13 @@ export function checkPhaseTransitions(state: GameState): void {
       pushLog(state, '── Phase: INFLUENCER ── Paywalled credibility on the front; coordination off-platform.');
     }
   } else if (state.phase === 'influencer') {
-    if (state.resources.credibility >= 1_000_000) {
+    if (state.resources.credibility >= 400_000) {
       state.phase = 'cable';
       unlockPlatforms(state, ['podcast'], ['Podcast networks']);
       pushLog(state, '── Phase: CABLE ── Bookings land. Your topic enters the chyron rotation.');
     }
   } else if (state.phase === 'cable') {
-    if (state.resources.narrativeDominance >= 10_000_000) {
+    if (state.resources.narrativeDominance >= 3_000_000) {
       state.phase = 'aisaturation';
       pushLog(state, '── Phase: AI SATURATION ── Every platform now generates content on its own. So do you.');
     }
