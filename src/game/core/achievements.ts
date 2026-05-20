@@ -133,7 +133,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   {
     id: 'ach-first-synergy',
     name: 'Force Multiplier',
-    hint: 'Activate any DEPICT synergy.',
+    hint: 'Activate any Playbook synergy.',
     trigger: (s) =>
       !!s.flags['syn:wedge-content'] ||
       !!s.flags['syn:fake-whistleblower'] ||
@@ -147,7 +147,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   },
   {
     id: 'ach-all-six',
-    name: 'Full DEPICT',
+    name: 'Full Playbook',
     hint: 'Have at least one upgrade in every tree.',
     trigger: (s) =>
       ['emotional','polarization','trolling','conspiracy','discrediting','impersonation']

@@ -996,7 +996,7 @@
                 <span class="name">??? + ???</span>
                 <span class="owned">locked</span>
               </div>
-              <div class="blurb">Unlocks when both DEPICT trees reach tier {sn.threshold}. The cost shown is what you'll pay AFTER it unlocks — having enough resources alone isn't enough.</div>
+              <div class="blurb">Unlocks when both Playbook trees reach tier {sn.threshold}. The cost shown is what you'll pay AFTER it unlocks — having enough resources alone isn't enough.</div>
               <div class="syn-prereq">
                 <span class:met={tLvlA >= sn.threshold}>{sn.trees[0]} {tLvlA}/{sn.threshold}</span>
                 <span class:met={tLvlB >= sn.threshold}>{sn.trees[1]} {tLvlB}/{sn.threshold}</span>
@@ -1010,7 +1010,7 @@
         </div>
       {:else}
         <div class="section-placeholder synergies-placeholder">
-          DEPICT synergies unlock when two trees reach matching tier thresholds. Keep investing.
+          Playbook synergies unlock when two trees reach matching tier thresholds. Keep investing.
         </div>
       {/if}
 
@@ -1250,8 +1250,8 @@
     {#if showTrees}
     <section class="col trees-col">
       <div class="section-head">
-        <h2>DEPICT trees</h2>
-        <button class="ghost depict-help-btn" onclick={() => (showDepictHelp = true)} title="What is DEPICT?">?</button>
+        <h2>The Playbook</h2>
+        <button class="ghost depict-help-btn" onclick={() => (showDepictHelp = true)} title="What is the Playbook?">?</button>
       </div>
       <div class="trees">
         {#each Object.keys(TREE_META) as treeId (treeId)}
@@ -1294,7 +1294,7 @@
     <div class="modal-backdrop" onclick={() => (showDepictHelp = false)} role="presentation">
       <div class="depict-modal" role="dialog" onclick={(e) => e.stopPropagation()}>
         <div class="depict-modal-head">
-          <h3>DEPICT — The Disinformation Playbook</h3>
+          <h3>The Playbook — Six Disinformation Tactics</h3>
           <button class="ghost" onclick={() => (showDepictHelp = false)}>close</button>
         </div>
         <p class="depict-modal-intro">
@@ -1412,7 +1412,7 @@
           </p>
           <ul>
             <li><strong>bots</strong> — count of all bot-kind assets you own (sock puppets, doppelganger clusters, spamouflage nodes).</li>
-            <li><strong>platform_amp</strong> — that platform's multiplier for your dominant DEPICT technique (X amps Trolling ×1.7, YouTube amps Conspiracy ×1.7, etc).</li>
+            <li><strong>platform_amp</strong> — that platform's multiplier for your dominant Playbook technique (X amps Trolling ×1.7, YouTube amps Conspiracy ×1.7, etc).</li>
             <li><strong>auto_bonus</strong> — +10% per Auto-Poster owned.</li>
             <li><strong>heat_penalty</strong> — drops yield as heat climbs (0% heat = 100% yield; 100% heat = 40% yield).</li>
           </ul>
@@ -1422,7 +1422,7 @@
           <strong>The three meters</strong>
           <ul>
             <li><strong>Heat</strong> — your platform-risk level. Rises with bot count + each post; falls naturally. <em>Higher heat = lower post yield AND a forced ban at 100%.</em></li>
-            <li><strong>Charge</strong> — fills over time (5s base, reduced by DEPICT levels). POST fires at 100% for full yield.</li>
+            <li><strong>Charge</strong> — fills over time (5s base, reduced by Playbook levels). POST fires at 100% for full yield.</li>
             <li><strong>Rate</strong> — your throttle. Slide it down to slow posting AND slow heat gain from bots. The dial that keeps you out of the ban zone.</li>
           </ul>
         </div>
@@ -1440,7 +1440,7 @@
         </div>
         <div class="depict-help-section">
           <strong>Per-platform character</strong>
-          <p>Each platform amplifies different DEPICT techniques. X loves Trolling and Emotional; YouTube loves Conspiracy; Substack rewards Discrediting. The dominant tree in your DEPICT mix determines which amplifier applies on each post.</p>
+          <p>Each platform amplifies different Playbook techniques. X loves Trolling and Emotional; YouTube loves Conspiracy; Substack rewards Discrediting. The dominant tree in your Playbook mix determines which amplifier applies on each post.</p>
         </div>
       </div>
     </div>
