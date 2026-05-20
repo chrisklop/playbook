@@ -61,20 +61,19 @@ export function computePrestigeGain(s: GameState): number {
 }
 
 // Permanent multiplier from legacy points (audit Finding 8).
-// Was: +4%/point, cap +200% (50 points = max). Now: sqrt curve with no
-// hard ceiling — diminishing returns instead of a wall.
+// sqrt curve with no hard ceiling — diminishing returns instead of a wall.
+// Coefficient doubled from 0.20 → 0.40 so prestiging is a real reward,
+// not a token bump. The reveal at 80% Mebro forces a reset eventually;
+// players should look forward to it, not dread it.
 //
-//   p=1   → ×1.20  (+20%)
-//   p=10  → ×1.63  (+63%)
-//   p=100 → ×3.00  (+200%)
-//   p=400 → ×5.00  (+400%)
-//   p=1000 → ×7.32 (+632%)
-//
-// Player always gets a little more from each prestige; the curve
-// flattens naturally without a discontinuity.
+//   p=1   → ×1.40  (+40%)
+//   p=10  → ×2.26  (+126%)
+//   p=100 → ×5.00  (+400%)
+//   p=400 → ×9.00  (+800%)
+//   p=1000 → ×13.65 (+1265%)
 export function legacyMultiplier(points: number): number {
   if (points <= 0) return 1;
-  return 1 + Math.sqrt(points) * 0.20;
+  return 1 + Math.sqrt(points) * 0.40;
 }
 
 // Execute prestige: bank points, wipe run save, return new legacy.

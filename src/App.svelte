@@ -767,7 +767,14 @@
     <div class="topbar-actions">
       {#if showBulkBuy && false /* moved to Assets section */}{/if}
       {#if legacy.points > 0 || prestigeGain > 0}
-        <button class="ghost prestige" onclick={openPrestige} title="Reset run, bank legacy points">
+        <button
+          class="ghost prestige"
+          class:prestige-ready={prestigeGain > 0}
+          onclick={openPrestige}
+          title={prestigeGain > 0
+            ? `Prestige now: +${prestigeGain} legacy → ×${legacyMultiplier(legacy.points + prestigeGain).toFixed(2)} permanent buff on next run`
+            : 'Prestige — bank legacy points for a permanent production buff'}
+        >
           ★ {legacy.points}{prestigeGain > 0 ? ` (+${prestigeGain})` : ''}
         </button>
       {/if}
@@ -1483,14 +1490,22 @@
             <span>New legacy total</span>
             <span class="num">★ {legacy.points + prestigeGain}</span>
           </div>
-          <div class="prestige-stat-row">
-            <span>Production buff after reset</span>
-            <span class="num">×{legacyMultiplier(legacy.points + prestigeGain).toFixed(2)}</span>
+          <div class="prestige-stat-row buff-delta">
+            <span>Production buff</span>
+            <span class="num">
+              ×{currentLegacyMult.toFixed(2)}
+              <span class="arrow">→</span>
+              <strong class="after">×{legacyMultiplier(legacy.points + prestigeGain).toFixed(2)}</strong>
+              <span class="delta">(+{Math.round((legacyMultiplier(legacy.points + prestigeGain) - currentLegacyMult) * 100)}%)</span>
+            </span>
           </div>
         </div>
+        <p class="prestige-pitch">
+          Every resource you produce — attention, engagement, followers, credibility — gets multiplied by this buff on the next run. <strong>Permanent. Stacks every prestige.</strong> A second run hits its previous milestones in a fraction of the time.
+        </p>
         <p class="prestige-warning">
-          Everything else resets — generators, upgrades, projects, patrons, achievements (this run).
-          Legacy points and best-run records persist forever.
+          Resets: generators, upgrades, projects, patrons, achievements (this run).
+          Persists: legacy points, the production buff, best-run records.
         </p>
         <div class="prestige-actions">
           <button class="ghost" onclick={() => (prestigeOpen = false)}>cancel</button>
@@ -2021,6 +2036,25 @@
     margin: 0;
     line-height: 1.4;
   }
+  .prestige-pitch {
+    font-size: 0.82rem;
+    color: var(--ink);
+    margin: 0;
+    line-height: 1.45;
+    padding: 0.55rem 0.7rem;
+    background: color-mix(in oklab, hsl(45 90% 45%) 7%, transparent);
+    border-left: 2px solid hsl(45 90% 45%);
+    border-radius: 4px;
+  }
+  .prestige-pitch strong { color: hsl(45 90% 45%); }
+  .buff-delta .arrow { color: var(--muted); margin: 0 0.3rem; }
+  .buff-delta .after { color: hsl(45 90% 45%); font-weight: 700; }
+  .buff-delta .delta {
+    margin-left: 0.4rem;
+    color: var(--ok);
+    font-weight: 600;
+    font-size: 0.85em;
+  }
   .prestige-actions {
     display: flex;
     gap: 0.6rem;
@@ -2197,6 +2231,18 @@
     color: hsl(45 90% 45%);
     border-color: hsl(45 90% 45%);
     font-weight: 600;
+  }
+  /* Pulse the button when a prestige is actually available — the
+     permanent buff scales fast (sqrt × 0.40), so the player should
+     feel pulled toward resetting rather than dreading it. */
+  .ghost.prestige.prestige-ready {
+    background: color-mix(in oklab, hsl(45 90% 45%) 14%, transparent);
+    box-shadow: 0 0 0 1px hsl(45 90% 45% / 0.4), 0 0 14px hsl(45 90% 45% / 0.25);
+    animation: prestige-ready-pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes prestige-ready-pulse {
+    0%, 100% { box-shadow: 0 0 0 1px hsl(45 90% 45% / 0.4), 0 0 12px hsl(45 90% 45% / 0.2); }
+    50%      { box-shadow: 0 0 0 1px hsl(45 90% 45% / 0.7), 0 0 22px hsl(45 90% 45% / 0.45); }
   }
 
   /* ── STATUS ROW (ticker + event in one 36px band) ──────────────────── */
