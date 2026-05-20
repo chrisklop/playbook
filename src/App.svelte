@@ -847,7 +847,7 @@
               <span class="buy-n">+{n}</span>
               <span class="cost num res-{a.costResource}">{fmt(cost)} {a.costResource}</span>
             </div>
-            {#if sf}<div class="shortfall">{sf}</div>{/if}
+            <div class="shortfall" class:visible={!!sf}>{sf ?? '\xa0'}</div>
             <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
           </button>
         {/each}
@@ -891,7 +891,7 @@
                 <span class="buy-n">one-shot</span>
                 <span class="cost num res-{res}">{fmt(amt as number)} {res}</span>
               </div>
-              {#if psf}<div class="shortfall">{psf}</div>{/if}
+              <div class="shortfall" class:visible={!!psf}>{psf ?? '\xa0'}</div>
               <div class="afford-fill" style="--fill: {ratio * 100}%"></div>
             </button>
           {/each}
@@ -934,6 +934,7 @@
                 <span class="owned">{sn.trees[0][0].toUpperCase()}+{sn.trees[1][0].toUpperCase()}</span>
               </div>
               <div class="blurb">{sn.blurb}</div>
+              <div class="effect">{sn.effectText}</div>
               {#if sn.precedent}<div class="precedent">{sn.precedent}</div>{/if}
               <div class="syn-prereq">
                 <span class:met={lvlA >= sn.threshold}>{sn.trees[0]} {lvlA}/{sn.threshold}</span>
@@ -2364,14 +2365,22 @@
       color-mix(in oklab, var(--tint) 14%, transparent));
   }
 
-  /* Shortfall hint shown on disabled buy buttons (UX-4). */
+  /* Shortfall hint shown on disabled buy buttons (UX-4).
+     INVARIANT: this slot ALWAYS renders so the tile height is stable
+     whether the player can afford it or not. Toggling visibility (not
+     display) keeps the slot's box in flow. Otherwise affording a tile
+     would shrink it and reflow every CSS-column-stacked sibling below. */
   .shortfall {
     font-size: 0.7rem;
     color: var(--bad);
     font-style: italic;
     margin-top: 0.15rem;
     text-align: right;
+    line-height: 1.15;
+    min-height: 1em;
+    visibility: hidden;
   }
+  .shortfall.visible { visibility: visible; }
   .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.4rem; }
   .name { font-weight: 600; font-size: 0.82rem; }
   /* Kind tag is purely decorative and eats horizontal space. Hidden by

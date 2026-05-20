@@ -12,9 +12,13 @@ export interface SynergyDef {
   threshold: number;
   cost: Partial<Record<ResourceId, number>>;
   blurb: string;
+  /**
+   * Concrete mechanical effect, surfaced on the card. Distinct from
+   * `blurb` (which is flavor) — this is what the synergy actually DOES.
+   */
+  effectText: string;
   precedent?: string;
   effect: (s: GameState) => void;
-  // Convenience helpers (computed from threshold + trees).
 }
 
 function bothAtLeast(s: GameState, [a, b]: [DepictId, DepictId], n: number): boolean {
@@ -28,7 +32,8 @@ export const SYNERGIES: SynergyDef[] = [
     trees: ['emotional', 'polarization'],
     threshold: 8,
     cost: { engagement: 50_000 },
-    blurb: 'Emotional + Polarization compound. Posts that split AND enrage get cross-platform multipliers.',
+    blurb: 'When both Emotional (outrage/fear) and Polarization (us-vs-them framing) are well-developed, every post compounds — outrage AND tribal division at once.',
+    effectText: '+25% engagement production · +10% attention production (permanent)',
     precedent: 'IRA "Heart of Texas" + "United Muslims of America" model — engineered both-sides outrage at the same target audience. (Senate Intel Vol. II, 2019)',
     effect: (s) => {
       s.flags['syn:wedge-content'] = true;
@@ -42,6 +47,7 @@ export const SYNERGIES: SynergyDef[] = [
     threshold: 8,
     cost: { engagement: 80_000 },
     blurb: '"Insider speaks out!" A fabricated leaker with a fabricated cache. Credibility for the price of nothing.',
+    effectText: '+30% credibility production · +15% engagement production (permanent)',
     precedent: 'Steele Dossier amplification arc (DOJ IG Horowitz report, 2019); various "DOD whistleblower" QAnon-adjacent personas; Cambridge Analytica whistleblower-as-counter framing.',
     effect: (s) => {
       s.flags['syn:fake-whistleblower'] = true;
@@ -54,7 +60,8 @@ export const SYNERGIES: SynergyDef[] = [
     trees: ['discrediting', 'trolling'],
     threshold: 8,
     cost: { engagement: 60_000 },
-    blurb: 'Many channels, all loud, all contradictory. The fact-checkers cannot keep up; their decay rate increases.',
+    blurb: 'Many channels, all loud, all contradictory. The fact-checkers cannot keep up.',
+    effectText: 'Platform heat decays 40% faster (permanent) — you can post harder, longer, before overheating',
     precedent: 'Steve Bannon: "The Democrats don\'t matter. The real opposition is the media. And the way to deal with them is to flood the zone with shit." (Frontline interview, 2018; Lewis, 2018.)',
     effect: (s) => {
       s.flags['syn:flood-the-zone'] = true;
@@ -67,7 +74,8 @@ export const SYNERGIES: SynergyDef[] = [
     trees: ['polarization', 'trolling'],
     threshold: 8,
     cost: { engagement: 100_000 },
-    blurb: 'A polarization post lands; the trolls pile on. The reach amplifies for 60s after each post.',
+    blurb: 'A polarization post lands; the trolls pile on. Audiences swarm in around tribal signals.',
+    effectText: '+40% followers production · +15% attention production (permanent)',
     precedent: 'Documented coordinated quote-tweet / mass-report patterns. K-pop stan armies, LibsOfTikTok targeting, anti-IDF/pro-IDF mass-reporting — cross-spectrum.',
     effect: (s) => {
       s.flags['syn:mob-surge'] = true;
@@ -81,6 +89,7 @@ export const SYNERGIES: SynergyDef[] = [
     threshold: 10,
     cost: { engagement: 200_000 },
     blurb: '"Save the children!" A genuine concern gets weaponized into an unfalsifiable belief system.',
+    effectText: '+30% engagement production (permanent)',
     precedent: '1980s Satanic Panic (McMartin Preschool, repressed-memory therapy fraud). QAnon\'s 2020 weaponization of "Save the Children" anti-trafficking branding. Cross-spectrum: both flanks have done versions.',
     effect: (s) => {
       s.flags['syn:moral-panic'] = true;
@@ -93,7 +102,8 @@ export const SYNERGIES: SynergyDef[] = [
     trees: ['discrediting', 'impersonation'],
     threshold: 8,
     cost: { engagement: 120_000 },
-    blurb: 'When fact-checked, accuse the fact-checkers of being the disinfo. Discrediting also nudges cure back.',
+    blurb: 'When fact-checked, accuse the fact-checkers of being the disinfo themselves.',
+    effectText: 'Cure (counter-narrative) grows 10% slower — buys more time before the Mebro reveal at 80%',
     precedent: 'KGB Operation Denver pattern: when challenged, the operation rotated to attacking the messengers. Russian Doppelganger ops use the same reverse-attribution technique.',
     effect: (s) => {
       s.flags['syn:reverse-smear'] = true;
@@ -107,6 +117,7 @@ export const SYNERGIES: SynergyDef[] = [
     threshold: 10,
     cost: { engagement: 250_000 },
     blurb: 'A "leaked" cache of "internal documents." Engagement spikes once; the fact-checkers spike too.',
+    effectText: 'One-shot: +500K engagement instantly · +5% cure (counter-narrative pressure)',
     precedent: 'Steele Dossier (2016, never fully verified); "Hunter Biden laptop" (2020, suppressed then authenticated then politicized); IRA-published fake DCCC files. Cross-spectrum — both flanks have run versions.',
     effect: (s) => {
       s.flags['syn:false-document-leak'] = true;
@@ -126,6 +137,7 @@ export const SYNERGIES: SynergyDef[] = [
     threshold: 12,
     cost: { engagement: 400_000 },
     blurb: 'Run a fake "leader of your team." Polarization platforms gain a credible insider asset.',
+    effectText: '+50% followers production · +20% engagement production (permanent)',
     precedent: 'IRA "Blacktivist," "Heart of Texas," "Being Patriotic" Facebook pages — fake American activist personas with hundreds of thousands of followers. (Senate Intel Vol. II, 2019.)',
     effect: (s) => {
       s.flags['syn:tribal-trojan'] = true;
