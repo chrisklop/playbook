@@ -5,6 +5,13 @@
 export interface Fact {
   text: string;
   source: string;
+  /**
+   * Optional gate: this fact only enters the ticker rotation once
+   * the player's Mebro Index (game.cure) is ≥ this value (0–1).
+   * Used to seed the Mebro-themed entries that quietly tease the
+   * reveal as the meter climbs.
+   */
+  minCure?: number;
 }
 
 export const FACTS: Fact[] = [
@@ -119,5 +126,38 @@ export const FACTS: Fact[] = [
   {
     text: 'E. Jean Carroll v Trump: $83.3 million defamation judgment (2024). Dominion v Fox: $787.5M (2023). Sandy Hook v Jones: $1.5B (2022).',
     source: 'Federal and state court records, 2022–2024',
+  },
+
+  // ── Mebro tease line — quietly seeds the reveal as Mebro Index climbs.
+  // Each line gates by the meter; the world fills in around the player.
+  {
+    text: 'Reddit thread: "Anyone tried this Mebro app? Friend keeps pasting links into it before believing anything."',
+    source: 'r/OutOfTheLoop, observed in the wild',
+    minCure: 0.05,
+  },
+  {
+    text: 'Mebro just added 8 new disinfo signatures this week — sock-puppet patterns, doppelganger clusters, brigading fingerprints.',
+    source: 'Mebro release notes',
+    minCure: 0.15,
+  },
+  {
+    text: 'A small Substack now recommends Mebro as a "sanity check before sharing." Subscribers are taking the habit with them.',
+    source: 'Substack roundup post',
+    minCure: 0.25,
+  },
+  {
+    text: 'Discord moderators are pinning Mebro in their #news channels — community-built defense, no platform required.',
+    source: 'Community moderator forums',
+    minCure: 0.35,
+  },
+  {
+    text: 'Mebro fingerprinted a Houston Mosque–style cross-spectrum bait post within hours of it going up.',
+    source: 'Mebro detection log',
+    minCure: 0.50,
+  },
+  {
+    text: 'Local newsroom adds Mebro to its verification workflow. Other regional outlets are watching.',
+    source: 'Nieman Lab brief',
+    minCure: 0.65,
   },
 ];

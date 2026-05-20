@@ -107,7 +107,7 @@ export function topRecommendations(state: GameState): Recommendation[] {
       type: 'prestige',
       id: 'prestige',
       title: 'Prestige — bank legacy points',
-      detail: `Cure at ${(state.cure * 100).toFixed(0)}%. Reveal triggers at 80%.`,
+      detail: `Mebro Index at ${(state.cure * 100).toFixed(0)}% — your reach starts collapsing at 80%.`,
       score: BASE_IMPACT['prestige'] * (1 + (state.cure - 0.6) * 2),
       rank: -1,
     });

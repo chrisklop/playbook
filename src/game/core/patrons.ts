@@ -95,7 +95,7 @@ export const PATRONS: PatronDef[] = [
     cost: { engagement: 400_000 },
     cureJump: 0.10,
     buffs: { attention: 0.15, engagement: 0.15, followers: 0.10 },
-    blurb: 'A Project-Lakhta-style umbrella appears: shell companies, wire transfers, "media holdings" billing for 80 full-time staff posing as Americans. Real money; faster cure.',
+    blurb: 'A Project-Lakhta-style umbrella appears: shell companies, wire transfers, "media holdings" billing for 80 full-time staff posing as Americans. Real money; Mebro climbs faster.',
     precedents: [
       'Russian IRA: $1.25M/month operating budget, ~80 full-time staff posing as Americans, 2014–2018. (Senate Intel Vol. II, 2019)',
       'Chinese Spamouflage Dragon (Graphika 2019+): single largest covert influence op Meta has tracked — ~7,700 accounts Q3 2023.',
@@ -174,7 +174,7 @@ export const PATRONS: PatronDef[] = [
     cost: { credibility: 3_000_000 },
     cureJump: 0.08,
     buffs: { engagement: 0.40, attention: 0.30 },
-    blurb: 'A coalition of prime-time hosts, "America First" podcasters, and offline organizers offers exclusive sourcing. The audience is loyal; the cure spikes harder.',
+    blurb: 'A coalition of prime-time hosts, "America First" podcasters, and offline organizers offers exclusive sourcing. The audience is loyal; Mebro spikes harder.',
     precedents: [
       'Tucker Carlson Fox era (2016–2023): ~400 airings of "great replacement" framing per Media Matters tally. Fired April 2023 post-Dominion settlement.',
       'Nick Fuentes / America First: organized AFPAC 2020–2024, opposed CPAC; documented livestream rhetoric, plus 2022 Trump dinner at Mar-a-Lago with Ye.',

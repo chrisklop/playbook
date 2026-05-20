@@ -391,21 +391,30 @@
   );
 
   // Rotating ticker — paused on click. (UX-10)
+  // Facts can gate by Mebro Index (game.cure) via the optional `minCure`
+  // field. As the meter climbs, Mebro-themed entries quietly enter
+  // rotation so the world fills in around the player.
   let factIndex = $state(0);
   let tickerPaused = $state(false);
+  const eligibleFacts = $derived(
+    FACTS.filter((f) => game.cure >= (f.minCure ?? 0)),
+  );
   onMount(() => {
-    factIndex = Math.floor(Math.random() * FACTS.length);
+    factIndex = Math.floor(Math.random() * Math.max(1, eligibleFacts.length));
     const handle = setInterval(() => {
       if (tickerPaused) return;
-      factIndex = (factIndex + 1) % FACTS.length;
+      const n = Math.max(1, eligibleFacts.length);
+      factIndex = (factIndex + 1) % n;
     }, 25_000);
     return () => clearInterval(handle);
   });
-  const currentFact = $derived(FACTS[factIndex]);
+  const currentFact = $derived(
+    eligibleFacts[factIndex % Math.max(1, eligibleFacts.length)] ?? FACTS[0],
+  );
   function tickerClick() {
     if (tickerPaused) {
-      // already paused → advance to next on click
-      factIndex = (factIndex + 1) % FACTS.length;
+      const n = Math.max(1, eligibleFacts.length);
+      factIndex = (factIndex + 1) % n;
     } else {
       tickerPaused = true;
     }
@@ -716,11 +725,11 @@
           style="--fill: {game.cure * 100}%"
           title={
             game.reveal.active
-              ? 'CURE 80%+ · The counter-narrative wins. Mebro fact-checks are landing on your content; reach is dropping fast. Time to ★ Prestige and start a smarter run.'
-              : 'Cure (counter-narrative pressure) — rises with total platform heat. Fact-checkers, watchdogs, investigative pieces, defamation suits, and platform policy changes all push it up. At 80% the Mebro reveal triggers: your network gets fact-checked into oblivion. Discrediting upgrades suppress cure growth (up to −80%). Use it as a clock: how much can you build before the truth catches up?'
+              ? 'Mebro Index 80%+ — fact-checks are landing on your content and reach is dropping fast. Time to ★ Prestige and start a smarter run.'
+              : 'Mebro Index — a fact-checking tool that quietly grows more effective as your network gets bigger and louder. The hotter your platforms run, the faster it climbs. Once it goes mainstream, your reach collapses. Discrediting upgrades slow it down (up to −80%).'
           }
         >
-          <div class="rlabel"><span class="res-dot cure-dot"></span>Cure</div>
+          <div class="rlabel"><span class="res-dot cure-dot"></span>Mebro</div>
           <div class="rvalue num">{(game.cure * 100).toFixed(2)}<span class="cap">%</span></div>
           <div class="rrate">{game.reveal.active ? 'REVEAL' : ''}</div>
           <div class="rfill cure-fill" style="--fill: {game.cure * 100}%"></div>
@@ -775,7 +784,7 @@
   </header>
 
   {#if game.reveal.active}
-    <div class="reveal-banner" title="Mebro reveal triggered at 80% cure. The Playbook's payload: the player should also visit the real fact-checking app Mebro at mebro.app — which is what 'cure' has represented this whole time.">
+    <div class="reveal-banner" title="Mebro Index hit 80% — the fact-checking tool you've been watching climb just went mainstream. Visit the real Mebro app at mebro.app.">
       <span class="reveal-icon">⚠</span>
       <div class="reveal-text">
         <strong>THE PLAYBOOK IS UP</strong> — Mebro fact-checks are landing on your content. The counter-narrative wins; reach is collapsing.
@@ -1044,7 +1053,7 @@
                 <span class="owned">{pa.archetype}</span>
               </div>
               <div class="blurb">{pa.blurb}</div>
-              <div class="effect">{Object.entries(pa.buffs).map(([r, v]) => `+${Math.round((v as number) * 100)}% ${r}`).join(' · ')} · cure +{Math.round(pa.cureJump * 100)}%</div>
+              <div class="effect">{Object.entries(pa.buffs).map(([r, v]) => `+${Math.round((v as number) * 100)}% ${r}`).join(' · ')} · Mebro +{Math.round(pa.cureJump * 100)}%</div>
               {#if ppre}
                 <div class="precedent">
                   {ppre}
@@ -1306,7 +1315,7 @@
             <span class="tree-tag tree-discrediting-letter">D</span>
             <div>
               <strong>Discrediting</strong> · attacks on the messenger
-              <span class="depict-tech-target res-attention">→ attention + cure suppression</span>
+              <span class="depict-tech-target res-attention">→ attention + Mebro suppression</span>
             </div>
           </div>
           <div class="depict-tech-row">

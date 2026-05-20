@@ -103,7 +103,7 @@ export const SYNERGIES: SynergyDef[] = [
     threshold: 8,
     cost: { engagement: 120_000 },
     blurb: 'When fact-checked, accuse the fact-checkers of being the disinfo themselves.',
-    effectText: 'Cure (counter-narrative) grows 10% slower — buys more time before the Mebro reveal at 80%',
+    effectText: 'Mebro Index climbs 10% slower — buys more time before your reach starts collapsing at 80%',
     precedent: 'KGB Operation Denver pattern: when challenged, the operation rotated to attacking the messengers. Russian Doppelganger ops use the same reverse-attribution technique.',
     effect: (s) => {
       s.flags['syn:reverse-smear'] = true;
@@ -117,7 +117,7 @@ export const SYNERGIES: SynergyDef[] = [
     threshold: 10,
     cost: { engagement: 250_000 },
     blurb: 'A "leaked" cache of "internal documents." Engagement spikes once; the fact-checkers spike too.',
-    effectText: 'One-shot: +500K engagement instantly · +5% cure (counter-narrative pressure)',
+    effectText: 'One-shot: +500K engagement instantly · +5% Mebro Index (the fact-check tide rises with you)',
     precedent: 'Steele Dossier (2016, never fully verified); "Hunter Biden laptop" (2020, suppressed then authenticated then politicized); IRA-published fake DCCC files. Cross-spectrum — both flanks have run versions.',
     effect: (s) => {
       s.flags['syn:false-document-leak'] = true;
