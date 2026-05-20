@@ -39,6 +39,29 @@
     return node.tier === 2 && !tier2Unlocked;
   }
 
+  // Compact per-level effect text shown under each hex.
+  // e.g. "+1.5% att/lvl · now +9%"  for a leveled node
+  //      "+1.5% att/lvl"            for an unlearned one
+  function effectText(node: typeof UPGRADES[number], lvl: number): string {
+    const RES_ABBR: Record<string, string> = {
+      attention: 'att',
+      engagement: 'eng',
+      followers: 'fol',
+      credibility: 'cred',
+      narrativeDominance: 'nar',
+      syntheticReality: 'syn',
+    };
+    return Object.entries(node.multiplier).map(([res, per]) => {
+      const perPct = ((per as number) * 100).toFixed(1);
+      const abbr = RES_ABBR[res] ?? res;
+      if (lvl > 0) {
+        const totalPct = ((per as number) * lvl * 100).toFixed(1);
+        return `+${perPct}% ${abbr}/lvl · now +${totalPct}%`;
+      }
+      return `+${perPct}% ${abbr}/lvl`;
+    }).join(' · ');
+  }
+
   // Tree-level affordability cue: true if any non-locked, non-maxed node
   // in this tree is currently affordable. Drives a pulse on the tree
   // header and on each affordable hex.
@@ -142,6 +165,7 @@
             </span>
             <span class="hex-level">{lvl}/{node.maxLevel}</span>
             <span class="hex-label">{node.name}</span>
+            <span class="hex-effect">{effectText(node, lvl)}</span>
             {#if locked}<span class="hex-lock" aria-hidden="true">🔒</span>{/if}
           </button>
         {/each}
@@ -321,7 +345,27 @@
     white-space: nowrap;
     padding: 0 2px;
     box-sizing: border-box;
+    font-weight: 600;
   }
+  /* Per-level effect, e.g. "+1.5% att/lvl · now +9%". Sits under the
+     name label so the player can see what a hex actually does without
+     hovering. Truncates at narrow widths. */
+  .hex-effect {
+    font-size: 0.52rem;
+    color: var(--ok);
+    text-align: center;
+    line-height: 1.15;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 2px;
+    box-sizing: border-box;
+    font-variant-numeric: tabular-nums;
+  }
+  .hex-node.locked .hex-effect { opacity: 0.5; }
+  .hex-node.maxed .hex-effect { color: hsl(140 70% 60%); }
   .hex-lock {
     position: absolute;
     top: 10px;

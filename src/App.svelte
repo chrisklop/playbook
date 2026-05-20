@@ -1066,14 +1066,19 @@
                      never shifts the buttons. -->
                 <div class="plt-leds" aria-label="heat {(p.heat * 100).toFixed(0)}%">
                   {#each Array(8) as _, i (i)}
-                    <!-- i=0 at top of the column (natural flow). Heat fills
-                         from the BOTTOM up like a thermometer: the bottom
-                         N segments light when litCount=N. Top 3 segments
-                         (i<3) are critical slots and flash red when lit. -->
-                    {@const litCount = Math.round(p.heat * 8)}
-                    {@const lit = i >= 8 - litCount}
-                    {@const crit = lit && i < 3}
-                    <span class="plt-led" class:on={lit} class:critical={crit}></span>
+                    <!-- i=0 at top, i=7 at bottom (natural flow).
+                         i=7 is the always-on green baseline.
+                         i=0..6 are the 7 heat-indicator segments (lit
+                         from bottom up). Color tiers map to position:
+                           i=4..6 = yellow (low heat)
+                           i=2..3 = orange (mid)
+                           i=0..1 = red (high; flashes when lit) -->
+                    {@const litCount = Math.ceil(p.heat * 7)}
+                    {@const isBaseline = i === 7}
+                    {@const lit = isBaseline || i >= 7 - litCount}
+                    {@const tier = i < 2 ? 'red' : i < 4 ? 'orange' : i < 7 ? 'yellow' : 'green'}
+                    {@const crit = lit && tier === 'red'}
+                    <span class="plt-led tier-{tier}" class:on={lit} class:baseline={isBaseline} class:critical={crit}></span>
                   {/each}
                 </div>
               </div>
@@ -2590,13 +2595,25 @@
     box-shadow: inset 0 0 1px hsl(0 0% 0%);
     transition: background 140ms;
   }
-  .plt-led.on {
-    background: var(--warn);
-    box-shadow: 0 0 4px color-mix(in oklab, var(--warn) 60%, transparent);
+  /* Always-on green baseline at the bottom */
+  .plt-led.baseline {
+    background: hsl(140 60% 38%);
+    box-shadow: 0 0 4px hsl(140 60% 50% / 0.6);
+  }
+  /* Tier colors when lit (low → high heat) */
+  .plt-led.tier-yellow.on {
+    background: hsl(50 85% 52%);
+    box-shadow: 0 0 4px hsl(50 85% 55% / 0.7);
+  }
+  .plt-led.tier-orange.on {
+    background: hsl(28 95% 52%);
+    box-shadow: 0 0 5px hsl(28 95% 55% / 0.8);
+  }
+  .plt-led.tier-red.on {
+    background: hsl(0 85% 52%);
+    box-shadow: 0 0 6px hsl(0 85% 55% / 0.85);
   }
   .plt-led.critical {
-    background: var(--bad);
-    box-shadow: 0 0 6px color-mix(in oklab, var(--bad) 80%, transparent);
     animation: heat-pulse 0.85s ease-in-out infinite;
   }
   @keyframes heat-pulse {
