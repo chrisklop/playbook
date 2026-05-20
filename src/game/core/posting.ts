@@ -93,6 +93,7 @@ export function postPlatform(state: GameState, platformId: PlatformId): boolean 
 
   p.chargeProgress = 0;
   p.heat = clamp(p.heat + HEAT_PER_POST, 0, 1);
+  bumpDetectionOnPost(state);
   return true;
 }
 
@@ -128,6 +129,7 @@ export function freestylePost(state: GameState, platformId: PlatformId): boolean
   // pushing it while hot punishes harder (0%→+4%, 100%→+8%).
   const heatCost = HEAT_PER_FREESTYLE_POST * (1 + p.heat);
   p.heat = clamp(p.heat + heatCost, 0, 1);
+  bumpDetectionOnPost(state);
   return true;
 }
 
@@ -136,6 +138,22 @@ export function freestyleYield(state: GameState, platformId: PlatformId): number
   if (!p) return 0;
   const yieldRatio = Math.max(FREESTYLE_MIN_YIELD, p.chargeProgress);
   return postYield(state, platformId) * yieldRatio;
+}
+
+/**
+ * Per-asset detection bump at post time. Every owned asset type gets a
+ * +0.5% detection bump on each post from any platform. Also marks
+ * lastPostUsing[type] so the passive-decay timer resets.
+ */
+function bumpDetectionOnPost(state: GameState): void {
+  for (const a of ASSETS) {
+    const count = state.assets[a.id] ?? 0;
+    if (count <= 0) continue;
+    state.lastPostUsing[a.id] = state.lastTick;
+    const baseline = state.assetDetectionBaseline[a.id] ?? 0;
+    const current = state.assetDetection[a.id] ?? baseline;
+    state.assetDetection[a.id] = Math.min(100, current + 0.5);
+  }
 }
 
 export function tickPosting(state: GameState, dt: number): void {
