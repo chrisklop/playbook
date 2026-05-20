@@ -1009,7 +1009,7 @@
           {/each}
         </div>
       {:else}
-        <div class="section-placeholder">
+        <div class="section-placeholder synergies-placeholder">
           DEPICT synergies unlock when two trees reach matching tier thresholds. Keep investing.
         </div>
       {/if}
@@ -2688,6 +2688,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  /* The synergies row, once populated, is the tallest "spend-side"
+     row on the board. Reserve that exact footprint up-front so the
+     row is the same height before, during, and after a synergy
+     appears — DEPICT trees never jump while you're clicking. */
+  .section-placeholder.synergies-placeholder {
+    min-height: 170px;
+    align-items: center;
   }
 
   /* Shortfall hint shown on disabled buy buttons (UX-4).
