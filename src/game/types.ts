@@ -106,6 +106,13 @@ export interface GameState {
   version: number;
   phase: PhaseId;
   acknowledgedPhase: PhaseId;
+  // Mebro antagonist run state. All reset on prestige.
+  assetDetection: Record<string, number>;          // 0–100 per asset type
+  assetDetectionBaseline: Record<string, number>;  // permanent floors from rotation penalty
+  lastPostUsing: Record<string, number>;           // timestamp (state.lastTick value) per asset type
+  cooldowns: Record<string, number>;               // platform id → expiry timestamp; also 'rotate:<assetType>' → last rotation timestamp
+  counterNarrativeUntil: number;                   // 0 if inactive
+  counterNarrativeCastCount: number;
   resources: Record<ResourceId, number>;
   caps: Record<ResourceId, number>;
   assets: Record<string, number>;
@@ -128,4 +135,4 @@ export interface GameState {
   pendingOfflineSummary?: OfflineSummary | null;
 }
 
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
