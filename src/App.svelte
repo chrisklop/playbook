@@ -720,32 +720,9 @@
       <!-- per-platform POST buttons are on the platform cards now -->
       {#if false}<span></span>{/if}
     </div>
-    <!-- Status content — ticker + event + next moves, INLINE in the topbar
-         (previously a separate row below). Saves a whole row of vertical
-         real estate. -->
+    <!-- Status content — next moves only. Event headline + ticker now
+         live as a 2-line banner at the top of the platforms column. -->
     <div class="topbar-status">
-      {#if showTicker}
-        <div
-          class="topbar-ticker"
-          class:paused={tickerPaused}
-          onclick={tickerClick}
-          ondblclick={tickerDblClick}
-          role="button"
-          tabindex="0"
-          title={tickerPaused ? 'paused · click to step · double-click to resume rotation' : 'click to pause · auto-rotates every 25s'}
-        >
-          <span class="topbar-ticker-text">
-            {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
-          </span>
-          {#if tickerPaused}<span class="tick-paused">⏸</span>{/if}
-        </div>
-      {:else}
-        <div class="topbar-ticker"></div>
-      {/if}
-
-      <!-- Event headline relocated to top of the platforms column —
-           see <section class="col platforms-col"> below. -->
-
       <div class="topbar-next" aria-label="next moves">
         <span class="topbar-next-label">⚡ NEXT</span>
         {#if recs.length === 0}
@@ -1086,25 +1063,45 @@
     <!-- RIGHT: Platforms — fixed-width column showing a single-column stack -->
     {#if showPlatformGrid}
     <section class="col platforms-col">
-      <!-- Event headline lives here now (moved from topbar). Fixed-height
-           slot so platforms cards below never shift when an event starts
-           or ends. -->
+      <!-- Two-line banner: line 1 = current event headline, line 2 =
+           rotating ticker fact (was previously in the topbar). Fixed
+           height keeps platform cards below stable when state flips. -->
       <div class="platform-event" class:has-event={!!activeEvent} class:negative={activeEvent && activeEvent.mult < 1}>
-        {#if activeEvent && activeEventDef}
-          <span class="event-pulse">▶</span>
-          <span class="platform-event-headline">{activeEventDef.headline}</span>
-          <span class="event-effect">
-            {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
-            {activeEvent.resourceId}
-          </span>
-          <span class="event-countdown num">{eventSecsLeft}s</span>
-          <div class="event-progress">
-            <div class="event-progress-fill" style="--fill: {eventProgress * 100}%"></div>
-          </div>
-        {:else}
-          <span class="event-pulse">○</span>
-          <span class="platform-event-headline idle">no active headline — next event in 1–2 min</span>
-        {/if}
+        <div class="platform-event-line1">
+          {#if activeEvent && activeEventDef}
+            <span class="event-pulse">▶</span>
+            <span class="platform-event-headline">{activeEventDef.headline}</span>
+            <span class="event-effect">
+              {activeEvent.mult >= 1 ? '+' : ''}{Math.round((activeEvent.mult - 1) * 100)}%
+              {activeEvent.resourceId}
+            </span>
+            <span class="event-countdown num">{eventSecsLeft}s</span>
+          {:else}
+            <span class="event-pulse">○</span>
+            <span class="platform-event-headline idle">no active headline — next event in 1–2 min</span>
+          {/if}
+        </div>
+        <div
+          class="platform-event-line2"
+          class:paused={tickerPaused}
+          role={showTicker ? 'button' : undefined}
+          tabindex={showTicker ? 0 : undefined}
+          onclick={showTicker ? tickerClick : undefined}
+          ondblclick={showTicker ? tickerDblClick : undefined}
+          title={showTicker ? (tickerPaused ? 'paused · click to step · double-click to resume rotation' : 'click to pause · auto-rotates every 25s') : undefined}
+        >
+          {#if showTicker}
+            <span class="platform-event-ticker">
+              {currentFact.text} <em class="tick-source">— {currentFact.source}</em>
+            </span>
+            {#if tickerPaused}<span class="tick-paused">⏸</span>{/if}
+          {:else}
+            <span class="platform-event-ticker idle">&nbsp;</span>
+          {/if}
+        </div>
+        <div class="event-progress">
+          <div class="event-progress-fill" style="--fill: {activeEvent ? eventProgress * 100 : 0}%"></div>
+        </div>
       </div>
       <div class="section-head">
         <h2>Platforms</h2>
@@ -2177,12 +2174,10 @@
   /* Status content lives INSIDE the topbar now — ticker | event | next
      moves on one inline row, between the resources and the action
      buttons. Saves a full row of vertical real estate. */
-  /* Now 2-col: ticker | next moves. Event banner moved to top of
-     platforms column (user request — gives topbar room to breathe). */
+  /* Now just next-moves. Ticker + event headline merged into the
+     2-line platforms-event banner. */
   .topbar-status {
-    display: grid;
-    grid-template-columns: 1fr 2fr;
-    gap: 0.6rem;
+    display: flex;
     align-items: center;
     min-width: 0;
     height: 100%;
@@ -2257,16 +2252,18 @@
   }
   .topbar-event.has-event.negative .event-progress-fill { background: var(--bad); }
 
-  /* Event banner at the top of the platforms column (moved from
-     topbar per user request). Same content + fixed-height slot so
-     platforms tiles below never shift when an event starts/ends. */
+  /* Two-line banner at the top of the platforms column.
+     Line 1: current event (headline + effect + countdown).
+     Line 2: rotating ticker fact (was in the topbar).
+     Fixed height so platform tiles below never shift. */
   .platform-event {
     position: relative;
     display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    height: 32px;
-    padding: 0 0.55rem;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+    height: 50px;
+    padding: 0.3rem 0.55rem 0.4rem;
     background: color-mix(in oklab, var(--ink) 3%, var(--paper-2));
     border: 1px solid var(--line);
     border-radius: 5px;
@@ -2275,6 +2272,28 @@
   }
   .platform-event.has-event { color: var(--ok); border-color: color-mix(in oklab, var(--ok) 40%, var(--line)); }
   .platform-event.has-event.negative { color: var(--bad); border-color: color-mix(in oklab, var(--bad) 40%, var(--line)); }
+  .platform-event-line1 {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    line-height: 1.15;
+  }
+  .platform-event-line2 {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-width: 0;
+    color: var(--muted);
+    font-size: 0.68rem;
+    line-height: 1.15;
+    cursor: pointer;
+    border-radius: 3px;
+    padding: 1px 2px;
+    margin: 0 -2px;
+  }
+  .platform-event-line2:hover { background: color-mix(in oklab, var(--ink) 4%, transparent); }
+  .platform-event-line2.paused { background: color-mix(in oklab, var(--accent) 6%, transparent); }
   .platform-event-headline {
     flex: 1;
     min-width: 0;
@@ -2284,6 +2303,14 @@
     color: inherit;
   }
   .platform-event-headline.idle { color: var(--muted); font-style: italic; }
+  .platform-event-ticker {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .platform-event-ticker .tick-source { color: color-mix(in oklab, var(--muted) 70%, transparent); font-style: italic; }
   .platform-event .event-effect { font-weight: 600; flex-shrink: 0; }
   .platform-event .event-countdown { color: var(--muted); flex-shrink: 0; }
   .platform-event .event-pulse { flex-shrink: 0; }
